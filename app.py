@@ -244,9 +244,13 @@ def process_urls():
             for url in urls:
                 url = url.strip()
                 if url and url not in processed_urls:
-                    asyncio.run(synthesize_text_to_speech(url))
-                    processed_urls.add(url)
-                    logging.info(f"Processed: {url}")
+                    try:
+                        asyncio.run(synthesize_text_to_speech(url))
+                        processed_urls.add(url)
+                        logging.info(f"Processed: {url}")
+                    except Exception as e:
+                        logging.error(f"Error processing URL {url}: {e}")
+                        updated_urls.append(url)
                 else:
                     updated_urls.append(url)
 
@@ -267,6 +271,14 @@ def process_urls():
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=False)
     observer.start()
+
+    try:
+        while not stop_event.is_set():
+            stop_event.wait(1)
+    finally:
+        observer.stop()
+        observer.join()
+
 
     try:
         while not stop_event.is_set():
