@@ -44,7 +44,7 @@ This is a first alpha version but I plan to extend it to support other content t
 
 4. **Set up environment variables:**
 
-   Create a `.env` file in the root directory of the project with the following content:
+   Rename  `.env.example` file in the root director to `.env` and edit the content to your preference:
 
    ```sh
    OUTPUT_DIR=Output # Directory to store output files
