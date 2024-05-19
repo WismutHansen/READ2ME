@@ -12,3 +12,6 @@ process_log.txt
 
 #Output folder containing the audio and .md files
 Output/
+
+# URL file
+urls.txt
