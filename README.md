@@ -77,7 +77,7 @@ This is a first alpha version but I plan to extend it to support other content t
    **Run the Docker container (with a volume mount if you want to access the Output Folder from outside the container):**
 
    ```sh
-   docker run -p 7777:7777 -v          /path/to/local/output/dir:/app/Output read2me
+   docker run -p 7777:7777 -v /path/to/local/output/dir:/app/Output read2me
    ```
 
 
