@@ -195,10 +195,9 @@ async def synthesize_text_to_speech(url: str):
     content_type = is_pdf_or_html(url)
     if content_type == 'HTML':
         try:
-            result = extract_text(url)
-            if result is None or len(result) != 2:
-                raise ValueError("Extracted result does not contain exactly two elements")
-            text, title = result
+            text, title = extract_text(url)
+            if not text or not title:
+                raise ValueError("Failed to extract text or title")
         except Exception as e:
             logging.error(f"Failed to extract text and title from URL {url}: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to extract text and title from URL: {e}")
@@ -206,31 +205,32 @@ async def synthesize_text_to_speech(url: str):
         logging.error(f"Unsupported content type or unable to determine content type for URL {url}")
         raise HTTPException(status_code=400, detail="Unsupported content type or unable to determine content type.")
 
-    if not text:
-        logging.error(f"No text extracted from the provided URL {url}")
-        raise HTTPException(status_code=400, detail="No text extracted from the provided URL")
-
     base_file_name, mp3_file, md_file = await get_output_files()
 
     with open(md_file, 'w') as md_file_handle:
         md_file_handle.write(text)
         md_file_handle.write(f"\n\nSource: {url}")
 
-    voices = await VoicesManager.create()
-    multilingual_voices = [voice for voice in voices.voices if "MultilingualNeural" in voice["Name"]]
-    if not multilingual_voices:
-        logging.error("No MultilingualNeural voices found")
-        raise HTTPException(status_code=500, detail="No MultilingualNeural voices found")
+    try:
+        voices = await VoicesManager.create()
+        multilingual_voices = [voice for voice in voices.voices if "MultilingualNeural" in voice["Name"]]
+        if not multilingual_voices:
+            logging.error("No MultilingualNeural voices found")
+            raise HTTPException(status_code=500, detail="No MultilingualNeural voices found")
 
-    voice = random.choice(multilingual_voices)["Name"]
+        voice = random.choice(multilingual_voices)["Name"]
 
-    communicate = edge_tts.Communicate(text, voice, rate="+10%")
-    await communicate.save(mp3_file)
+        communicate = edge_tts.Communicate(text, voice, rate="+10%")
+        await communicate.save(mp3_file)
 
-    add_mp3_tags(mp3_file, title)
+        add_mp3_tags(mp3_file, title)
 
-    logging.info(f"Successfully processed URL {url}")
-    return mp3_file, md_file
+        logging.info(f"Successfully processed URL {url}")
+        return mp3_file, md_file
+    except Exception as e:
+        logging.error(f"Error in text-to-speech synthesis for URL {url}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error in text-to-speech synthesis: {e}")
+
 
 def process_urls():
     processed_urls = set()
