@@ -22,6 +22,8 @@ This is a first alpha version but I plan to extend it to support other content t
 
 ## Installation
 
+### Native Python Installation
+
 1. **Clone the repository:**
 
    ```sh
@@ -51,14 +53,33 @@ This is a first alpha version but I plan to extend it to support other content t
    URL_FILE=urls.txt # File containing URLs to process
    IMG_PATH=front.jpg # Path to image file to use as cover
    ```
+### Docker Installation
+
+   **Build the Docker image**
+   ```sh
+   docker build -t read2me .
+   ```
+
 
 ## Usage
 
-1. **Run the FastAPI application:**
+1. 
+   ### Native 
+   **Run the FastAPI application:**
 
    ```sh
    uvicorn app:app --host 0.0.0.0 --port 7777
    ```
+   ### Docker
+
+
+
+   **Run the Docker container (with a volume mount if you want to access the Output Folder from outside the container):**
+
+   ```sh
+   docker run -p 7777:7777 -v          /path/to/local/output/dir:/app/Output read2me
+   ```
+
 
 2. **Add URLs for processing:**
 
