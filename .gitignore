@@ -1,5 +1,7 @@
+# Ignore the.env file in the root directory
+.env
 
-# ommit the DS_Store folder automatically created by macOS
+# Ommit the DS_Store folder automatically created by macOS
 .DS_Store/
 
 # python virtual environment folder
