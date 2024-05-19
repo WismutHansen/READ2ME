@@ -57,7 +57,7 @@ This is a first alpha version but I plan to extend it to support other content t
 1. **Run the FastAPI application:**
 
    ```sh
-   python app.py
+   uvicorn app:app --host 0.0.0.0 --port 7777
    ```
 
 2. **Add URLs for processing:**

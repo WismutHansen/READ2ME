@@ -296,9 +296,11 @@ processed_keys = set()
 
 @app.post("/synthesize/")
 async def synthesize(request: URLRequest):
-    with open('urls.txt', 'a') as f:
+    logging.info(f"Received URL: {request.url}")
+    with open(urls_file, 'a') as f:
         f.write(f"{request.url}\n")
     return {"message": "URL added to the processing list"}
+
 
 if __name__ == "__main__":
     import uvicorn
