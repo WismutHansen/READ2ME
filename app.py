@@ -173,6 +173,7 @@ def extract_text(url_or_html, is_html=True):
                     continue
         if date_str:
             article_content += f"Published on: {date_str}.\n\n"
+        
         if result:
             lines = result.split('\n')
             filtered_lines = []
@@ -187,10 +188,11 @@ def extract_text(url_or_html, is_html=True):
                 filtered_lines.append(line)
                 i += 1
             formatted_text = '\n\n'.join(filtered_lines)
-            formatted_text = re.sub(r'\n[\-_]\n', '\n\n', formatted_text)
-            formatted_text = re.sub(r'[\-_]{3,}', '', formatted_text)
+            formatted_text = re.sub(r'\n[\-_]\n', '\n\n', formatted_text)  # Fixed assignment
+            formatted_text = re.sub(r'[\-_]{3,}', '', formatted_text)  # Fixed assignment
             article_content += formatted_text
         return article_content, title
+    
     except Exception as e:
         logging.error(f"Error extracting text from HTML: {e}")
         return None, None
@@ -205,10 +207,15 @@ async def synthesize_text_to_speech(url: str):
                 raise ValueError("Failed to extract text or title")
         except Exception as e:
             logging.error(f"Failed to extract text and title from URL {url}: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to extract text and title from URL: {e}")
+            return None, None  # Instead of raising an exception, return None
     else:
         logging.error(f"Unsupported content type or unable to determine content type for URL {url}")
-        raise HTTPException(status_code=400, detail="Unsupported content type or unable to determine content type.")
+        #raise HTTPException(status_code=400, detail="Unsupported content type or unable to determine content type.")
+        return None, None  # Instead of raising an exception, return None
+    
+    if not text:
+        logging.error(f"No text extracted from the provided URL {url}")
+        return None, None  # Instead of raising an exception, return None
 
     base_file_name, mp3_file, md_file = await get_output_files()
 
@@ -216,26 +223,24 @@ async def synthesize_text_to_speech(url: str):
         md_file_handle.write(text)
         md_file_handle.write(f"\n\nSource: {url}")
 
-    try:
-        voices = await VoicesManager.create()
-        multilingual_voices = [voice for voice in voices.voices if "MultilingualNeural" in voice["Name"]]
-        if not multilingual_voices:
-            logging.error("No MultilingualNeural voices found")
-            raise HTTPException(status_code=500, detail="No MultilingualNeural voices found")
 
-        voice = random.choice(multilingual_voices)["Name"]
+    voices = await VoicesManager.create()
 
-        communicate = edge_tts.Communicate(text, voice, rate="+10%")
-        await communicate.save(mp3_file)
-
-        add_mp3_tags(mp3_file, title)
-
-        logging.info(f"Successfully processed URL {url}")
-        return mp3_file, md_file
-    except Exception as e:
-        logging.error(f"Error in text-to-speech synthesis for URL {url}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error in text-to-speech synthesis: {e}")
-
+    multilingual_voices = [voice for voice in voices.voices if "MultilingualNeural" in voice["Name"]]
+    if not multilingual_voices:
+        logging.error("No MultilingualNeural voices found")
+        #raise HTTPException(status_code=500, detail="No MultilingualNeural voices found")
+        return None, None  # Instead of raising an exception, return None
+    
+    voice = random.choice(multilingual_voices)["Name"]
+    
+    communicate = edge_tts.Communicate(text, voice, rate="+10%")
+    await communicate.save(mp3_file)
+    
+    add_mp3_tags(mp3_file, title)
+    
+    logging.info(f"Successfully processed URL {url}")
+    return mp3_file, md_file
 
 def process_urls():
     processed_urls = set()
@@ -284,28 +289,21 @@ def process_urls():
         observer.stop()
         observer.join()
 
-
-    try:
-        while not stop_event.is_set():
-            stop_event.wait(1)
-    finally:
-        observer.stop()
-        observer.join()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    stop_event.clear()  # Ensure the event is clear before starting the thread
     thread = Thread(target=process_urls)
     thread.daemon = True
     thread.start()
     try:
         yield
     except Exception as e:
-        # Log the exception for debugging purposes
-        print(f"Unhandled exception during server lifecycle: {e}")
+        logging.error(f"Unhandled exception during server lifecycle: {e}")
     finally:
-        stop_event.set()
-        thread.join()
-        print("Clean shutdown completed.")
+        stop_event.set()  # Signal the thread to stop
+        thread.join()  # Wait for the thread to finish
+        logging.info("Clean shutdown completed.")
+
 
 app = FastAPI(lifespan=lifespan)
 
