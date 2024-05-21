@@ -15,3 +15,7 @@ Output/
 
 # URL file
 urls.txt
+
+# Python cache
+__pycache__/
+utils/__pycache__
