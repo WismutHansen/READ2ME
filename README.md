@@ -68,7 +68,7 @@ This is a first alpha version but I plan to extend it to support other content t
    **Run the FastAPI application:**
 
    ```sh
-   uvicorn app:app --host 0.0.0.0 --port 7777
+   uvicorn main:app --host 0.0.0.0 --port 7777
    ```
    ### Docker
 
