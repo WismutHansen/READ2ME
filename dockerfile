@@ -30,4 +30,4 @@ EXPOSE 7777
 ENV NAME World
 
 # Run app.py when the container launches
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7777"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7777"]
