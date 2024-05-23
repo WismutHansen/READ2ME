@@ -19,6 +19,9 @@ stop_event = Event()
 class URLRequest(BaseModel):
     url: str
 
+class TextRequest(BaseModel):
+    text: str
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stop_event.clear()  # Ensure the event is clear before starting the thread
@@ -36,11 +39,24 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.post("/synthesize/")
-async def synthesize(request: URLRequest):
+@app.post("/v1/url/full")
+async def url_audio_full(request: URLRequest):
     logging.info(f"Received URL: {request.url}")
     add_url_to_file(request.url, urls_file)
-    return {"message": "URL added to the processing list"}
+    return {"URL added to the processing list"}
+
+@app.post("/v1/url/summary")
+async def url_audio_summary(request: URLRequest):
+    logging.info(f"Received URL: {request.url}")
+    # Add logic to process the URL and generate audio summary
+    summary_path = generate_audio_summary(request.url, output_dir)
+    return {"message": "Audio summary generated", "summary_path": summary_path}
+
+@app.post("/v1/text/full")
+async def read_text(request: TextRequest):
+    logging.info(f"Received text: {request.text}")
+    text_audio_path = generate_text_audio(request.text, output_dir)
+    return {"message": "Text converted to audio", "text_audio_path": text_audio_path}
 
 if __name__ == "__main__":
     import uvicorn
