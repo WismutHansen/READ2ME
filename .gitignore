@@ -17,9 +17,13 @@ process_log.txt
 #Output folder containing the audio and .md files
 Output/
 
+# Model folder in utils/Models
+utils/Models/
+
 # URL file
 urls.txt
 
 # Python cache
 __pycache__/
 utils/__pycache__
+
