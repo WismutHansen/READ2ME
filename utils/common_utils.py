@@ -2,6 +2,7 @@ import os
 import datetime
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC
 from PIL import Image, ImageDraw, ImageFont
+from pydub import AudioSegment
 
 def get_date_subfolder(output_dir):
     current_date = datetime.date.today().strftime("%Y%m%d")
@@ -53,3 +54,8 @@ def add_mp3_tags(mp3_file: str, title: str, img_pth, output_dir):
     with open(output_image_path, "rb") as img_file:
         audio.add(APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=img_file.read()))
     audio.save(mp3_file)
+
+def convert_wav_to_mp3(wav_file: str, mp3_file: str):
+    audio = AudioSegment.from_wav(wav_file)
+    audio.export(mp3_file, format="mp3")
+    os.remove(wav_file)
