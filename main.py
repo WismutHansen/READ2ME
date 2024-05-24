@@ -1,11 +1,12 @@
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from utils.env import setup_env
 from utils.logging_utils import setup_logging
-from utils.url_processing import process_urls, add_url_to_file
+from utils.task_file_handler import add_task
+from utils.task_processor import start_task_processor
 from contextlib import asynccontextmanager
-from threading import Thread, Event
+from threading import Event
 
 # Load environment variables
 output_dir, urls_file, img_pth = setup_env()
@@ -18,16 +19,16 @@ stop_event = Event()
 
 class URLRequest(BaseModel):
     url: str
+    tts_engine: str = "edge"  # Default to edge-tts
 
 class TextRequest(BaseModel):
     text: str
+    tts_engine: str = "edge"  # Default to edge-tts
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stop_event.clear()  # Ensure the event is clear before starting the thread
-    thread = Thread(target=process_urls, args=(urls_file, stop_event, output_dir, img_pth))
-    thread.daemon = True
-    thread.start()
+    thread = start_task_processor(stop_event)
     try:
         yield
     except Exception as e:
@@ -42,21 +43,14 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/v1/url/full")
 async def url_audio_full(request: URLRequest):
     logging.info(f"Received URL: {request.url}")
-    add_url_to_file(request.url, urls_file)
-    return {"URL added to the processing list"}
-
-@app.post("/v1/url/summary")
-async def url_audio_summary(request: URLRequest):
-    logging.info(f"Received URL: {request.url}")
-    # Add logic to process the URL and generate audio summary
-    summary_path = generate_audio_summary(request.url, output_dir)
-    return {"message": "Audio summary generated", "summary_path": summary_path}
+    add_task('url', request.url, request.tts_engine)
+    return {"message": "URL added to the processing list"}
 
 @app.post("/v1/text/full")
 async def read_text(request: TextRequest):
     logging.info(f"Received text: {request.text}")
-    text_audio_path = generate_text_audio(request.text, output_dir)
-    return {"message": "Text converted to audio", "text_audio_path": text_audio_path}
+    add_task('text', request.text, request.tts_engine)
+    return {"message": "Text added to the processing list"}
 
 if __name__ == "__main__":
     import uvicorn

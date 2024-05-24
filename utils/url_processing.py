@@ -4,7 +4,8 @@ import logging
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 from threading import Event
-from .synthesize import synthesize_text_to_speech
+from .synthesize import synthesize_text_to_speech as synthesize_edge_tts
+from .synthesize_styletts2 import say_with_styletts2
 
 def process_urls(urls_file, stop_event: Event, output_dir, img_pth):
     processed_urls = set()
@@ -19,7 +20,18 @@ def process_urls(urls_file, stop_event: Event, output_dir, img_pth):
                 url = url.strip()
                 if url and url not in processed_urls:
                     try:
-                        asyncio.run(synthesize_text_to_speech(url, output_dir, img_pth))
+                        base_file_name = url.replace('http://', '').replace('https://', '').replace('/', '_')
+                        # Choose TTS engine based on the URL or some other logic
+                        tts_engine = "edge"  # Default to edge-tts; change logic as needed
+                        
+                        if tts_engine == "styletts2":
+                            base_file_name, mp3_file, md_file = say_with_styletts2(url, base_file_name, output_dir)
+                        else:
+                            base_file_name, mp3_file, md_file = asyncio.run(synthesize_edge_tts(url, output_dir, img_pth))
+
+                        if mp3_file is None:
+                            raise Exception("Failed to process URL")
+                        
                         processed_urls.add(url)
                         logging.info(f"Processed: {url}")
                     except Exception as e:
