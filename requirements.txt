@@ -8,3 +8,11 @@ uvicorn
 mutagen
 pillow
 watchdog
+styletts2
+cached-path
+git+https://github.com/resemble-ai/monotonic_align.gituv
+phonemizer
+txtsplit
+torch
+torchaudio
+torchvision

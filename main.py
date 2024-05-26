@@ -40,17 +40,31 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Endpoints changed to prepare for more endpoints
+
 @app.post("/v1/url/full")
 async def url_audio_full(request: URLRequest):
     logging.info(f"Received URL: {request.url}")
     add_task('url', request.url, request.tts_engine)
-    return {"message": "URL added to the processing list"}
+    return {"URL added to the READ2ME task list"}
+
+@app.post("/v1/url/summary")
+async def url_audio_full(request: URLRequest):
+    #logging.info(f"Received URL: {request.url}")
+    #add_task('url', request.url, request.tts_engine)
+    return {"Endpoint not yet implemented"}
 
 @app.post("/v1/text/full")
 async def read_text(request: TextRequest):
     logging.info(f"Received text: {request.text}")
     add_task('text', request.text, request.tts_engine)
-    return {"message": "Text added to the processing list"}
+    return {"Text added to the READ2ME task list"}
+
+@app.post("/v1/text/summary")
+async def read_text(request: TextRequest):
+    #logging.info(f"Received text: {request.text}")
+    #add_task('text', request.text, request.tts_engine)
+    return {"Endpoint not yet implemented"}
 
 if __name__ == "__main__":
     import uvicorn

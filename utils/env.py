@@ -9,11 +9,17 @@ def setup_env():
     if check_env_file_exists():
         load_dotenv()
         output_dir = os.getenv("OUTPUT_DIR")
-        urls_file = os.getenv("URL_FILE")
+        task_file = os.getenv("TASK_FILE")
         img_pth = os.getenv("IMG_PATH")
     else:
         output_dir = "Output"
-        urls_file = "urls.txt"
+        task_file = "tasks.txt"
         img_pth = "front.jpg"
 
-    return output_dir, urls_file, img_pth
+    return output_dir, task_file, img_pth
+
+if __name__ == "__main__":
+    output_dir, task_file, img_pth = setup_env()
+    print(output_dir)
+    print(task_file)
+    print(img_pth)
