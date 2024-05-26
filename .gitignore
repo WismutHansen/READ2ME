@@ -20,6 +20,8 @@ Output/
 # Model folder in utils/Models
 utils/Models/
 
+# Model folder in utils/styletts2/Models
+
 # URL file
 urls.txt
 

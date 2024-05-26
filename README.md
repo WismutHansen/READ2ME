@@ -50,7 +50,7 @@ This is a first alpha version but I plan to extend it to support other content t
 
    ```sh
    OUTPUT_DIR=Output # Directory to store output files
-   URL_FILE=urls.txt # File containing URLs to process
+   TASK_FILE=tasks.txt # File containing URLs to process
    IMG_PATH=front.jpg # Path to image file to use as cover
    ```
 ### Docker Installation
@@ -83,7 +83,7 @@ This is a first alpha version but I plan to extend it to support other content t
 
 2. **Add URLs for processing:**
 
-   Send a POST request to `http://localhost:7777/synthesize/` with a JSON body containing the URL:
+   Send a POST request to `http://localhost:7777/v1/url/full` with a JSON body containing the URL:
 
    ```json
    {
@@ -94,18 +94,19 @@ This is a first alpha version but I plan to extend it to support other content t
    You can use `curl` or any API client like Postman to send this request like this:
 
    ```sh
-   curl -X POST http://localhost:7777/synthesize/ \
+   curl -X POST http://localhost:7777/v1/url/full/ \
      -H "Content-Type: application/json" \
      -d '{"url": "https://example.com/article"}'
+     -d '{"tts-engine": "edge"}'
    ```
 
 3. **Processing URLs:**
 
-   The application periodically checks the `urls.txt` file for new URLs to process. It fetches the content, extracts text, converts it to speech, and saves the resulting MP3 files with appropriate metadata.
+   The application periodically checks the `tasks.txt` file for new URLs to process. It fetches the content, extracts text, converts it to speech, and saves the resulting MP3 files with appropriate metadata.
 
 ## API Endpoints
 
-- **POST /synthesize/**
+- **POST /v1/url/full**
 
   Adds a URL to the processing list.
 
@@ -113,7 +114,8 @@ This is a first alpha version but I plan to extend it to support other content t
 
   ```json
   {
-    "url": "https://example.com/article"
+    "url": "https://example.com/article",
+    "tts-engine": "edge"
   }
   ```
 
@@ -170,13 +172,15 @@ This is a first alpha version but I plan to extend it to support other content t
 
 ## License
 
-This project is licensed under the Apache License Version 2.0, January 2004
+This project is licensed under the Apache License Version 2.0, January 2004, except for the styletts2 code, which is licensed under the MIT License. The styletts2 pre-trained models are under their own license.
+
+StyleTTS2 Pre-Trained Models: Before using these pre-trained models, you agree to inform the listeners that the speech samples are synthesized by the pre-trained models, unless you have the permission to use the voice you synthesize. That is, you agree to only use voices whose speakers grant the permission to have their voice cloned, either directly or by license before making synthesized voices public, or you have to publicly announce that these voices are synthesized if you do not have the permission to use these voices.
 
 ## Roadmap
 
 - [ ] language detection and voice selection based on detected language.
 - [ ] Add support for handling of pdf files
-- [ ] Add support for local text-to-speech (TTS) engine like StyleTTS2.
+- [x] Add support for local text-to-speech (TTS) engine like StyleTTS2.
 - [ ] Add support for LLM-based text processing like summarization with local LLMs through Ollama or the OpenAI API
 - [ ] Add support for automatic image captioning using local vision models or the OpenAI API
 

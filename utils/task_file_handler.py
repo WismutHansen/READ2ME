@@ -1,20 +1,20 @@
 import os
+from utils.env import setup_env
 
-# Define the task file path relative to the parent directory of "utils"
-TASK_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tasks.txt')
+output_dir, task_file, img_pth = setup_env()
 
 def add_task(task_type, content, tts_engine):
     task = f"{task_type},{content},{tts_engine}\n"
     print(f"Adding task: {task}")  # Debug statement
-    with open(TASK_FILE, 'a') as file:
+    with open(task_file, 'a') as file:
         file.write(task)
-    print(f"Task added to {TASK_FILE}")
+    print(f"Task added to {task_file}")
 
 def get_tasks():
-    if not os.path.exists(TASK_FILE):
+    if not os.path.exists(task_file):
         return []
 
-    with open(TASK_FILE, 'r') as file:
+    with open(task_file, 'r') as file:
         tasks = file.readlines()
 
     # Filter out any empty lines or lines that do not have the correct format
@@ -23,6 +23,6 @@ def get_tasks():
     return valid_tasks
 
 def clear_tasks():
-    with open(TASK_FILE, 'w') as file:
+    with open(task_file, 'w') as file:
         file.write("")
-    print(f"Tasks cleared from {TASK_FILE}")  # Debug statement
+    print(f"Tasks cleared from {task_file}")  # Debug statement
