@@ -7,10 +7,11 @@ from utils.env import setup_env
 
 output_dir, task_file, img_pth = setup_env()
 
+
 def process_tasks(stop_event):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
+
     async def process():
         while not stop_event.is_set():
             tasks = get_tasks()
@@ -21,15 +22,17 @@ def process_tasks(stop_event):
                     logging.error(f"Invalid task format: {task}")
                     continue
                 task_type, content, tts_engine = task
-                if task_type == 'url':
+                if task_type == "url":
                     if tts_engine == "styletts2":
                         from utils.synthesize_styletts2 import say_with_styletts2
+
                         await say_with_styletts2(content, output_dir, img_pth)
                     else:
                         await synthesize_edge_tts(content, output_dir, img_pth)
-                elif task_type == 'text':
+                elif task_type == "text":
                     if tts_engine == "styletts2":
                         from utils.synthesize_styletts2 import say_with_styletts2
+
                         await say_with_styletts2(content, output_dir, img_pth)
                     else:
                         await synthesize_edge_tts(content, output_dir, img_pth)
@@ -38,6 +41,7 @@ def process_tasks(stop_event):
             await asyncio.sleep(5)  # Check for tasks every 5 seconds
 
     loop.run_until_complete(process())
+
 
 def start_task_processor(stop_event):
     thread = Thread(target=process_tasks, args=(stop_event,))

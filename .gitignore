@@ -18,10 +18,16 @@ process_log.txt
 Output/
 
 # Model folder in utils/Models
+utils/piper/Models
+
+# Model folder in utils/Models
 utils/Models/
 
 # Model folder in utils/styletts2/Models
 utils/styletts2/Models
+
+# Wheels folder
+Wheels/
 
 # URL file
 urls.txt
