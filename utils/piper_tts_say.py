@@ -1,10 +1,15 @@
 import subprocess
 import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
+piperpath = os.getenv("PIPER_PATH")
 
 def piper_say(text):
     command = (
         f'echo "{text}" | '
-        "piper --model /Users/tommyfalkowski/Code/READ2ME/utils/piper/models/en_GB-cori-high.onnx "
+        f'"{piperpath}" --model ./utils/piper/models/en_US-amy-medium.onnx '
         "--length-scale 0.9 --output_file Output/welcome.wav"
     )
 
@@ -17,4 +22,4 @@ def piper_say(text):
         print("Error output:", e.stderr)
 
 if __name__ == "__main__":
-    piper_say("Hello, I am READ2ME")
+    piper_say("This script recognizes spoken audio and returns a text transcription of that speech. You can use this function to transcribe an audio file or stream into text.")

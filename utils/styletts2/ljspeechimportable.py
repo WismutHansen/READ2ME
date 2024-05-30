@@ -81,6 +81,11 @@ def compute_style(ref_dicts):
 import phonemizer
 from phonemizer.backend.espeak.wrapper import EspeakWrapper
 
+#if windows set espeakwrapper
+import platform
+if platform.system() == 'Windows':
+    EspeakWrapper.set_library('C:\Program Files\eSpeak NG\libespeak-ng.dll')
+
 global_phonemizer = phonemizer.backend.EspeakBackend(language='en-us', preserve_punctuation=True, with_stress=True, words_mismatch='ignore')
 
 # phonemizer = Phonemizer.from_checkpoint(str(cached_path('https://public-asai-dl-models.s3.eu-central-1.amazonaws.com/DeepPhonemizer/en_us_cmudict_ipa_forward.pt')))
