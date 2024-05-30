@@ -1,9 +1,10 @@
 import os
 from dotenv import load_dotenv
 
+
 def setup_env():
-    def check_env_file_exists(directory='.'):
-        env_file_path = os.path.join(directory, '.env')
+    def check_env_file_exists(directory="."):
+        env_file_path = os.path.join(directory, ".env")
         return os.path.isfile(env_file_path)
 
     if check_env_file_exists():
@@ -17,6 +18,7 @@ def setup_env():
         img_pth = "front.jpg"
 
     return output_dir, task_file, img_pth
+
 
 if __name__ == "__main__":
     output_dir, task_file, img_pth = setup_env()
