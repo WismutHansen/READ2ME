@@ -6,6 +6,7 @@ from .text_extraction import extract_text
 from .common_utils import get_output_files, add_mp3_tags
 from .markdown_utils import write_markdown_file
 
+
 async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     try:
         text, title = extract_text(url)
@@ -16,7 +17,7 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
         logging.error(f"Failed to extract text and title from URL {url}: {e}")
         print("Failed to extract text and title from URL")
         return None, None, None  # Instead of raising an exception, return None
-    
+
     if not text:
         logging.error(f"No text extracted from the provided URL {url}")
         print("No text extracted from the provided URL")
@@ -26,11 +27,13 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     write_markdown_file(md_file, text, url)
 
     voices = await VoicesManager.create()
-    multilingual_voices = [voice for voice in voices.voices if "MultilingualNeural" in voice["Name"]]
+    multilingual_voices = [
+        voice for voice in voices.voices if "MultilingualNeural" in voice["Name"]
+    ]
     if not multilingual_voices:
         logging.error("No MultilingualNeural voices found")
         return None, None, None  # Instead of raising an exception, return None
-    
+
     voice = random.choice(multilingual_voices)["Name"]
     communicate = edge_tts.Communicate(text, voice, rate="+10%")
     await communicate.save(mp3_file)
@@ -42,6 +45,7 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
 if __name__ == "__main__":
     import os
     import asyncio
+
     # Get the current directory
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -50,9 +54,9 @@ if __name__ == "__main__":
 
     # Navigate into the "Output" folder
     output_dir = os.path.join(parent_dir, "Output")
-    
+
     # Image path in parent directory
     img_pth = os.path.join(parent_dir, "front.jpg")
-    
+
     url = input("Enter URL to convert: ")
     asyncio.run(synthesize_text_to_speech(url, output_dir, img_pth))
