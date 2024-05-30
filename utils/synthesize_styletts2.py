@@ -10,6 +10,7 @@ from txtsplit import txtsplit
 from tqdm import tqdm
 from .styletts2.ljspeechimportable import inference
 
+
 async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
     try:
         text, title = extract_text(url)
@@ -19,12 +20,12 @@ async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
     except Exception as e:
         logging.error(f"Failed to extract text and title from URL {url}: {e}")
         return None, None, None
-    
+
     base_file_name, mp3_file, md_file = await get_output_files(output_dir)
     write_markdown_file(md_file, text, url)
 
     wav_output = f"{base_file_name}.wav"
-    
+
     sr = 24000
     device = "cuda" if torch.cuda.is_available() else "cpu"
     noise = torch.randn(1, 1, 256).to(device)
@@ -32,7 +33,7 @@ async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
     if not text.strip():
         logging.error("You must enter some text")
         return None, None, None
-    
+
     if len(text) > 150000:
         logging.error("Text must be <150k characters")
         return None, None, None
@@ -45,7 +46,7 @@ async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
             audios.append(audio)
         else:
             logging.error(f"Inference returned None for text segment: {t}")
-    
+
     if not audios:
         logging.error("No audio segments were generated")
         return None, None, None
@@ -59,6 +60,7 @@ async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
     logging.info(f"Successfully processed URL {url}")
     return base_file_name, mp3_file, md_file
+
 
 if __name__ == "__main__":
     import os

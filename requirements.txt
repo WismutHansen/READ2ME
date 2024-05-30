@@ -10,9 +10,11 @@ pillow
 watchdog
 styletts2
 cached-path
-git+https://github.com/resemble-ai/monotonic_align.gituv
+git+https://github.com/resemble-ai/monotonic_align.git
 phonemizer
 txtsplit
 torch
 torchaudio
 torchvision
+piper-phonemize-cross
+piper-tts
