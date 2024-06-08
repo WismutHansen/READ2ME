@@ -5,11 +5,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 piperpath = os.getenv("PIPER_PATH")
+# piperpath = "utils/piper/piper"
 
 def piper_say(text):
     command = (
         f'echo "{text}" | '
-        f'"{piperpath}" --model ./utils/piper/models/en_US-amy-medium.onnx '
+        f'"{piperpath}" --model ./utils/piper/models/en_GB-cori-high.onnx '
         "--length-scale 0.9 --output_file Output/welcome.wav"
     )
 
@@ -22,4 +23,4 @@ def piper_say(text):
         print("Error output:", e.stderr)
 
 if __name__ == "__main__":
-    piper_say("This script recognizes spoken audio and returns a text transcription of that speech. You can use this function to transcribe an audio file or stream into text.")
+    piper_say("READ2ME is a FastAPI-application that turns text from websites into spoken audio via Text-to-speech like PiperTTS.")
