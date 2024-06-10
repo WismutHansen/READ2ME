@@ -16,5 +16,5 @@ txtsplit
 torch
 torchaudio
 torchvision
-piper-phonemize-cross
-piper-tts
+#piper-phonemize-cross
+#piper-tts
