@@ -43,13 +43,14 @@ def create_image_with_date(image_path: str, output_path: str, date_text: str):
         image.save(output_path)
 
 
-def add_mp3_tags(mp3_file: str, title: str, img_pth, output_dir):
+def add_mp3_tags(mp3_file: str, title: str, img_pth: str, output_dir: str):
     track_number = os.path.basename(mp3_file).split("_")[-1].split(".")[0]
     try:
         audio = ID3(mp3_file)
     except Exception:
         audio = ID3()
-    audio.add(TIT2(encoding=3, text=title))
+    if title:    
+        audio.add(TIT2(encoding=3, text=title))
     audio.add(
         TALB(encoding=3, text=f"READ2ME{datetime.date.today().strftime('%Y%m%d')}")
     )

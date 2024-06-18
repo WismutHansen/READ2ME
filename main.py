@@ -1,5 +1,5 @@
 import logging
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from utils.env import setup_env
 from utils.logging_utils import setup_logging
@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from threading import Event, Thread
 import schedule
 import time
+from datetime import datetime
 
 # Load environment variables
 output_dir, urls_file, img_pth = setup_env()
@@ -75,6 +76,15 @@ async def read_text_summary(request: TextRequest):
     # logging.info(f"Received text: {request.text}")
     # add_task('text', request.text, request.tts_engine)
     return {"Endpoint not yet implemented"}
+
+@app.post("/v1/sources/fetch")
+async def fetch_sources(request: Request):
+    from utils.sources import fetch_articles  # Import inside the function to avoid circular import issues
+    fetch_articles()  # Call fetch_articles normally if it's synchronous
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current time and format it
+    logging.info(f"Received article fetch request at: {current_time}")
+    return {"message": "Checking for new articles in sources"}
+
 
 
 def schedule_fetch_articles():
