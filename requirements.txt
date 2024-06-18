@@ -17,5 +17,6 @@ torch
 torchaudio
 torchvision
 playwright
+schedule
 #piper-phonemize-cross
 #piper-tts

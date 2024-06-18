@@ -42,6 +42,32 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     return base_file_name, mp3_file, md_file
 
 
+async def read_text(text: str, output_dir, img_pth):
+
+    if not text:
+        logging.error(f"No text provided")
+        print("No text provided")
+        return None, None, None  # Instead of raising an exception, return None
+
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir)
+    write_markdown_file(md_file, text)
+
+    voices = await VoicesManager.create()
+    multilingual_voices = [
+        voice for voice in voices.voices if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
+    ]
+    if not multilingual_voices:
+        logging.error("No MultilingualNeural voices found")
+        return None, None, None  # Instead of raising an exception, return None
+
+    voice = random.choice(multilingual_voices)["Name"]
+    communicate = edge_tts.Communicate(text, voice, rate="+10%")
+    await communicate.save(mp3_file)
+    add_mp3_tags(mp3_file, "READ2ME", img_pth, output_dir)
+    logging.info(f"Successfully processed URL {url}")
+    return base_file_name, mp3_file, md_file
+
+
 if __name__ == "__main__":
     import os
     import asyncio
