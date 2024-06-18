@@ -28,7 +28,7 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
 
     voices = await VoicesManager.create()
     multilingual_voices = [
-        voice for voice in voices.voices if "MultilingualNeural" in voice["Name"]
+        voice for voice in voices.voices if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
     ]
     if not multilingual_voices:
         logging.error("No MultilingualNeural voices found")
