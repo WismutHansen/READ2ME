@@ -6,7 +6,9 @@ from utils.logging_utils import setup_logging
 from utils.task_file_handler import add_task
 from utils.task_processor import start_task_processor
 from contextlib import asynccontextmanager
-from threading import Event
+from threading import Event, Thread
+import schedule
+import time
 
 # Load environment variables
 output_dir, urls_file, img_pth = setup_env()
@@ -55,7 +57,7 @@ async def url_audio_full(request: URLRequest):
 
 
 @app.post("/v1/url/summary")
-async def url_audio_full(request: URLRequest):
+async def url_audio_summary(request: URLRequest):
     # logging.info(f"Received URL: {request.url}")
     # add_task('url', request.url, request.tts_engine)
     return {"Endpoint not yet implemented"}
@@ -69,13 +71,38 @@ async def read_text(request: TextRequest):
 
 
 @app.post("/v1/text/summary")
-async def read_text(request: TextRequest):
+async def read_text_summary(request: TextRequest):
     # logging.info(f"Received text: {request.text}")
     # add_task('text', request.text, request.tts_engine)
     return {"Endpoint not yet implemented"}
 
 
+def schedule_fetch_articles():
+    from utils.sources import fetch_articles  # Import inside the function to avoid circular import issues
+
+    def job():
+        logging.info("Fetching articles...")
+        fetch_articles()
+
+    # Schedule the job to run twice a day
+    schedule.every().day.at("06:00").do(job)
+    schedule.every().day.at("17:00").do(job)
+
+    logging.info("Scheduler started...")
+    while not stop_event.is_set():
+        schedule.run_pending()
+        time.sleep(1)
+
 if __name__ == "__main__":
     import uvicorn
 
+    # Start the scheduler in a separate thread
+    scheduler_thread = Thread(target=schedule_fetch_articles)
+    scheduler_thread.start()
+
+    # Start the FastAPI app
     uvicorn.run(app, host="0.0.0.0", port=7777)
+
+    # Ensure clean shutdown of the scheduler thread
+    stop_event.set()
+    scheduler_thread.join()
