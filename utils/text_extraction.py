@@ -24,6 +24,60 @@ def is_paywall_or_robot_text(text):
             return True
     return False
 
+
+# Function to extract text using playwright
+def extract_with_playwright(url):
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        # Launch a headless browser
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+                            
+        # Go to the website
+        page.goto(url)
+                            
+        # Wait for the page to load completely
+        page.wait_for_timeout(2000)  # Adjust the timeout as needed
+        
+        # Extract the main text content
+        content = page.content()
+        browser.close()
+        return content
+
+# Function to extract text using Jina
+def extract_with_jina(url):
+    try:
+        headers = {"X-Return-Format": "html"}
+        response = requests.get(f"https://r.jina.ai/{url}", headers=headers)
+        if response.status_code == 200:
+            if is_paywall_or_robot_text(response.text):
+                logging.error(f"Jina could not bypass the paywall: {response.status_code}")
+                return None
+            else:
+                return response.text
+        else:
+            logging.error(f"Jina extraction failed with status code: {response.status_code}")
+            return None
+    except Exception as e:
+        logging.error(f"Error extracting text with Jina: {e}")
+        return None
+    
+
+def clean_text(text):
+    # Remove extraneous whitespace within paragraphs
+    text = re.sub(r'[ \t]+', ' ', text)
+    
+    # Ensure that there are two newlines between paragraphs
+    text = re.sub(r'\n\s*\n', '\n\n', text)  # Ensure two newlines between paragraphs
+    text = re.sub(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|!|\n)\n', '\n\n', text)
+    text = re.sub(r'\n[\-_]\n', '', text) # Remove 3 or more consecutive dashes
+    text = re.sub(r'[\-_]{3,}', '', text) #Remove 3 or more consecutive underscores
+    
+    # Convert HTML entities to plain text
+    text = BeautifulSoup(text, "html.parser").text
+    
+    return text
+
 # This Function extracts the main text from a given URL along with the title,
 # list of authors and the date of publication (if available) and formats the text
 # accordingly
@@ -44,8 +98,10 @@ def extract_text(url):
             try:
                 downloaded = extract_with_playwright(resolved_url)
                 if is_paywall_or_robot_text(downloaded):
-                    print("Extracted text is a paywall or robot disclaimer.")
-                    return None, None
+                    print("Extracted text is a paywall or robot disclaimer, trying with Jina.")
+                    downloaded = extract_with_jina(resolved_url)
+                    if downloaded is None:
+                        return None, None
             except Exception as e:   
                 logging.error(f"Error extracting text with playwright: {e}")
                 return None, None
@@ -87,45 +143,15 @@ def extract_text(url):
                     continue
         if date_str:
             article_content += f"Published on: {date_str}.\n\n"
+       
         if result:
-            lines = result.split("\n")
-            filtered_lines = []
-            I = 0
-            while I < len(lines):
-                line = lines[I]
-                if len(line.split()) < 15:
-                    if I + 1 < len(lines) and len(lines[I + 1].split()) < 15:
-                        while I < len(lines) and len(lines[I].split()) < 15:
-                            I += 1
-                        continue
-                filtered_lines.append(line)
-                I += 1
-            formatted_text = "\n\n".join(filtered_lines)
-            formatted_text = re.sub(r"\n[\-_]\n", "\n\n", formatted_text)
-            formatted_text = re.sub(r"[\-_]{3,}", "", formatted_text)
-            article_content += formatted_text
+            cleaned_text = clean_text(result)
+            article_content += cleaned_text
         return article_content, title
     except Exception as e:
         logging.error(f"Error extracting text from HTML: {e}")
         return None, None
     
-def extract_with_playwright(url):
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        # Launch a headless browser
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-                            
-        # Go to the website
-        page.goto(url)
-                            
-        # Wait for the page to load completely
-        page.wait_for_timeout(2000)  # Adjust the timeout as needed
-        
-        # Extract the main text content
-        content = page.content()
-        browser.close()
-        return content
 
 if __name__ == "__main__":
     article_content, title = extract_text(input("Enter URL to extract text from: "))
