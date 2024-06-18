@@ -14,6 +14,12 @@ test.py
 # process log file
 process_log.txt
 
+# keywords file
+keywords.txt
+
+# sources file
+sources.txt
+
 #Output folder containing the audio and .md files
 Output/
 
