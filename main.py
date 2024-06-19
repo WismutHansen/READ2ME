@@ -77,12 +77,11 @@ async def read_text_summary(request: TextRequest):
     # add_task('text', request.text, request.tts_engine)
     return {"Endpoint not yet implemented"}
 
-@app.post("/v1/sources/fetch")
+@app.post("/v1/sources/fetch") # Endpoint for triggering a source fetch manually
 async def fetch_sources(request: Request):
     from utils.sources import fetch_articles  # Import inside the function to avoid circular import issues
-    fetch_articles()  # Call fetch_articles normally if it's synchronous
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current time and format it
-    logging.info(f"Received article fetch request at: {current_time}")
+    fetch_articles()  # Call fetch_articles function
+    logging.info(f"Received manual article fetch request")
     return {"message": "Checking for new articles in sources"}
 
 
