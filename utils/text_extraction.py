@@ -5,10 +5,13 @@ from bs4 import BeautifulSoup
 import trafilatura
 import tldextract
 import re
+import asyncio
+from playwright.async_api import async_playwright
 
 # Function to check if word count is less than 400
 def check_word_count(text):
-    return len(text.split()) < 400
+    words = re.findall(r'\b\w+\b', text)
+    return len(words) < 400
 
 # Function to check for paywall or robot disclaimer
 def is_paywall_or_robot_text(text):
@@ -25,23 +28,22 @@ def is_paywall_or_robot_text(text):
     return False
 
 
-# Function to extract text using playwright
-def extract_with_playwright(url):
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
+# Async Function to extract text using playwright
+async def extract_with_playwright(url):
+    async with async_playwright() as p:
         # Launch a headless browser
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
                             
         # Go to the website
-        page.goto(url)
+        await page.goto(url)
                             
         # Wait for the page to load completely
-        page.wait_for_timeout(2000)  # Adjust the timeout as needed
+        await page.wait_for_timeout(2000)  # Adjust the timeout as needed
         
         # Extract the main text content
-        content = page.content()
-        browser.close()
+        content = await page.content()
+        await browser.close()
         return content
 
 # Function to extract text using Jina
@@ -81,7 +83,7 @@ def clean_text(text):
 # This Function extracts the main text from a given URL along with the title,
 # list of authors and the date of publication (if available) and formats the text
 # accordingly
-def extract_text(url):
+async def extract_text(url):
     try:    
         try:
             response = requests.head(url, allow_redirects=True)
@@ -96,8 +98,8 @@ def extract_text(url):
             print("Extraction with trafilatura failed, trying with playwright")
             # If trafilatura fails extracting html, we try with playwright
             try:
-                downloaded = extract_with_playwright(resolved_url)
-                if is_paywall_or_robot_text(downloaded):
+                downloaded = await extract_with_playwright(resolved_url)
+                if downloaded is None or is_paywall_or_robot_text(downloaded):
                     print("Extracted text is a paywall or robot disclaimer, trying with Jina.")
                     downloaded = extract_with_jina(resolved_url)
                     if downloaded is None:
@@ -105,13 +107,21 @@ def extract_text(url):
             except Exception as e:   
                 logging.error(f"Error extracting text with playwright: {e}")
                 return None, None
-            
+        
+        if downloaded is None:
+            logging.error(f"No content downloaded from {resolved_url}")
+            return None, None
+
         # We use tldextract to extract the main domain name from a URL
         domainname = tldextract.extract(resolved_url)
         main_domain = f"{domainname.domain}.{domainname.suffix}"
         
         # We use trafilatura to extract the text content from the HTML page
         result = trafilatura.extract(downloaded, include_comments=False)
+        if result is None or check_word_count(result):
+            logging.error(f"Extracted text is less than 400 words.")
+            return None, None
+        
         soup = BeautifulSoup(downloaded, "html.parser")
         title = soup.find("title").text if soup.find("title") else ""
         date_tag = soup.find("meta", attrs={"property": "article:published_time"})
@@ -154,7 +164,8 @@ def extract_text(url):
     
 
 if __name__ == "__main__":
-    article_content, title = extract_text(input("Enter URL to extract text from: "))
+    url = input("Enter URL to extract text from: ")
+    article_content, title = asyncio.run(extract_text(url))
     if article_content:
         print(article_content)
     else:

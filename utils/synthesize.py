@@ -9,7 +9,7 @@ from .markdown_utils import write_markdown_file
 
 async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     try:
-        text, title = extract_text(url)
+        text, title = await extract_text(url)
         if not text or not title:
             print("Failed to extract text or title")
             raise ValueError("Failed to extract text or title")
