@@ -52,7 +52,7 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/v1/url/full")
 async def url_audio_full(request: URLRequest):
     logging.info(f"Received URL: {request.url}")
-    add_task("url", request.url, request.tts_engine)
+    await add_task("url", request.url, request.tts_engine)
     return {"URL added to the READ2ME task list"}
 
 @app.post("/v1/url/summary")
@@ -62,7 +62,7 @@ async def url_audio_summary(request: URLRequest):
 @app.post("/v1/text/full")
 async def read_text(request: TextRequest):
     logging.info(f"Received text: {request.text}")
-    add_task("text", request.text, request.tts_engine)
+    await add_task("text", request.text, request.tts_engine)
     return {"Text added to the READ2ME task list"}
 
 @app.post("/v1/text/summary")
