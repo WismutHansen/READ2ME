@@ -18,5 +18,6 @@ torchaudio
 torchvision
 playwright
 schedule
+aiofiles
 #piper-phonemize-cross
 #piper-tts
