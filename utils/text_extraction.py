@@ -7,6 +7,7 @@ import tldextract
 import re
 import asyncio
 from playwright.async_api import async_playwright
+import wikipedia
 
 # Function to check if word count is less than 400
 def check_word_count(text):
@@ -80,11 +81,48 @@ def clean_text(text):
     
     return text
 
+def extract_from_wikipedia(url):
+    try:
+        # Extract the title from the URL
+        title = url.split("/wiki/")[-1].replace("_", " ")
+        
+        # Fetch the Wikipedia page
+        page = wikipedia.page(title)
+        
+        # Construct the article content
+        article_content = f"{page.title}.\n\n"
+        article_content += f"From Wikipedia.\n\n"
+        
+        # Add summary
+        # article_content += "Summary:\n"
+        # article_content += page.summary + "\n\n"
+        
+        # Add full content
+        article_content += "Full Content:\n"
+        article_content += page.content
+        
+        return article_content, page.title
+    except wikipedia.exceptions.DisambiguationError as e:
+        logging.error(f"DisambiguationError: {e}")
+        return None, None
+    except wikipedia.exceptions.PageError as e:
+        logging.error(f"PageError: {e}")
+        return None, None
+    except Exception as e:
+        logging.error(f"Error extracting text from Wikipedia: {e}")
+        return None, None
+
 # This Function extracts the main text from a given URL along with the title,
 # list of authors and the date of publication (if available) and formats the text
 # accordingly
 async def extract_text(url):
-    try:    
+    try:
+
+        # Check if it's a Wikipedia URL
+        if "wikipedia.org" in url:
+            print("Extracting text from Wikipedia")
+            return extract_from_wikipedia(url)    
+        
         try:
             response = requests.head(url, allow_redirects=True)
             resolved_url = response.url
