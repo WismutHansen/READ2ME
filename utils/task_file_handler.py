@@ -29,8 +29,8 @@ async def get_tasks():
         valid_tasks = [
             task.strip().split(",") for task in tasks if len(task.strip().split(",")) == 3
         ]
-
-        logging.info(f"Retrieved {len(valid_tasks)} valid tasks from {task_file}")
+        if len(valid_tasks) > 0:
+            logging.info(f"Retrieved {len(valid_tasks)} valid tasks from {task_file}")
         return valid_tasks
     except IOError as e:
         logging.error(f"Error reading tasks from {task_file}: {e}")
