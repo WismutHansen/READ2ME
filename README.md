@@ -14,6 +14,8 @@ This is a first alpha version but I plan to extend it to support other content t
 - Converts text to speech using Microsoft Azure's Edge TTS (currently randomly selecting from the available multi-lingual voices to easily handle multiple languages).
 - Tags MP3 files with metadata, including the title, author, and publication date, if available.
 - Adds a cover image with the current date to the MP3 files.
+- For urls from wikipedia, uses the wikipedia python library to extract article content
+- Automatic retrieval of new articles from specified sources at defined intervals (currently hard coded to twice a day at 5AM and 5PM local time). Sources and keywords can be specified via text files.
 
 ## Requirements
 
@@ -64,12 +66,24 @@ This is a first alpha version but I plan to extend it to support other content t
 ## Usage
 
 1. 
-   ### Native 
+   ### Native
+
+   **Prepare the environment variables file (.env):**
+
+   copy and rename `.env.example` to `.env`. Edit the content of this file as you wish, specifying the output directory, task file and image path to use for the mp3 file cover as well as the sources and keywords file.
+
    **Run the FastAPI application:**
 
    ```sh
    uvicorn main:app --host 0.0.0.0 --port 7777
    ```
+   **or, if you're connected to a server e.g. via ssh and want to keep the app running after closing your session**
+
+   ```sh
+   nohup uvicorn main:app --host 0.0.0.0 --port 7777 &
+   ```
+   this will write all commandline output into a file called `nohup.out` in your current working directory.
+   
    ### Docker
 
 
@@ -104,6 +118,14 @@ This is a first alpha version but I plan to extend it to support other content t
 
    The application periodically checks the `tasks.txt` file for new URLs to process. It fetches the content, extracts text, converts it to speech, and saves the resulting MP3 files with appropriate metadata.
 
+4. **Specify Sources and keywords for automatic retrieval:**
+
+Create a file called `sources.txt` in your current working directory with URLs to websites that you want to monitor for new articles, one url per line. 
+
+Create another file called `keywords.txt` in your current working directory with keywords that you want to search for within the urls of the retrieved articles. Keywords need to be present in order for articles to be processed.
+
+Location of both files is configurable in .env file.
+
 ## API Endpoints
 
 - **POST /v1/url/full**
@@ -132,6 +154,7 @@ This is a first alpha version but I plan to extend it to support other content t
 - **main.py**: The main FastAPI application file.
 - **requirements.txt**: List of dependencies.
 - **.env**: Environment variables file.
+- **utils/**: Directory with helper functions for task handling, text extraction, speech synthesis etc.
 - **Output/**: Directory where the output files (MP3 and MD) are saved.
 
 ## Dependencies
@@ -146,6 +169,9 @@ This is a first alpha version but I plan to extend it to support other content t
 - **BeautifulSoup**: Library for parsing HTML and XML documents.
 - **pdfminer**: Library for extracting text from PDF documents.
 - **python-dotenv**: Library for managing environment variables.
+- **newspaper4k**: Library for extracting articles from news websites.
+- **wikipedia**: Library for extracting information from Wikipedia articles.
+- **schedule**: Library for scheduling tasks. Used to schedule automatic news retrieval twice a day.
 
 ## Contributing
 

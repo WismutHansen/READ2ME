@@ -17,7 +17,11 @@ torch
 torchaudio
 torchvision
 playwright
+newspaper4k
 schedule
+wikipedia
+aiohttp
 aiofiles
+tqdm
 #piper-phonemize-cross
 #piper-tts
