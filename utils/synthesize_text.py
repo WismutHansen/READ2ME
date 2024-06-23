@@ -3,13 +3,21 @@ import os
 import asyncio
 import markdown
 from bs4 import BeautifulSoup
+from tqdm.asyncio import tqdm
 
 OUTPUT_FILE = "test.mp3"
 VOICE = "en-US-AndrewNeural"
 
 async def synthesize_text(text):
     communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
-    await communicate.save(OUTPUT_FILE)
+    progress = tqdm(total=100, desc="Synthesizing", unit="%", ncols=100)
+
+    def update_progress(percent):
+        progress.n = percent
+        progress.refresh()
+
+    await communicate.save(OUTPUT_FILE, progress_callback=update_progress)
+    progress.close()
 
 def read_markdown_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:

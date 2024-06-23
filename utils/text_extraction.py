@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import logging
 import requests
 from bs4 import BeautifulSoup
@@ -8,6 +8,16 @@ import re
 import asyncio
 from playwright.async_api import async_playwright
 import wikipedia
+from urllib.parse import urlparse, unquote
+
+# Format in this format: January 1st 2024
+def get_formatted_date():
+    now = datetime.now()
+    day = now.day
+    month = now.strftime('%B')
+    year = now.year
+    suffix = 'th' if 11 <= day <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+    return f"{month} {day}{suffix}, {year}"
 
 # Function to check if word count is less than 400
 def check_word_count(text):
@@ -81,25 +91,51 @@ def clean_text(text):
     
     return text
 
+def clean_wikipedia_content(content):
+    # Function to replace headline markers with formatted text
+    def replace_headline(match):
+        level = len(match.group(1))  # Count the number of '=' symbols
+        text = match.group(2).strip()
+        
+        # Create appropriate formatting based on the headline level
+        if level == 2:
+            return f"{text.upper()}\n"
+        elif level == 3:
+            return f"{text}\n{'='*len(text)}\n"
+        else:
+            return f"{text}\n{'-'*len(text)}\n"
+
+    # Replace all levels of headlines
+    cleaned_content = re.sub(r'(={2,})\s*(.*?)\s*\1', replace_headline, content)
+    
+    # Remove any remaining single '=' characters at the start of lines
+    cleaned_content = re.sub(r'^\s*=\s*', '', cleaned_content, flags=re.MULTILINE)
+    
+    return cleaned_content
+
 def extract_from_wikipedia(url):
     try:
+        # Reformat the URL to remove additional parameters
+        parsed_url = urlparse(url)
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+        
         # Extract the title from the URL
-        title = url.split("/wiki/")[-1].replace("_", " ")
+        title = clean_url.split("/wiki/")[-1].replace("_", " ")
         
         # Fetch the Wikipedia page
-        page = wikipedia.page(title)
+        page = wikipedia.page(title, auto_suggest=False)
         
         # Construct the article content
         article_content = f"{page.title}.\n\n"
-        article_content += f"From Wikipedia.\n\n"
+        article_content += f"From Wikipedia. Retrieved on {get_formatted_date()}\n\n"
+
         
         # Add summary
         # article_content += "Summary:\n"
         # article_content += page.summary + "\n\n"
         
         # Add full content
-        article_content += "Full Content:\n"
-        article_content += page.content
+        article_content += clean_wikipedia_content(page.content)
         
         return article_content, page.title
     except wikipedia.exceptions.DisambiguationError as e:
