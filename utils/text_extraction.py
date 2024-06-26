@@ -32,6 +32,7 @@ def is_paywall_or_robot_text(text):
         "Please enable cookies on your web browser",
         "For inquiries related to this message",
         "If you are a robot"
+        "robot.txt"
     ]
     for phrase in paywall_phrases:
         if phrase in text:
@@ -101,9 +102,9 @@ def clean_wikipedia_content(content):
         if level == 2:
             return f"{text.upper()}\n"
         elif level == 3:
-            return f"{text}\n{'='*len(text)}\n"
+            return f"{text.upper()}\n"
         else:
-            return f"{text}\n{'-'*len(text)}\n"
+            return f"{text.upper()}\n"
 
     # Replace all levels of headlines
     cleaned_content = re.sub(r'(={2,})\s*(.*?)\s*\1', replace_headline, content)
