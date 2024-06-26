@@ -1,14 +1,17 @@
 import requests
 import time
 
+
 def fetch_url(url):
     try:
         response = requests.get(url)
         print(f"Status Code: {response.status_code}")
-        
+
         if response.status_code == 429:
             print("Rate limited. Retrying after delay...")
-            retry_after = response.headers.get("Retry-After", 60)  # default to 60 seconds if not provided
+            retry_after = response.headers.get(
+                "Retry-After", 60
+            )  # default to 60 seconds if not provided
             time.sleep(int(retry_after))
             return fetch_url(url)
         elif response.status_code == 403:
@@ -34,6 +37,7 @@ def fetch_url(url):
 
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
+
 
 url = input("Enter URL to test: ")
 content = fetch_url(url)

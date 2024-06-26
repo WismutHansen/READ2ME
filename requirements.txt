@@ -23,5 +23,6 @@ wikipedia
 aiohttp
 aiofiles
 tqdm
+pdfminer.six
 #piper-phonemize-cross
 #piper-tts

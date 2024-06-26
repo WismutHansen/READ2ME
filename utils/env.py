@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 
+
 def setup_env():
     def check_env_file_exists(directory="."):
         env_file_path = os.path.join(directory, ".env")
@@ -27,15 +28,16 @@ def setup_env():
 
     if not os.path.isfile(sources_file_path):
         print("Creating sources.txt")
-        with open(sources_file_path, 'w') as f:
+        with open(sources_file_path, "w") as f:
             pass  # This creates an empty sources.txt file
 
     if not os.path.isfile(keywords_file_path):
         print("Creating keywords.txt")
-        with open(keywords_file_path, 'w') as f:
+        with open(keywords_file_path, "w") as f:
             pass  # This creates an empty keywords.txt file
 
     return output_dir, task_file, img_pth, sources_file_path, keywords_file_path
+
 
 if __name__ == "__main__":
     output_dir, task_file, img_pth, sources_file_path, keywords_file_path = setup_env()
