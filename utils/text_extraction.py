@@ -9,6 +9,9 @@ import asyncio
 from playwright.async_api import async_playwright
 import wikipedia
 from urllib.parse import urlparse, unquote
+import tempfile
+import os
+from PyPDF2 import PdfReader
 
 # Format in this format: January 1st 2024
 def get_formatted_date():
@@ -114,6 +117,39 @@ def clean_wikipedia_content(content):
     
     return cleaned_content
 
+import re
+
+def clean_pdf_text(text):
+    # Remove extraneous whitespace within paragraphs
+    text = re.sub(r'[ \t]+', ' ', text)
+
+    # Ensure that there are two newlines between paragraphs
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+
+    # Remove the references section
+    text = re.sub(r'References\s*\n(.*\n)*', '', text, flags=re.IGNORECASE)
+
+    # Remove any remaining citation numbers in square brackets
+    text = re.sub(r'\[\d+\]', '', text)
+
+    # Remove any remaining URLs
+    text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
+
+    # Remove any remaining empty lines at the end of the text
+    text = text.rstrip()
+
+    # Remove any remaining publication date lines
+    text = re.sub(r', Vol\. \d+, No\. \d+, Article \. Publication date: [A-Za-z]+ \d{4}\.?', '', text)
+
+    # Remove any remaining page numbers
+    text = re.sub(r'\d+\s*Ze Shi Li,.*', '', text)
+
+    # Final cleanup of extra spaces and newlines
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+
+    return text.strip()
+
 def extract_from_wikipedia(url):
     try:
         # Reformat the URL to remove additional parameters
@@ -148,15 +184,50 @@ def extract_from_wikipedia(url):
     except Exception as e:
         logging.error(f"Error extracting text from Wikipedia: {e}")
         return None, None
+    
+def extract_text_from_pdf(url):
+    try:
+        # Download the PDF file
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+
+        # Create a temporary file to store the PDF
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+            temp_file.write(response.content)
+            temp_file_path = temp_file.name
+
+        # Extract text and title from the PDF
+        with open(temp_file_path, 'rb') as file:
+            pdf_reader = PdfReader(file)
+            text = ''
+            title = pdf_reader.metadata.get('/Title', os.path.basename(temp_file_path))
+            for page in pdf_reader.pages:
+                text += page.extract_text()
+
+        # Clean up the extracted text
+        cleaned_text = clean_pdf_text(text)
+
+        # Delete the temporary file
+        os.unlink(temp_file_path)
+
+        return cleaned_text, title
+
+    except Exception as e:
+        logging.error(f"Error extracting text from PDF: {e}")
+        print(f"Error processing PDF: {e}")
+        return None, None
 
 # This Function extracts the main text from a given URL along with the title,
 # list of authors and the date of publication (if available) and formats the text
 # accordingly
 async def extract_text(url):
     try:
-
+        if url.lower().endswith('.pdf'):
+            print("Extracting text from pdf file")
+            return extract_text_from_pdf(url) 
+   
         # Check if it's a Wikipedia URL
-        if "wikipedia.org" in url:
+        elif "wikipedia.org" in url:
             print("Extracting text from Wikipedia")
             return extract_from_wikipedia(url)    
         
