@@ -19,10 +19,10 @@ def get_formatted_date():
     suffix = 'th' if 11 <= day <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
     return f"{month} {day}{suffix}, {year}"
 
-# Function to check if word count is less than 400
+# Function to check if word count is less than 300
 def check_word_count(text):
     words = re.findall(r'\b\w+\b', text)
-    return len(words) < 400
+    return len(words) < 300
 
 # Function to check for paywall or robot disclaimer
 def is_paywall_or_robot_text(text):
@@ -193,7 +193,7 @@ async def extract_text(url):
         # We use trafilatura to extract the text content from the HTML page
         result = trafilatura.extract(downloaded, include_comments=False)
         if result is None or check_word_count(result):
-            logging.error(f"Extracted text is less than 400 words.")
+            logging.error(f"Extracted text is less than 300 words.")
             return None, None
         
         soup = BeautifulSoup(downloaded, "html.parser")
@@ -220,7 +220,7 @@ async def extract_text(url):
         if timestamp:
             for date_format in date_formats:
                 try:
-                    date = datetime.datetime.strptime(timestamp, date_format)
+                    date = datetime.strptime(timestamp, date_format)
                     date_str = date.strftime("%B %d, %Y")
                     break
                 except ValueError:
