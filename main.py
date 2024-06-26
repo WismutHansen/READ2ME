@@ -1,5 +1,5 @@
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from pydantic import BaseModel
 from utils.env import setup_env
 from utils.logging_utils import setup_logging
@@ -20,13 +20,18 @@ output_dir, urls_file, img_pth, sources_file, keywords_file = setup_env()
 # Background thread stop event
 stop_event = Event()
 
+
 def setup_logging(log_file_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    file_handler = TimedRotatingFileHandler(log_file_path, when="midnight", interval=1, backupCount=14)
+    file_handler = TimedRotatingFileHandler(
+        log_file_path, when="midnight", interval=1, backupCount=14
+    )
     file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    )
 
     logger.addHandler(file_handler)
 
@@ -39,13 +44,16 @@ try:
 except Exception as e:
     print(f"Error setting up logging: {e}")
 
+
 class URLRequest(BaseModel):
     url: str
     tts_engine: str = "edge"  # Default to edge-tts
 
+
 class TextRequest(BaseModel):
     text: str
     tts_engine: str = "edge"  # Default to edge-tts
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -66,7 +74,9 @@ async def lifespan(app: FastAPI):
             logging.info("Scheduler task cancelled.")
         logging.info("Clean shutdown completed.")
 
+
 app = FastAPI(lifespan=lifespan)
+
 
 @app.post("/v1/url/full")
 async def url_audio_full(request: URLRequest):
@@ -74,9 +84,11 @@ async def url_audio_full(request: URLRequest):
     await add_task("url", request.url, request.tts_engine)
     return {"URL added to the READ2ME task list"}
 
+
 @app.post("/v1/url/summary")
 async def url_audio_summary(request: URLRequest):
     return {"Endpoint not yet implemented"}
+
 
 @app.post("/v1/text/full")
 async def read_text(request: TextRequest):
@@ -84,16 +96,25 @@ async def read_text(request: TextRequest):
     await add_task("text", request.text, request.tts_engine)
     return {"Text added to the READ2ME task list"}
 
+
 @app.post("/v1/text/summary")
 async def read_text_summary(request: TextRequest):
     return {"Endpoint not yet implemented"}
 
+
+@app.post("/v1/pdf/full")
+async def read_text_summary(request: TextRequest):
+    return {"Endpoint not yet implemented"}
+
+
 @app.post("/v1/sources/fetch")
 async def fetch_sources(request: Request):
     from utils.sources import fetch_articles
+
     await fetch_articles()
     logging.info(f"Received manual article fetch request")
     return {"message": "Checking for new articles in sources"}
+
 
 async def schedule_fetch_articles():
     from utils.sources import fetch_articles
@@ -108,17 +129,29 @@ async def schedule_fetch_articles():
     while not stop_event.is_set():
         now = datetime.now(local_tz)
         target_times = [time(6, 0), time(17, 0)]  # 6:00 AM and 5:00 PM
-        
+
         for target_time in target_times:
             if now.time() <= target_time:
-                next_run = now.replace(hour=target_time.hour, minute=target_time.minute, second=0, microsecond=0)
+                next_run = now.replace(
+                    hour=target_time.hour,
+                    minute=target_time.minute,
+                    second=0,
+                    microsecond=0,
+                )
                 break
         else:
-            next_run = now.replace(hour=target_times[0].hour, minute=target_times[0].minute, second=0, microsecond=0)
+            next_run = now.replace(
+                hour=target_times[0].hour,
+                minute=target_times[0].minute,
+                second=0,
+                microsecond=0,
+            )
             next_run += timedelta(days=1)
 
         wait_seconds = (next_run - now).total_seconds()
-        logging.info(f"Next scheduled run at {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        logging.info(
+            f"Next scheduled run at {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}"
+        )
         logging.info(f"Waiting for {wait_seconds:.2f} seconds")
 
         try:
@@ -129,9 +162,10 @@ async def schedule_fetch_articles():
             logging.info("Scheduled fetch task cancelled.")
             break
 
+
 if __name__ == "__main__":
     import uvicorn
-    
+
     try:
         uvicorn.run(app, host="0.0.0.0", port=7777, log_config=None)
     except Exception as e:

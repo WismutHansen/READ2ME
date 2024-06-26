@@ -10,7 +10,8 @@ from .markdown_utils import write_markdown_file
 async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     try:
         text, title = await extract_text(url)
-        if not text or not title:
+        print(title)
+        if not text:
             print("Failed to extract text or title")
             raise ValueError("Failed to extract text or title")
     except Exception as e:
@@ -28,7 +29,9 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
 
     voices = await VoicesManager.create()
     multilingual_voices = [
-        voice for voice in voices.voices if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
+        voice
+        for voice in voices.voices
+        if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
     ]
     if not multilingual_voices:
         logging.error("No MultilingualNeural voices found")
@@ -43,7 +46,6 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
 
 
 async def read_text(text: str, output_dir, img_pth):
-
     if not text:
         logging.error(f"No text provided")
         print("No text provided")
@@ -54,7 +56,9 @@ async def read_text(text: str, output_dir, img_pth):
 
     voices = await VoicesManager.create()
     multilingual_voices = [
-        voice for voice in voices.voices if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
+        voice
+        for voice in voices.voices
+        if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
     ]
     if not multilingual_voices:
         logging.error("No MultilingualNeural voices found")
