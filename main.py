@@ -10,15 +10,34 @@ from threading import Event
 import asyncio
 from datetime import datetime, time, timedelta
 from tzlocal import get_localzone
+from logging.handlers import TimedRotatingFileHandler
+import sys
+import os
 
 # Load environment variables
 output_dir, urls_file, img_pth, sources_file, keywords_file = setup_env()
 
-# Set up logging
-setup_logging("process_log.txt")
-
 # Background thread stop event
 stop_event = Event()
+
+def setup_logging(log_file_path):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    file_handler = TimedRotatingFileHandler(log_file_path, when="midnight", interval=1, backupCount=14)
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    logger.addHandler(file_handler)
+
+
+# Set up logging
+try:
+    log_file_path = os.path.abspath("process_log.txt")
+    setup_logging(log_file_path)
+    logging.info(f"Logging setup completed. Log file path: {log_file_path}")
+except Exception as e:
+    print(f"Error setting up logging: {e}")
 
 class URLRequest(BaseModel):
     url: str
@@ -112,4 +131,9 @@ async def schedule_fetch_articles():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7777)
+    
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=7777, log_config=None)
+    except Exception as e:
+        logging.error(f"Unhandled exception: {e}", exc_info=True)
+        raise
