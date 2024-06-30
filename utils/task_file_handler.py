@@ -4,7 +4,7 @@ import logging
 import json
 from utils.env import setup_env
 
-output_dir, task_file, img_pth, sources_file, keywords_file = setup_env()
+output_dir, task_file, img_pth, sources_file = setup_env()
 
 async def add_task(task_type, content, tts_engine):
     task = {

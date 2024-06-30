@@ -1,21 +1,23 @@
 import logging
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, HTTPException, File
 from pydantic import BaseModel
 from utils.env import setup_env
 from utils.logging_utils import setup_logging
 from utils.task_file_handler import add_task
 from utils.task_processor import start_task_processor
+from utils.source_manager import update_sources, read_sources
 from contextlib import asynccontextmanager
 from threading import Event
 import asyncio
 from datetime import datetime, time, timedelta
 from tzlocal import get_localzone
 from logging.handlers import TimedRotatingFileHandler
+from typing import List, Optional
 import sys
 import os
 
 # Load environment variables
-output_dir, urls_file, img_pth, sources_file, keywords_file = setup_env()
+output_dir, urls_file, img_pth, sources_file = setup_env()
 
 # Background thread stop event
 stop_event = Event()
@@ -54,6 +56,14 @@ class TextRequest(BaseModel):
     text: str
     tts_engine: str = "edge"  # Default to edge-tts
 
+class Source(BaseModel):
+    url: str
+    keywords: List[str]
+
+class SourceUpdate(BaseModel):
+    global_keywords: Optional[List[str]] = None
+    sources: Optional[List[Source]] = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -82,29 +92,29 @@ app = FastAPI(lifespan=lifespan)
 async def url_audio_full(request: URLRequest):
     logging.info(f"Received URL: {request.url}")
     await add_task("url", request.url, request.tts_engine)
-    return {"URL added to the READ2ME task list"}
+    return {"message": "URL added to the READ2ME task list"}
 
 
 @app.post("/v1/url/summary")
 async def url_audio_summary(request: URLRequest):
-    return {"Endpoint not yet implemented"}
+    return {"message": "Endpoint not yet implemented"}
 
 
 @app.post("/v1/text/full")
 async def read_text(request: TextRequest):
     logging.info(f"Received text: {request.text}")
     await add_task("text", request.text, request.tts_engine)
-    return {"Text added to the READ2ME task list"}
+    return {"message": "Text added to the READ2ME task list"}
 
 
 @app.post("/v1/text/summary")
 async def read_text_summary(request: TextRequest):
-    return {"Endpoint not yet implemented"}
+    return {"message": "Endpoint not yet implemented"}
 
 
 @app.post("/v1/pdf/full")
 async def read_text_summary(request: TextRequest):
-    return {"Endpoint not yet implemented"}
+    return {"message": "Endpoint not yet implemented"}
 
 
 @app.post("/v1/sources/fetch")
@@ -114,6 +124,19 @@ async def fetch_sources(request: Request):
     await fetch_articles()
     logging.info(f"Received manual article fetch request")
     return {"message": "Checking for new articles in sources"}
+
+@app.post("/v1/sources/add")
+async def api_update_sources(update: SourceUpdate):
+    try:
+        sources = [{"url": source.url, "keywords": source.keywords} for source in update.sources] if update.sources else None
+        updated_data = update_sources(update.global_keywords, sources)
+        return {"message": "Sources updated successfully", "data": updated_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/v1/sources/get")
+async def api_get_sources():
+    return read_sources()
 
 
 async def schedule_fetch_articles():

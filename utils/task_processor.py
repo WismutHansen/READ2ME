@@ -5,7 +5,7 @@ from utils.task_file_handler import get_tasks, clear_tasks
 from utils.synthesize import synthesize_text_to_speech as synthesize_edge_tts, read_text
 from utils.env import setup_env
 
-output_dir, task_file, img_pth, sources_file, keywords_file = setup_env()
+output_dir, task_file, img_pth, sources_file = setup_env()
 
 def process_tasks(stop_event):
     loop = asyncio.new_event_loop()

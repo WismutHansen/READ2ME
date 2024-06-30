@@ -16,6 +16,7 @@ process_log*.txt
 
 # task file
 tasks.json
+sources.json
 
 # keywords file
 keywords.txt
