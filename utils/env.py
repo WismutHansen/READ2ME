@@ -6,6 +6,7 @@ def setup_env():
     print("Starting setup_env()")
 
     task_file = "tasks.json"
+    sources_file_path = "sources.json"
 
     if not os.path.isfile(task_file):
         print("Creating tasks.json")
@@ -24,34 +25,24 @@ def setup_env():
         
         output_dir = os.getenv("OUTPUT_DIR", "Output")
         img_pth = os.getenv("IMG_PATH", "front.jpg")
-        sources_file_path = os.getenv("SOURCES_FILE", "sources.txt")
-        keywords_file_path = os.getenv("KEYWORDS_FILE", "keywords.txt")
         
     else:
         print(".env file not found, using default values")
         output_dir = "Output"
         img_pth = "front.jpg"
-        sources_file_path = "sources.txt"
-        keywords_file_path = "keywords.txt"
 
     if not os.path.isfile(sources_file_path):
-        print("Creating sources.txt")
+        print("Creating sources.json")
         with open(sources_file_path, "w") as f:
             pass  # This creates an empty sources.txt file
-    
-    if not os.path.isfile(keywords_file_path):
-        print("Creating keywords.txt")
-        with open(keywords_file_path, "w") as f:
-            pass  # This creates an empty keywords.txt file
 
     logging.info("Setup complete, following values will be used:")
     logging.info("Output folder: "+os.path.abspath(output_dir))
     logging.info("Task file: "+os.path.abspath(task_file))
     logging.info("Album Art Image: "+os.path.abspath(img_pth))
-    logging.info("Sources Textfile: "+os.path.abspath(sources_file_path))
-    logging.info("Keywords Textfile: "+os.path.abspath(keywords_file_path))
-    
-    return output_dir, task_file, img_pth, sources_file_path, keywords_file_path
+    logging.info("Sources file: "+os.path.abspath(sources_file_path))
+
+    return output_dir, task_file, img_pth, sources_file_path
 
 
 def print_env_contents():
@@ -71,5 +62,4 @@ if __name__ == "__main__":
     print("Output folder: "+os.path.abspath(output_dir))
     print("Task file: "+os.path.abspath(task_file))
     print("Album Art Image: "+os.path.abspath(img_pth))
-    print("Sources Textfile: "+os.path.abspath(sources_file_path))
-    print("Keywords Textfile: "+os.path.abspath(keywords_file_path))
+    print("Sources file: "+os.path.abspath(sources_file_path))

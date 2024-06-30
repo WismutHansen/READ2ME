@@ -1,131 +1,110 @@
-import newspaper
+import json
 import os
 import re
-from dotenv import load_dotenv
 import aiofiles
 import asyncio
 import logging
-import aiohttp
+import newspaper
+from .task_file_handler import add_task
 
+MAX_ARTICLES_PER_SOURCE = 10
 
 async def fetch_articles():
-    from .task_file_handler import add_task
 
-    load_dotenv()
-    sources_file = os.getenv("SOURCES_FILE")
-    keywords_file = os.getenv("KEYWORDS_FILE")
+    sources_file = "sources.json"
 
-    # Function to create sources.txt
-    async def create_sources_file(file_path, urls):
+    async def read_sources_from_json(file_path):
+        try:
+            async with aiofiles.open(file_path, "r") as file:
+                data = json.loads(await file.read())
+                print(f"Read configuration from {file_path}")
+                return data
+        except Exception as e:
+            print(f"Error reading configuration from file: {e}")
+            return {"global_keywords": [], "sources": []}
+
+    async def create_sample_sources_file(file_path):
+        sample_data = {
+            "global_keywords": ["example", "test"],
+            "sources": [
+                {
+                    "url": "https://example.com",
+                    "keywords": ["specific", "example"]
+                },
+                {
+                    "url": "https://all-articles-example.com",
+                    "keywords": ["*"]
+                }
+            ]
+        }
         try:
             async with aiofiles.open(file_path, "w") as file:
-                for url in urls:
-                    await file.write(url + "\n")
-            print(f"Created {file_path} with {len(urls)} URLs.")
+                await file.write(json.dumps(sample_data, indent=2))
+            print(f"Created sample {file_path}")
         except Exception as e:
-            print(f"Error creating {file_path}: {e}")
+            print(f"Error creating sample {file_path}: {e}")
 
-    # Function to create keywords.txt
-    async def create_keywords_file(file_path, keywords):
-        try:
-            async with aiofiles.open(file_path, "w") as file:
-                for keyword in keywords:
-                    await file.write(keyword + "\n")
-            print(f"Created {file_path} with {len(keywords)} keywords.")
-        except Exception as e:
-            print(f"Error creating {file_path}: {e}")
-
-    # Create sample sources.txt and keywords.txt if they don't exist
-    sample_sources = ["https://example.com"]
-    sample_keywords = ["example", "test"]
     if not os.path.exists(sources_file):
-        await create_sources_file(sources_file, sample_sources)
-    if not os.path.exists(keywords_file):
-        await create_keywords_file(keywords_file, sample_keywords)
+        await create_sample_sources_file(sources_file)
 
-    # Function to read URLs from a file
-    async def read_urls_from_file(file_path):
+    config = await read_sources_from_json(sources_file)
+    global_keywords = config.get("global_keywords", [])
+    sources = config.get("sources", [])
+
+    def compile_patterns(keywords):
+        return [re.compile(r"\b" + re.escape(keyword).replace("\\ ", "\\s+") + r"\b", re.IGNORECASE) for keyword in keywords if keyword != "*"]
+
+    global_patterns = compile_patterns(global_keywords)
+
+    async def process_article(article_url, global_patterns, source_patterns, download_all):
         try:
-            async with aiofiles.open(file_path, "r") as file:
-                urls = [line.strip() for line in await file.readlines() if line.strip()]
-                print(f"Read {len(urls)} URLs from {file_path}")
-                return urls
-        except Exception as e:
-            print(f"Error reading URLs from file: {e}")
-            return []
+            if download_all:
+                logging.info(f"Adding article to task list: {article_url}")
+                await add_task("url", article_url, "edge_tts")
+                return True
 
-    # Function to read keywords from a file
-    async def read_keywords_from_file(file_path):
-        try:
-            async with aiofiles.open(file_path, "r") as file:
-                keywords = [
-                    line.strip().lower()
-                    for line in await file.readlines()
-                    if line.strip()
-                ]
-                print(f"Read {len(keywords)} keywords from {file_path}")
-                return keywords
-        except Exception as e:
-            print(f"Error reading keywords from file: {e}")
-            return []
-
-    # Read URLs and keywords from files
-    if not sources_file:
-        print("SOURCES_FILE environment variable not set.")
-    else:
-        source_urls = await read_urls_from_file(sources_file)
-
-    if not keywords_file:
-        print("KEYWORDS_FILE environment variable not set.")
-    else:
-        keywords = await read_keywords_from_file(keywords_file)
-
-    # Compile regular expressions for keywords, ensuring whole word matches
-    keyword_patterns = [
-        re.compile(r"\b" + re.escape(keyword).replace("\\ ", "\\s+") + r"\b")
-        for keyword in keywords
-    ]
-
-    # Debugging: print the regex patterns
-    print("Compiled regex patterns:")
-    for pattern in keyword_patterns:
-        print(pattern.pattern)
-
-    async def process_article(article_url, patterns):
-        try:
-            # Check if any keyword pattern is present in the article URL
             modified_article_url = article_url.replace("-", " ").lower()
-            for pattern in patterns:
+            all_patterns = global_patterns + source_patterns
+            
+            for pattern in all_patterns:
                 if pattern.search(modified_article_url):
-                    logging.info(
-                        f"Keyword '{pattern.pattern}' found in URL: {article_url}"
-                    )
+                    logging.info(f"Keyword '{pattern.pattern}' found in URL: {article_url}")
                     await add_task("url", article_url, "edge_tts")
-                    return
+                    return True
 
             logging.debug(f"No keywords found in URL: {article_url}")
+            return False
 
         except Exception as e:
             logging.error(f"Failed to process article {article_url}: {e}")
+            return False
 
-    async def process_source(source_url, patterns):
+    async def process_source(source):
+        source_url = source["url"]
+        source_keywords = source.get("keywords", [])
+        download_all = "*" in source_keywords
+        source_patterns = compile_patterns(source_keywords)
+
         paper = newspaper.build(source_url, memoize_articles=True)
         logging.info(f"Found {len(paper.articles)} articles in {source_url}")
 
         tasks = []
+        articles_processed = 0
         for article in paper.articles:
-            tasks.append(process_article(article.url, patterns))
+            if download_all and articles_processed >= MAX_ARTICLES_PER_SOURCE:
+                break
+            task = asyncio.create_task(process_article(article.url, global_patterns, source_patterns, download_all))
+            tasks.append(task)
+            if download_all:
+                articles_processed += 1
 
-        await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks)
+        articles_added = sum(results)
+        logging.info(f"Added {articles_added} articles from {source_url}")
 
-    if sources_file and keywords_file:
-        await asyncio.gather(
-            *[process_source(url, keyword_patterns) for url in source_urls]
-        )
+    await asyncio.gather(*[process_source(source) for source in sources])
 
-    # Debugging: Show completion message
     print("Completed processing all sources and articles.")
-
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
