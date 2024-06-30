@@ -68,7 +68,7 @@ async def read_text(text: str, output_dir, img_pth):
     communicate = edge_tts.Communicate(text, voice, rate="+10%")
     await communicate.save(mp3_file)
     add_mp3_tags(mp3_file, "READ2ME", img_pth, output_dir)
-    logging.info(f"Successfully processed URL {url}")
+    logging.info(f"Successfully processed text")
     return base_file_name, mp3_file, md_file
 
 

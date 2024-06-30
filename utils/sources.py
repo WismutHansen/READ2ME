@@ -109,7 +109,7 @@ async def fetch_articles():
             logging.error(f"Failed to process article {article_url}: {e}")
 
     async def process_source(source_url, patterns):
-        paper = newspaper.build(source_url, memoize_articles=False)
+        paper = newspaper.build(source_url, memoize_articles=True)
         logging.info(f"Found {len(paper.articles)} articles in {source_url}")
 
         tasks = []
