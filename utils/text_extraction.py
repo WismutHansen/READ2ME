@@ -281,15 +281,6 @@ def extract_text_from_pdf(url):
 # accordingly
 async def extract_text(url):
     try:
-        if url.lower().endswith(".pdf"):
-            logging.info(f"Extracting text from PDF: {url}")
-            return extract_text_from_pdf(url)
-
-        # Check if it's a Wikipedia URL
-        elif "wikipedia.org" in url:
-            logging.info(f"Extracting text from Wikipedia: {url}")
-            return extract_from_wikipedia(url)
-
         try:
             response = requests.head(url, allow_redirects=True)
             resolved_url = response.url
@@ -297,8 +288,17 @@ async def extract_text(url):
         except requests.RequestException as e:
             logging.error(f"Error resolving url: {e}")
             return None, None
+        
+        if url.lower().endswith(".pdf"):
+            logging.info(f"Extracting text from PDF: {resolved_url}")
+            return extract_text_from_pdf(resolved_url)
 
-        downloaded = trafilatura.fetch_url(url)
+        # Check if it's a Wikipedia URL
+        elif "wikipedia.org" in resolved_url:
+            logging.info(f"Extracting text from Wikipedia: {resolved_url}")
+            return extract_from_wikipedia(resolved_url)
+
+        downloaded = trafilatura.fetch_url(resolved_url)
         if (
             downloaded is None
             or check_word_count(downloaded)

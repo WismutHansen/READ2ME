@@ -1,0 +1,39 @@
+2024-06-27 19:45:36,420 - INFO - Logging setup completed. Log file path: /Users/tommyfalkowski/Code/READ2ME/process_log.txt
+2024-06-27 19:45:36,473 - INFO - Started server process [524]
+2024-06-27 19:45:36,473 - INFO - Waiting for application startup.
+2024-06-27 19:45:36,473 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:45:37,878 - INFO - Using requests library for http requests (alternative cloudscraper library is recommended for bypassing Cloudflare protection)
+2024-06-27 19:45:37,893 - INFO - Using local timezone: Europe/Berlin
+2024-06-27 19:45:37,893 - INFO - Next scheduled run at 2024-06-28 06:00:00 CEST
+2024-06-27 19:45:37,893 - INFO - Waiting for 36862.11 seconds
+2024-06-27 19:45:37,893 - INFO - Application startup complete.
+2024-06-27 19:45:37,894 - INFO - Uvicorn running on http://0.0.0.0:7777 (Press CTRL+C to quit)
+2024-06-27 19:45:41,475 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:45:46,476 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:45:51,478 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:45:56,480 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:46:01,325 - INFO - Shutting down
+2024-06-27 19:46:01,426 - INFO - Waiting for application shutdown.
+2024-06-27 19:46:01,482 - INFO - Scheduled fetch task cancelled.
+2024-06-27 19:46:01,482 - INFO - Clean shutdown completed.
+2024-06-27 19:46:01,483 - INFO - Application shutdown complete.
+2024-06-27 19:46:01,483 - INFO - Finished server process [524]
+2024-06-27 19:49:39,763 - INFO - Logging setup completed. Log file path: /Users/tommyfalkowski/Code/READ2ME/process_log.txt
+2024-06-27 19:49:39,788 - INFO - Started server process [1531]
+2024-06-27 19:49:39,788 - INFO - Waiting for application startup.
+2024-06-27 19:49:39,789 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:49:40,410 - INFO - Using requests library for http requests (alternative cloudscraper library is recommended for bypassing Cloudflare protection)
+2024-06-27 19:49:40,415 - INFO - Using local timezone: Europe/Berlin
+2024-06-27 19:49:40,416 - INFO - Next scheduled run at 2024-06-28 06:00:00 CEST
+2024-06-27 19:49:40,416 - INFO - Waiting for 36619.58 seconds
+2024-06-27 19:49:40,416 - INFO - Application startup complete.
+2024-06-27 19:49:40,416 - INFO - Uvicorn running on http://0.0.0.0:7777 (Press CTRL+C to quit)
+2024-06-27 19:49:44,790 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:49:49,792 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:49:54,793 - WARNING - Task file tasks.txt does not exist.
+2024-06-27 19:49:55,663 - INFO - Shutting down
+2024-06-27 19:49:55,764 - INFO - Waiting for application shutdown.
+2024-06-27 19:49:59,796 - INFO - Scheduled fetch task cancelled.
+2024-06-27 19:49:59,797 - INFO - Clean shutdown completed.
+2024-06-27 19:49:59,797 - INFO - Application shutdown complete.
+2024-06-27 19:49:59,797 - INFO - Finished server process [1531]
