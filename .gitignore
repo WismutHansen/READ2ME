@@ -12,7 +12,10 @@ test.py
 .venv/               
 
 # process log file
-process_log.txt
+process_log*.txt
+
+# task file
+tasks.json
 
 # keywords file
 keywords.txt
