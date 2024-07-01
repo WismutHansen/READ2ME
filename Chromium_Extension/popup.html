@@ -1,18 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>READ2ME API Caller</title>
   <style>
-    body { width: 300px; padding: 10px; }
-    input, button { margin: 5px 0; width: 100%; }
+    body {
+      font-family: Arial, sans-serif;
+      width: 350px;
+      padding: 20px;
+      background-color: #f0f4f8;
+      color: #333;
+    }
+    h2 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .section {
+      background-color: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #34495e;
+    }
+    select, input, textarea, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    select, button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    select {
+      appearance: none;
+      background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+      background-repeat: no-repeat;
+      background-position: right 10px top 50%;
+      background-size: 12px auto;
+      padding-right: 30px;
+    }
+    select:hover, button:hover {
+      background-color: #2980b9;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    .hidden {
+      display: none;
+    }
+    #result {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #ecf0f1;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    #sourceKeywords {
+      width: 100%;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <h2>READ2ME API Caller</h2>
-  <input type="text" id="urlInput" placeholder="Enter URL">
-  <button id="addUrlButton">Add URL</button>
-  <button id="fetchSourcesButton">Fetch Sources</button>
+  
+  <div class="section">
+    <label for="actionSelect">Select Action:</label>
+    <select id="actionSelect">
+      <option value="url">URL</option>
+      <option value="text">Text</option>
+      <option value="sources">Sources</option>
+    </select>
+  </div>
+
+  <div id="urlSection" class="section">
+    <label for="urlInput">Enter URL:</label>
+    <input type="text" id="urlInput" placeholder="https://example.com">
+    <label for="urlTypeSelect">Processing Type:</label>
+    <select id="urlTypeSelect">
+      <option value="full">Full</option>
+      <option value="summary">Summary</option>
+    </select>
+    <label for="urlTtsEngine">TTS Engine:</label>
+    <select id="urlTtsEngine">
+      <option value="edge">Edge TTS</option>
+      <option value="styletts2">StyleTTS2</option>
+    </select>
+    <button id="addUrlButton">Add URL</button>
+  </div>
+
+  <div id="textSection" class="section hidden">
+    <label for="textInput">Enter Text:</label>
+    <textarea id="textInput" placeholder="Enter your text here..."></textarea>
+    <label for="textTypeSelect">Processing Type:</label>
+    <select id="textTypeSelect">
+      <option value="full">Full</option>
+      <option value="summary">Summary</option>
+    </select>
+    <label for="textTtsEngine">TTS Engine:</label>
+    <select id="textTtsEngine">
+      <option value="edge">Edge TTS</option>
+      <option value="styletts2">StyleTTS2</option>
+    </select>
+    <button id="addTextButton">Add Text</button>
+  </div>
+
+  <div id="sourcesSection" class="section hidden">
+    <label for="sourceUrl">Source URL:</label>
+    <input type="text" id="sourceUrl" placeholder="https://example.com">
+    <label for="sourceKeywords">Keywords (comma-separated):</label>
+    <input type="text" id="sourceKeywords" placeholder="news,technology">
+    <button id="addSourceButton">Add Source</button>
+    <button id="fetchSourcesButton">Fetch Sources</button>
+    <button id="getSourcesButton">Get Sources</button>
+  </div>
+
   <div id="result"></div>
+  
   <script src="popup.js"></script>
 </body>
 </html>

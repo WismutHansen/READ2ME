@@ -9,11 +9,13 @@ from scipy.io.wavfile import write
 from txtsplit import txtsplit
 from tqdm import tqdm
 from .styletts2.ljspeechimportable import inference
+from rvc_python.infer import infer_file, infer_files
+import glob
 
 
 async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
     try:
-        text, title = extract_text(url)
+        text, title = await extract_text(url)
         if not text or not title:
             logging.error("Failed to extract text or title")
             return None, None, None
@@ -24,7 +26,7 @@ async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
     base_file_name, mp3_file, md_file = await get_output_files(output_dir)
     write_markdown_file(md_file, text, url)
 
-    wav_output = f"{base_file_name}.wav"
+    wav_output = f"{base_file_name}_stts2.wav"
 
     sr = 24000
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -54,8 +56,28 @@ async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
     full_audio = np.concatenate(audios)
     write(wav_output, sr, full_audio)
 
+    # Using RVC to change the voice:
+    infer_file(
+        input_path=wav_output,
+        model_path="./utils/rvc/Models/test.pth",
+        index_path="./utils/rvc/Models/test.index",  # Optional: specify path to index file if available
+        device="cuda:0", # Use cpu or cuda
+        f0method="harvest",  # Choose between 'harvest', 'crepe', 'rmvpe', 'pm'
+        f0up_key=0,  # Transpose setting
+        opt_path=f"{base_file_name}_rvc.wav", # Output file path
+        index_rate=0.5,
+        filter_radius=3,
+        resample_sr=0,  # Set to desired sample rate or 0 for no resampling.
+        rms_mix_rate=0.25,
+        protect=0.33,
+        version="v2"
+    )
+    
+    rvc_file = f"{base_file_name}_rvc.wav"
+
     # Convert the WAV file to MP3
-    convert_wav_to_mp3(wav_output, mp3_file)
+    # convert_wav_to_mp3(wav_output, mp3_file)
+    convert_wav_to_mp3(rvc_file, mp3_file)
 
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
     logging.info(f"Successfully processed URL {url}")
@@ -73,3 +95,4 @@ if __name__ == "__main__":
 
     url = input("Enter URL to convert: ")
     asyncio.run(say_with_styletts2(url, output_dir, img_pth))
+
