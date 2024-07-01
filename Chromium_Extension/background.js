@@ -1,5 +1,5 @@
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  const baseUrl = 'http://localhost:7777';
+  const baseUrl = request.serverUrl || 'http://localhost:7777';
 
   function makeRequest(endpoint, method, body) {
     const options = {

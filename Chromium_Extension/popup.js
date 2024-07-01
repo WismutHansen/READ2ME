@@ -6,6 +6,24 @@ document.addEventListener('DOMContentLoaded', function() {
   const resultDiv = document.getElementById('result');
   const urlInput = document.getElementById('urlInput');
   const sourceUrlInput = document.getElementById('sourceUrl');
+  const serverDropdown = document.createElement('select');
+  serverDropdown.id = 'serverSelect';
+  document.body.insertBefore(serverDropdown, document.getElementById('settingsLink'));
+
+  // Load servers from storage
+  chrome.storage.sync.get(['servers', 'defaultServer'], function(data) {
+    const servers = data.servers || ['http://localhost:7777'];
+    const defaultServer = data.defaultServer || 'http://localhost:7777';
+    servers.forEach(server => {
+      const option = document.createElement('option');
+      option.value = server;
+      option.textContent = server;
+      if (server === defaultServer) {
+        option.selected = true;
+      }
+      serverDropdown.appendChild(option);
+    });
+  });
 
   // Fetch current tab URL and prefill the inputs
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
@@ -37,11 +55,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const url = urlInput.value;
     const type = document.getElementById('urlTypeSelect').value;
     const ttsEngine = document.getElementById('urlTtsEngine').value;
+    const serverUrl = serverDropdown.value;
     if (url) {
       chrome.runtime.sendMessage({
         action: `addUrl${type.charAt(0).toUpperCase() + type.slice(1)}`,
         url: url,
-        ttsEngine: ttsEngine
+        ttsEngine: ttsEngine,
+        serverUrl: serverUrl
       }, function(response) {
         resultDiv.textContent = response.message;
       });
@@ -54,11 +74,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const text = document.getElementById('textInput').value;
     const type = document.getElementById('textTypeSelect').value;
     const ttsEngine = document.getElementById('textTtsEngine').value;
+    const serverUrl = serverDropdown.value;
     if (text) {
       chrome.runtime.sendMessage({
         action: `addText${type.charAt(0).toUpperCase() + type.slice(1)}`,
         text: text,
-        ttsEngine: ttsEngine
+        ttsEngine: ttsEngine,
+        serverUrl: serverUrl
       }, function(response) {
         resultDiv.textContent = response.message;
       });
@@ -70,10 +92,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('addSourceButton').addEventListener('click', function() {
     const url = sourceUrlInput.value;
     const keywords = document.getElementById('sourceKeywords').value.split(',').map(k => k.trim());
+    const serverUrl = serverDropdown.value;
     if (url && keywords.length > 0) {
       chrome.runtime.sendMessage({
         action: 'addSource',
-        sourceData: { url, keywords }
+        sourceData: { url, keywords },
+        serverUrl: serverUrl
       }, function(response) {
         resultDiv.textContent = response.message;
       });
@@ -83,14 +107,15 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.getElementById('fetchSourcesButton').addEventListener('click', function() {
-    chrome.runtime.sendMessage({action: 'fetchSources'}, function(response) {
+    const serverUrl = serverDropdown.value;
+    chrome.runtime.sendMessage({action: 'fetchSources', serverUrl: serverUrl}, function(response) {
       resultDiv.textContent = response.message;
     });
   });
 
-
   document.getElementById('getSourcesButton').addEventListener('click', function() {
-    chrome.runtime.sendMessage({action: 'getSources'}, function(response) {
+    const serverUrl = serverDropdown.value;
+    chrome.runtime.sendMessage({action: 'getSources', serverUrl: serverUrl}, function(response) {
       try {
         const data = JSON.parse(response.message);
         let displayText = "Global Keywords: " + (data.global_keywords ? data.global_keywords.join(", ") : "None") + "\n\nSources:\n";
