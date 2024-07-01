@@ -1,17 +1,19 @@
 {
-    "manifest_version": 2,
-    "name": "READ2ME API Caller",
-    "version": "1.0",
-    "description": "Call READ2ME API endpoints",
-    "permissions": [
-      "http://localhost:7777/",
-      "https://<your-api-domain>/" //Edit this line to match your API domain
-    ],
-    "browser_action": {
-      "default_popup": "popup.html"
-    },
-    "background": {
-      "scripts": ["background.js"],
-      "persistent": false
-    }
+  "manifest_version": 2,
+  "name": "READ2ME API Caller",
+  "version": "1.0",
+  "description": "Call READ2ME API endpoints",
+  "permissions": [
+    "http://localhost:7777/",
+    "https://<your-api-domain>/",
+    "tabs"
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
   }
+}

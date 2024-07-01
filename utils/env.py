@@ -3,8 +3,6 @@ from dotenv import load_dotenv
 import logging
 
 def setup_env():
-    print("Starting setup_env()")
-
     task_file = "tasks.json"
     sources_file_path = "sources.json"
 
@@ -16,11 +14,9 @@ def setup_env():
     def check_env_file_exists(directory="."):
         env_file_path = os.path.join(directory, ".env")
         exists = os.path.isfile(env_file_path)
-        print(f".env file exists: {exists}")
         return exists
 
     if check_env_file_exists():
-        print("Loading .env file")
         load_dotenv()
         
         output_dir = os.getenv("OUTPUT_DIR", "Output")

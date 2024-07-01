@@ -36,6 +36,10 @@ utils/Models/
 # Model folder in utils/styletts2/Models
 utils/styletts2/Models/
 
+# RVC models
+utils/rvc/Models/*.pth
+utils/rvc/Models/*.index
+
 # Piper-TTS binaries
 utils/piper
 

@@ -23,6 +23,7 @@ wikipedia
 aiohttp
 aiofiles
 tqdm
-pdfminer.six
+pymupdf
+rvc-python
 #piper-phonemize-cross
 #piper-tts
