@@ -8,14 +8,16 @@
     body {
       font-family: Arial, sans-serif;
       width: 350px;
+      height: 500px;
       padding: 20px;
-      background-color: #f0f4f8;
-      color: #333;
+      background-color: #333;
+      color: #ecf0f1;
     }
-    h2 {
-      color: #2c3e50;
-      text-align: center;
-      margin-bottom: 20px;
+    img.logo {
+      display: block;
+      margin: 0 auto 20px auto;
+      width: 80px;
+      height: auto;
     }
     .section {
       background-color: white;
@@ -46,8 +48,7 @@
     }
     select {
       appearance: none;
-      background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
-      background-repeat: no-repeat;
+      background-color: #333
       background-position: right 10px top 50%;
       background-size: 12px auto;
       padding-right: 30px;
@@ -76,9 +77,10 @@
     #settingsLink {
       display: block;
       text-align: center;
-      margin-top: 20px;
+      margin-top: 10px;
       color: #3498db;
       text-decoration: none;
+      padding-bottom: 10px;
     }
     #settingsLink:hover {
       text-decoration: underline;
@@ -86,7 +88,7 @@
   </style>
 </head>
 <body>
-  <h2>READ2ME API Caller</h2>
+  <img src="icon_white.png" alt="Logo" class="logo">
   
   <div class="section">
     <label for="actionSelect">Select Action:</label>
