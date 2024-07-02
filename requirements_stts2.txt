@@ -1,0 +1,6 @@
+git+https://github.com/resemble-ai/monotonic_align.git
+torch
+torchaudio
+torchvision
+rvc-python
+nltk

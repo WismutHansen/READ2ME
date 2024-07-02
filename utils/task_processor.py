@@ -34,8 +34,8 @@ def process_tasks(stop_event):
                         await synthesize_edge_tts(content, output_dir, img_pth)
                 elif task_type == "text":
                     if tts_engine == "styletts2":
-                        from utils.synthesize_styletts2 import say_with_styletts2
-                        await say_with_styletts2(content, output_dir, img_pth)
+                        from utils.synthesize_styletts2 import text_to_speech_with_styletts2
+                        await text_to_speech_with_styletts2(content,"Text", output_dir, img_pth)
                     else:
                         await read_text(content, output_dir, img_pth)
             if tasks:

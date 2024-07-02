@@ -8,14 +8,9 @@ uvicorn
 mutagen
 pillow
 watchdog
-styletts2
 cached-path
-git+https://github.com/resemble-ai/monotonic_align.git
 phonemizer
 txtsplit
-torch
-torchaudio
-torchvision
 playwright
 newspaper4k
 schedule
@@ -24,6 +19,3 @@ aiohttp
 aiofiles
 tqdm
 pymupdf
-rvc-python
-#piper-phonemize-cross
-#piper-tts
