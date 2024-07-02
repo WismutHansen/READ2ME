@@ -26,20 +26,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Fetch current tab URL and prefill the inputs
-  chrome.permissions.request({
-    permissions: ['activeTab']
-  }, function(granted) {
-    if (granted) {
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        if (tabs[0] && tabs[0].url) {
-          urlInput.value = tabs[0].url;
-          // Prefill the source URL with the root of the current website
-          const url = new URL(tabs[0].url);
-          sourceUrlInput.value = `${url.protocol}//${url.hostname}`;
-        }
-      });
-    } else {
-      console.error('Permission to access activeTab was not granted');
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    if (tabs[0] && tabs[0].url) {
+      urlInput.value = tabs[0].url;
+      // Prefill the source URL with the root of the current website
+      const url = new URL(tabs[0].url);
+      sourceUrlInput.value = `${url.protocol}//${url.hostname}`;
     }
   });
 
