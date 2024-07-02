@@ -7,9 +7,17 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+      width: 350px;
+      height: 500px;
       padding: 20px;
-      background-color: #f0f4f8;
-      color: #333;
+      background-color: #333;
+      color: #ecf0f1;
+    }
+    img.logo {
+      display: block;
+      margin: 0 auto 20px auto;
+      width: 80px;
+      height: auto;
     }
     h2 {
       color: #2c3e50;
@@ -29,6 +37,7 @@
       color: #34495e;
     }
     input, button {
+      align-self: center;
       width: 100%;
       padding: 8px;
       margin-bottom: 10px;
@@ -46,10 +55,22 @@
     button:hover {
       background-color: #2980b9;
     }
+    #homeLink {
+      display: block;
+      text-align: center;
+      margin-top: 10px;
+      color: #3498db;
+      text-decoration: none;
+      padding-bottom: 10px;
+      : ;
+    }
+    #homeLink:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <h2>READ2ME Settings</h2>
+  <img src="icon_white.png" alt="Logo" class="logo">
   
   <div class="section">
     <label for="serverUrl">Server URL:</label>
@@ -61,7 +82,7 @@
     <h3>Configured Servers</h3>
     <ul id="serverList"></ul>
   </div>
-
+  <a id="homeLink" href="popup.html">back</a>
   <script src="settings.js"></script>
 </body>
 </html>
