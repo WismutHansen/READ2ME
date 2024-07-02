@@ -6,14 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const resultDiv = document.getElementById('result');
   const urlInput = document.getElementById('urlInput');
   const sourceUrlInput = document.getElementById('sourceUrl');
-  const serverDropdown = document.createElement('select');
+  const serverDropdown = document.getElementById('serverSelect');
   serverDropdown.id = 'serverSelect';
   document.body.insertBefore(serverDropdown, document.getElementById('settingsLink'));
 
   // Load servers from storage
   chrome.storage.sync.get(['servers', 'defaultServer'], function(data) {
-    const servers = data.servers || ['http://localhost:7777'];
-    const defaultServer = data.defaultServer || 'http://localhost:7777';
+    const servers = data.servers || ['http://127.0.0.1:7777'];
+    const defaultServer = data.defaultServer || 'http://127.0.0.1:7777';
     servers.forEach(server => {
       const option = document.createElement('option');
       option.value = server;
@@ -26,12 +26,20 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Fetch current tab URL and prefill the inputs
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if (tabs[0] && tabs[0].url) {
-      urlInput.value = tabs[0].url;
-      // Prefill the source URL with the root of the current website
-      const url = new URL(tabs[0].url);
-      sourceUrlInput.value = `${url.protocol}//${url.hostname}`;
+  chrome.permissions.request({
+    permissions: ['activeTab']
+  }, function(granted) {
+    if (granted) {
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        if (tabs[0] && tabs[0].url) {
+          urlInput.value = tabs[0].url;
+          // Prefill the source URL with the root of the current website
+          const url = new URL(tabs[0].url);
+          sourceUrlInput.value = `${url.protocol}//${url.hostname}`;
+        }
+      });
+    } else {
+      console.error('Permission to access activeTab was not granted');
     }
   });
 
@@ -49,7 +57,12 @@ document.addEventListener('DOMContentLoaded', function() {
         sourcesSection.classList.remove('hidden');
         break;
     }
+    adjustPopupHeight();
   });
+
+  function adjustPopupHeight() {
+    document.body.style.height = 'auto';
+  }
 
   document.getElementById('addUrlButton').addEventListener('click', function() {
     const url = urlInput.value;
@@ -68,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       resultDiv.textContent = 'Please enter a URL';
     }
+    adjustPopupHeight();
   });
 
   document.getElementById('addTextButton').addEventListener('click', function() {
@@ -87,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       resultDiv.textContent = 'Please enter some text';
     }
+    adjustPopupHeight();
   });
 
   document.getElementById('addSourceButton').addEventListener('click', function() {
@@ -104,6 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       resultDiv.textContent = 'Please enter a URL and at least one keyword';
     }
+    adjustPopupHeight();
   });
 
   document.getElementById('fetchSourcesButton').addEventListener('click', function() {
@@ -111,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.runtime.sendMessage({action: 'fetchSources', serverUrl: serverUrl}, function(response) {
       resultDiv.textContent = response.message;
     });
+    adjustPopupHeight();
   });
 
   document.getElementById('getSourcesButton').addEventListener('click', function() {
@@ -130,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } catch (error) {
         resultDiv.textContent = "Error parsing sources: " + response.message;
       }
+      adjustPopupHeight();
     });
   });
 });

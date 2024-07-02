@@ -7,88 +7,120 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      width: 350px;
-      height: 500px;
+      width: 300px;
       padding: 20px;
       background-color: #333;
-      color: #ecf0f1;
+      margin: 0;
+      height:auto;
     }
-    img.logo {
+    .logo {
       display: block;
-      margin: 0 auto 20px auto;
+      margin: 0 auto 20px;
       width: 80px;
       height: auto;
     }
     .section {
-      background-color: white;
-      border-radius: 8px;
-      padding: 15px;
       margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background-color: #ffffff;
+      border-radius: 4px;
+      padding: 10px;
     }
     label {
       display: block;
       margin-bottom: 5px;
-      color: #34495e;
+      color: #333;
     }
     select, input, textarea, button {
       width: 100%;
       padding: 8px;
       margin-bottom: 10px;
-      border: 1px solid #bdc3c7;
+      border: none;
       border-radius: 4px;
       box-sizing: border-box;
     }
     select, button {
-      background-color: #3498db;
+      background-color: #008080;
       color: white;
-      border: none;
       cursor: pointer;
-      transition: background-color 0.3s;
     }
     select {
       appearance: none;
-      background-color: #333
       background-position: right 10px top 50%;
       background-size: 12px auto;
       padding-right: 30px;
     }
     select:hover, button:hover {
-      background-color: #2980b9;
+      background-color: #008080;
     }
     textarea {
       resize: vertical;
       min-height: 100px;
+      background-color: #ffffff;
+      color: #333;
+    }
+    input[type="text"] {
+      background-color: #ffffff;
+      color: #333;
     }
     .hidden {
       display: none;
     }
     #result {
-      margin-top: 15px;
-      padding: 10px;
-      background-color: #ecf0f1;
+      margin-top: 5px;
+      margin-bottom: 5px;
+      padding: 5px;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 12px;
+      color: #ffffff;
+      text-align: center;
     }
     #sourceKeywords {
       width: 100%;
       margin-bottom: 10px;
     }
-    #settingsLink {
+    .settings {
       display: block;
-      text-align: center;
-      margin-top: 10px;
-      color: #3498db;
-      text-decoration: none;
-      padding-bottom: 10px;
+      margin: 0 auto 20px;
+      width: 24px;
+      height: auto;
+    }
+    #settingsLink {
+      width: 24px
+      height: auto
+      align-items: center;
+      display: block;
+      align-self: center;
+      margin-top: 20px;
     }
     #settingsLink:hover {
       text-decoration: underline;
     }
+    #serverSelect {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #808080;
+    color: white;
+    cursor: pointer;
+    }
+
+    #serverSelect:hover {
+      background-color: #008080;
+    }
+
+    /* Adjust the settings link margin */
+    #settingsLink {
+      margin-top: 10px;
+      color: #008080;
+    }
   </style>
 </head>
 <body>
-  <img src="icon_white.png" alt="Logo" class="logo">
+  <a href="https://github.com/WismutHansen/READ2ME" target="_blank">
+    <img src="icon_white.png" alt="Logo" class="logo">
+  </a>
   
   <div class="section">
     <label for="actionSelect">Select Action:</label>
@@ -137,13 +169,16 @@
     <label for="sourceKeywords">Keywords (comma-separated):</label>
     <input type="text" id="sourceKeywords" placeholder="news,technology">
     <button id="addSourceButton">Add Source</button>
-    <button id="fetchSourcesButton">Fetch Sources</button>
-    <button id="getSourcesButton">Get Sources</button>
+    <button id="fetchSourcesButton">Fetch New Articles</button>
+    <button id="getSourcesButton">Display Sources</button>
   </div>
-
+    <select id="serverSelect"></select>
+  </div>
+  <!-- <a id="settingsLink" href="settings.html">Settings</a> -->
+  <a href="settings.html">
+    <img src="settings.png" alt="Settings" class="settings">
+  </a>
   <div id="result"></div>
-  
-  <a id="settingsLink" href="settings.html">Settings</a>
   <script src="popup.js"></script>
 </body>
 </html>

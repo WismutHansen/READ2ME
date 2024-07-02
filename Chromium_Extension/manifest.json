@@ -1,22 +1,27 @@
 {
-  "manifest_version": 2,
-  "name": "READ2ME API Caller",
+  "manifest_version": 3,
+  "name": "READ2ME Browser Companion",
   "version": "1.0",
-  "description": "Call READ2ME API endpoints",
+  "description": "Call READ2ME API endpoints. Please make sure to download and run the READ2ME server: https://github.com/WismutHansen/READ2ME",
   "permissions": [
     "tabs",
     "storage"
   ],
-  "optional_permissions": [
+  "host_permissions": [
     "<all_urls>"
   ],
-  "browser_action": {
+  "action": {
     "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_icon": "thumb.png"
   },
   "background": {
-    "scripts": ["background.js"],
-    "persistent": false
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "thumb_16.png",
+    "32": "thumb_32.png",
+    "48": "thumb_48.png",
+    "128": "thumb_128.png"
   },
   "options_page": "settings.html"
 }
