@@ -1,6 +1,6 @@
 # Read2Me
 
-![READ2ME Cover Image Depicting a black and white grainy photo of a pair of overear headphones. Image Caption reades: READ2ME. The image was generated with Dall-E 3 from OpenAI](front.jpg)
+![READ2ME Banner](Banner.png)
 
 ## Overview
 
@@ -21,6 +21,7 @@ This is a first alpha version but I plan to extend it to support other content t
 
 - Python 3.7 or higher
 - Dependencies listed in `requirements.txt`
+- If you want to use the local styleTTS2 text-to-speech model, please also install `requirements_stts2.txt`
 
 ## Installation
 
@@ -45,6 +46,11 @@ This is a first alpha version but I plan to extend it to support other content t
    ```sh
    pip install -r requirements.txt
    ```
+   if you want to use the local styleTTS2 text-to-speech model, please also install the additional dependencies:
+   ```sh
+   pip install -r requirements_stts2.txt
+   ```
+   **Note:** StlyTTS2 also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
 
 4. **Set up environment variables:**
 
@@ -52,7 +58,7 @@ This is a first alpha version but I plan to extend it to support other content t
 
    ```sh
    OUTPUT_DIR=Output # Directory to store output files
-   TASK_FILE=tasks.txt # File containing URLs to process
+   SOURCES_FILE=sources.json # File containing sources to retrieve articles from twice a day
    IMG_PATH=front.jpg # Path to image file to use as cover
    ```
 ### Docker Installation
@@ -77,7 +83,7 @@ This is a first alpha version but I plan to extend it to support other content t
    ```sh
    uvicorn main:app --host 0.0.0.0 --port 7777
    ```
-   **or, if you're connected to a server e.g. via ssh and want to keep the app running after closing your session**
+   **or, if you're connected to a Linux server e.g. via ssh and want to keep the app running after closing your session**
 
    ```sh
    nohup uvicorn main:app --host 0.0.0.0 --port 7777 &
@@ -113,16 +119,34 @@ This is a first alpha version but I plan to extend it to support other content t
      -d '{"url": "https://example.com/article"}'
      -d '{"tts-engine": "edge"}'
    ```
+   The repository also contains a working Chromium Extension that you can install in any Chromium-based browser (e.g. Google Chrome) when the developer settings are enabled.
 
 3. **Processing URLs:**
 
-   The application periodically checks the `tasks.txt` file for new URLs to process. It fetches the content, extracts text, converts it to speech, and saves the resulting MP3 files with appropriate metadata.
+   The application periodically checks the `tasks.json` file for new Jobs to process. It fetches the content for a given url, extracts text, converts it to speech, and saves the resulting MP3 files with appropriate metadata.
 
 4. **Specify Sources and keywords for automatic retrieval:**
 
-Create a file called `sources.txt` in your current working directory with URLs to websites that you want to monitor for new articles, one url per line. 
+Create a file called `sources.json` in your current working directory with URLs to websites that you want to monitor for new articles. You can also set global keywords and per-source keywords to be used as filters for automatic retrieval. If you set "*" for a source, all new articles will be retrieved. Here is an example structure:
 
-Create another file called `keywords.txt` in your current working directory with keywords that you want to search for within the urls of the retrieved articles. Keywords need to be present in order for articles to be processed.
+```json
+{
+  "global_keywords": [
+    "globalkeyword1",
+    "globalkeyword2"
+  ],
+  "sources": [
+    {
+      "url": "https://example.com",
+      "keywords": ["keyword1","keyword2"]
+    },
+    {
+      "url": "https://example2.com",
+      "keywords": ["*"]
+    }
+  ]
+}
+```
 
 Location of both files is configurable in .env file.
 
