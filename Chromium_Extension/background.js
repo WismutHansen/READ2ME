@@ -1,7 +1,7 @@
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  const baseUrl = request.serverUrl || 'http://localhost:7777';
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  const baseUrl = request.serverUrl || 'http://127.0.0.1:7777';
 
-  function makeRequest(endpoint, method, body) {
+  async function makeRequest(endpoint, method, body) {
     const options = {
       method: method,
       headers: {
@@ -13,28 +13,27 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       options.body = JSON.stringify(body);
     }
 
-    return fetch(`${baseUrl}${endpoint}`, options)
-      .then(response => response.json())
-      .then(data => {
-        sendResponse({message: data.message || JSON.stringify(data)});
-      })
-      .catch(error => {
-        sendResponse({message: `Error: ${error}`});
-      });
+    try {
+      const response = await fetch(`${baseUrl}${endpoint}`, options);
+      const data = await response.json();
+      sendResponse({ message: data.message || JSON.stringify(data) });
+    } catch (error) {
+      sendResponse({ message: `Error: ${error}` });
+    }
   }
 
   switch (request.action) {
     case 'addUrlFull':
-      makeRequest('/v1/url/full', 'POST', {url: request.url, tts_engine: request.ttsEngine});
+      makeRequest('/v1/url/full', 'POST', { url: request.url, tts_engine: request.ttsEngine });
       break;
     case 'addUrlSummary':
-      makeRequest('/v1/url/summary', 'POST', {url: request.url, tts_engine: request.ttsEngine});
+      makeRequest('/v1/url/summary', 'POST', { url: request.url, tts_engine: request.ttsEngine });
       break;
     case 'addTextFull':
-      makeRequest('/v1/text/full', 'POST', {text: request.text, tts_engine: request.ttsEngine});
+      makeRequest('/v1/text/full', 'POST', { text: request.text, tts_engine: request.ttsEngine });
       break;
     case 'addTextSummary':
-      makeRequest('/v1/text/summary', 'POST', {text: request.text, tts_engine: request.ttsEngine});
+      makeRequest('/v1/text/summary', 'POST', { text: request.text, tts_engine: request.ttsEngine });
       break;
     case 'fetchSources':
       makeRequest('/v1/sources/fetch', 'POST', {});
@@ -48,7 +47,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       });
       break;
     default:
-      sendResponse({message: 'Unknown action'});
+      sendResponse({ message: 'Unknown action' });
   }
   return true;  // Indicates that the response is sent asynchronously
 });

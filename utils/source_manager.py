@@ -9,7 +9,10 @@ def read_sources() -> Dict:
     if not os.path.exists(SOURCES_FILE):
         return {"global_keywords": [], "sources": []}
     with open(SOURCES_FILE, 'r') as file:
-        return json.load(file)
+        try:
+            return json.load(file)
+        except json.JSONDecodeError:
+            return {"global_keywords": [], "sources": []}
 
 def write_sources(data: Dict):
     with open(SOURCES_FILE, 'w') as file:
@@ -17,12 +20,15 @@ def write_sources(data: Dict):
 
 def print_sources():
     data = read_sources()
-    print("Global Keywords:", ", ".join(data['global_keywords']))
-    print("\nSources:")
-    for source in data['sources']:
-        print(f"  URL: {source['url']}")
-        print(f"  Keywords: {', '.join(source['keywords'])}")
-        print()
+    if not data['sources']:
+        print("No source has been added to the directory yet")
+    else:
+        print("Global Keywords:", ", ".join(data['global_keywords']))
+        print("\nSources:")
+        for source in data['sources']:
+            print(f"  URL: {source['url']}")
+            print(f"  Keywords: {', '.join(source['keywords'])}")
+            print()
 
 def update_sources(global_keywords: Optional[List[str]] = None, sources: Optional[List[Dict[str, List[str]]]] = None) -> Dict:
     data = read_sources()
