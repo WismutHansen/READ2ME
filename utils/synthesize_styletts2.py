@@ -60,14 +60,19 @@ async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, 
     write(wav_output, sr, full_audio)
 
     # Check if there is a checkpoint with .pth ending in .utils/rvc/Models
-    checkpoint_path = "./utils/rvc/Models/test.pth"
+    checkpoint_path = "./utils/rvc/Models/Female_1.pth"
     if os.path.isfile(checkpoint_path):
         # Using RVC to change the voice:
+        
+        backend = "cpu"
+        if torch.cuda.is_available():
+            backend = "cuda:0"
+
         infer_file(
             input_path=wav_output,
             model_path=checkpoint_path,
-            index_path="./utils/rvc/Models/test.index",  # Optional: specify path to index file if available
-            device="cuda:0", # Use cpu or cuda
+            index_path="./utils/rvc/Models/Female_1.index",  # Optional: specify path to index file if available
+            device=backend, # Use cpu or cuda 
             f0method="rmvpe",  # Choose between 'harvest', 'crepe', 'rmvpe', 'pm'
             f0up_key=0,  # Transpose setting
             opt_path=f"{base_file_name}_rvc.wav", # Output file path
@@ -81,9 +86,15 @@ async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, 
     
     rvc_file = f"{base_file_name}_rvc.wav"
 
+    # Determine which file to convert
+    if os.path.exists(rvc_file):
+        wav_to_convert = rvc_file
+    else:
+        wav_to_convert = wav_output
+
     # Convert the WAV file to MP3
     # convert_wav_to_mp3(wav_output, mp3_file)
-    convert_wav_to_mp3(rvc_file, mp3_file)
+    convert_wav_to_mp3(wav_to_convert, mp3_file)
 
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
 
