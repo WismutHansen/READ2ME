@@ -99,6 +99,7 @@ from phonemizer.backend.espeak.wrapper import EspeakWrapper
 # if windows set espeakwrapper
 import platform
 
+# Hacky fix to make sure espeak-ng can be found -> Need to fix in future update
 if platform.system() == "Windows":
     EspeakWrapper.set_library("C:\Program Files\eSpeak NG\libespeak-ng.dll")
 

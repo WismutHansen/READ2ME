@@ -19,3 +19,4 @@ aiohttp
 aiofiles
 tqdm
 pymupdf
+readabilipy

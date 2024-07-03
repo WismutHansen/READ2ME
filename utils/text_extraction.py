@@ -11,6 +11,7 @@ import wikipedia
 from urllib.parse import urlparse, unquote
 import tempfile
 import fitz
+from readabilipy import simple_json_from_html_string
 
 
 # Format in this format: January 1st 2024
@@ -372,12 +373,35 @@ async def extract_text(url):
     except Exception as e:
         logging.error(f"Error extracting text from HTML: {e}")
         return None, None
+    
+def readability(url):
+    req = requests.get(url)
+    article = simple_json_from_html_string(req.text, use_readability=True)
+    
+    title = article.get('title', 'No Title')
+    byline = article.get('byline')
+    content = article.get('plain_text', [])
+
+    markdown = f"# {title}\n\n"
+    if byline:
+        markdown += f"**Written by:** {byline}\n\n"
+    markdown += f"**From:** {url}\n\n"
+    
+    # Extract text from each dictionary item in content
+    markdown += "\n".join([item.get('text', '') if isinstance(item, dict) else str(item) for item in content])
+    
+    return markdown
+
 
 
 if __name__ == "__main__":
     url = input("Enter URL to extract text from: ")
-    article_content, title = asyncio.run(extract_text(url))
-    if article_content:
-        print(article_content)
-    else:
-        print("Failed to extract text.")
+    # article_content, title = asyncio.run(extract_text(url))
+    # if article_content:
+    #     print(article_content)
+    # else:
+    #     print("Failed to extract text.")
+    content = readability(url)
+    print(f"\n--------------\n")
+    print(content)
+

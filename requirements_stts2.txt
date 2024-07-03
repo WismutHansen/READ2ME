@@ -4,3 +4,4 @@ torchaudio
 torchvision
 rvc-python
 nltk
+tensorboardx

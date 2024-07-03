@@ -26,8 +26,13 @@ def print_sources():
         print("Global Keywords:", ", ".join(data['global_keywords']))
         print("\nSources:")
         for source in data['sources']:
+            keywords = source['keywords']
+            if keywords == ["*"]:
+                keyword_str = "* (all articles)"
+            else:
+                keyword_str = ", ".join(keywords)
             print(f"  URL: {source['url']}")
-            print(f"  Keywords: {', '.join(source['keywords'])}")
+            print(f"  Keywords: {keyword_str}")
             print()
 
 def update_sources(global_keywords: Optional[List[str]] = None, sources: Optional[List[Dict[str, List[str]]]] = None) -> Dict:
@@ -43,6 +48,15 @@ def update_sources(global_keywords: Optional[List[str]] = None, sources: Optiona
                 existing_source['keywords'] = list(set(existing_source['keywords'] + new_source['keywords']))
             else:
                 data['sources'].append(new_source)
+    
+    # Apply the new keyword rules
+    for source in data['sources']:
+        if not source['keywords'] or source['keywords'] == [""]:
+            source['keywords'] = data['global_keywords']
+        elif "*" in source['keywords']:
+            source['keywords'] = ["*"]
+        else:
+            source['keywords'] = list(set(source['keywords'] + data['global_keywords']))
     
     write_sources(data)
     return data
