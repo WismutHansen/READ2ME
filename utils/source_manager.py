@@ -29,35 +29,38 @@ def print_sources():
             keywords = source['keywords']
             if keywords == ["*"]:
                 keyword_str = "* (all articles)"
+            elif not keywords:
+                keyword_str = "No source-specific keywords"
             else:
                 keyword_str = ", ".join(keywords)
-            print(f"  URL: {source['url']}")
-            print(f"  Keywords: {keyword_str}")
+            print(f" URL: {source['url']}")
+            print(f" Keywords: {keyword_str}")
             print()
 
 def update_sources(global_keywords: Optional[List[str]] = None, sources: Optional[List[Dict[str, List[str]]]] = None) -> Dict:
     data = read_sources()
-    
     if global_keywords is not None:
         data['global_keywords'] = list(set(data['global_keywords'] + global_keywords))
-    
     if sources is not None:
         for new_source in sources:
             existing_source = next((s for s in data['sources'] if s['url'] == new_source['url']), None)
             if existing_source:
-                existing_source['keywords'] = list(set(existing_source['keywords'] + new_source['keywords']))
+                existing_source['keywords'] = new_source['keywords']
             else:
                 data['sources'].append(new_source)
     
-    # Apply the new keyword rules
-    for source in data['sources']:
-        if not source['keywords'] or source['keywords'] == [""]:
-            source['keywords'] = data['global_keywords']
-        elif "*" in source['keywords']:
-            source['keywords'] = ["*"]
-        else:
-            source['keywords'] = list(set(source['keywords'] + data['global_keywords']))
-    
+    write_sources(data)
+    return data
+
+def remove_source(url: str) -> Dict:
+    data = read_sources()
+    data['sources'] = [s for s in data['sources'] if s['url'] != url]
+    write_sources(data)
+    return data
+
+def remove_global_keyword(keyword: str) -> Dict:
+    data = read_sources()
+    data['global_keywords'] = [k for k in data['global_keywords'] if k != keyword]
     write_sources(data)
     return data
 
@@ -65,15 +68,22 @@ def cli():
     parser = argparse.ArgumentParser(description="Manage sources and keywords for article fetching")
     parser.add_argument("--add-global", nargs="+", help="Add global keywords")
     parser.add_argument("--add-source", nargs=2, metavar=("URL", "KEYWORDS"), action="append", help="Add a source with keywords")
+    parser.add_argument("--remove-source", metavar="URL", help="Remove a source by URL")
+    parser.add_argument("--remove-global", metavar="KEYWORD", help="Remove a global keyword")
     parser.add_argument("--print", action="store_true", help="Print current sources and keywords")
-    
     args = parser.parse_args()
-    
+
     if args.print:
         print_sources()
     elif args.add_global or args.add_source:
         sources = [{"url": url, "keywords": keywords.split(",")} for url, keywords in args.add_source] if args.add_source else None
         update_sources(args.add_global, sources)
+        print_sources()
+    elif args.remove_source:
+        remove_source(args.remove_source)
+        print_sources()
+    elif args.remove_global:
+        remove_global_keyword(args.remove_global)
         print_sources()
     else:
         parser.print_help()

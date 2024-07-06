@@ -375,8 +375,10 @@ async def extract_text(url):
         return None, None
     
 def readability(url):
-    req = requests.get(url)
-    article = simple_json_from_html_string(req.text, use_readability=True)
+    response = requests.head(url, allow_redirects=True)
+    resolved_url = response.url
+    downloaded = trafilatura.fetch_url(resolved_url)
+    article = simple_json_from_html_string(downloaded, use_readability=True)
     
     title = article.get('title', 'No Title')
     byline = article.get('byline')
@@ -396,12 +398,12 @@ def readability(url):
 
 if __name__ == "__main__":
     url = input("Enter URL to extract text from: ")
-    # article_content, title = asyncio.run(extract_text(url))
-    # if article_content:
-    #     print(article_content)
-    # else:
-    #     print("Failed to extract text.")
-    content = readability(url)
-    print(f"\n--------------\n")
-    print(content)
+    article_content, title = asyncio.run(extract_text(url))
+    if article_content:
+        print(article_content)
+    else:
+        print("Failed to extract text.")
+    # content = readability(url)
+    # print(f"\n--------------\n")
+    # print(content)
 
