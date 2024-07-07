@@ -6,6 +6,7 @@ import asyncio
 import logging
 import newspaper
 from .task_file_handler import add_task
+from .rssfeed import find_rss_feed, get_articles_from_feed
 
 MAX_ARTICLES_PER_SOURCE = 10
 
@@ -57,7 +58,6 @@ async def fetch_articles():
     logging.info(f"Global keywords: {global_keywords}")
     logging.info(f"Number of sources: {len(sources)}")
 
-
     global_patterns = compile_patterns(global_keywords)
     logging.info(f"Compiled {len(global_patterns)} global patterns")
 
@@ -98,16 +98,25 @@ async def process_source(source, global_patterns):
     download_all = "*" in source_keywords
     source_patterns = compile_patterns([k for k in source_keywords if k and k != "*"])
 
-    logging.info(f"Starting to build newspaper for source: {source_url}")
-    paper = newspaper.build(source_url, memoize_articles=True)
-    logging.info(f"Found {len(paper.articles)} articles in {source_url}")
+    if source.get("is_rss", False):
+        logging.info(f"Source {source_url} is an RSS feed.")
+        articles = get_articles_from_feed(source_url)
+    else:
+        logging.info(f"Starting to build newspaper for source: {source_url}")
+        paper = newspaper.build(source_url, memoize_articles=True)
+        logging.info(f"Found {len(paper.articles)} articles in {source_url}")
+        articles = [article.url for article in paper.articles]
+
+    if not articles:
+        logging.info(f"No articles found for source: {source_url}")
+        return
 
     tasks = []
     articles_processed = 0
-    for article in paper.articles:
+    for article_url in articles:
         if download_all and articles_processed >= MAX_ARTICLES_PER_SOURCE:
             break
-        task = asyncio.create_task(process_article_with_timeout(article.url, global_patterns, source_patterns, download_all))
+        task = asyncio.create_task(process_article_with_timeout(article_url, global_patterns, source_patterns, download_all))
         tasks.append(task)
         if download_all:
             articles_processed += 1
