@@ -2,6 +2,7 @@ import json
 import os
 import argparse
 from typing import List, Optional, Dict
+from .rssfeed import find_rss_feed
 
 SOURCES_FILE = "sources.json"
 
@@ -35,6 +36,7 @@ def print_sources():
                 keyword_str = ", ".join(keywords)
             print(f" URL: {source['url']}")
             print(f" Keywords: {keyword_str}")
+            print(f" Is RSS Feed: {source.get('is_rss', False)}")
             print()
 
 def update_sources(global_keywords: Optional[List[str]] = None, sources: Optional[List[Dict[str, List[str]]]] = None) -> Dict:
@@ -44,8 +46,15 @@ def update_sources(global_keywords: Optional[List[str]] = None, sources: Optiona
     if sources is not None:
         for new_source in sources:
             existing_source = next((s for s in data['sources'] if s['url'] == new_source['url']), None)
+            rss_feed_url = find_rss_feed(new_source['url'])
+            if rss_feed_url:
+                new_source['url'] = rss_feed_url
+                new_source['is_rss'] = True
+            else:
+                new_source['is_rss'] = False
             if existing_source:
                 existing_source['keywords'] = new_source['keywords']
+                existing_source['is_rss'] = new_source['is_rss']
             else:
                 data['sources'].append(new_source)
     

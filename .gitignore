@@ -14,6 +14,8 @@ test.py
 # process log file
 process_log*.txt
 
+output.txt
+
 # task file
 tasks.json
 sources.json
