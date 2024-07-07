@@ -20,4 +20,8 @@ aiofiles
 tqdm
 pymupdf
 readabilipy
+werkzeug==2.0.3
 feedparser
+feedsearch
+pydub
+readabilipy
