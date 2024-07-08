@@ -19,6 +19,7 @@ output.txt
 # task file
 tasks.json
 sources.json
+history.json
 
 # keywords file
 keywords.txt

@@ -26,10 +26,10 @@ def get_formatted_date():
     return f"{month} {day}{suffix}, {year}"
 
 
-# Function to check if word count is less than 200
+# Function to check if word count is less than 100
 def check_word_count(text):
     words = re.findall(r"\b\w+\b", text)
-    return len(words) < 200
+    return len(words) < 100
 
 
 # Function to check for paywall or robot disclaimer
@@ -330,9 +330,9 @@ async def extract_text(url):
 
         # We use trafilatura to extract the text content from the HTML page
         result = trafilatura.extract(downloaded, include_comments=False)
-        if result is None or check_word_count(result):
-            logging.error(f"Extracted text is less than 200 words.")
-            return None, None
+        # if result is None or check_word_count(result):
+        #     logging.error(f"Extracted text is less than 100 words.")
+        #     return None, None
 
         soup = BeautifulSoup(downloaded, "html.parser")
         title = soup.find("title").text if soup.find("title") else ""

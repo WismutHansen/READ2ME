@@ -4,6 +4,7 @@ from threading import Thread, Event
 from utils.task_file_handler import get_tasks, clear_tasks
 from utils.synthesize import synthesize_text_to_speech as synthesize_edge_tts, read_text
 from utils.env import setup_env
+from utils.history_handler import add_to_history, check_history
 
 output_dir, task_file, img_pth, sources_file = setup_env()
 
@@ -26,12 +27,18 @@ def process_tasks(stop_event):
                     logging.error(f"Invalid task format: {task}")
                     continue
 
+                # Check if the URL has been processed before
+                if task_type == "url" and await check_history(content):
+                    logging.info(f"URL {content} has already been processed. Skipping.")
+                    continue
+
                 if task_type == "url":
                     if tts_engine == "styletts2":
                         from utils.synthesize_styletts2 import say_with_styletts2
                         await say_with_styletts2(content, output_dir, img_pth)
                     else:
                         await synthesize_edge_tts(content, output_dir, img_pth)
+                    await add_to_history(content)  # Add URL to history after processing
                 elif task_type == "text":
                     if tts_engine == "styletts2":
                         from utils.synthesize_styletts2 import text_to_speech_with_styletts2
