@@ -138,6 +138,14 @@ async def api_update_sources(update: SourceUpdate):
 async def api_get_sources():
     return read_sources()
 
+# New endpoint to force re-process a URL in case of e.g. a change in the source  
+@app.post("/v1/url/reprocess")
+async def url_audio_reprocess(request: URLRequest):
+    logging.info(f"Reprocessing URL: {request.url}")
+    await add_to_history(request.url)  # Add to history to avoid future re-processing
+    await add_task("url", request.url, request.tts_engine)
+    return {"message": "URL reprocessing added to the READ2ME task list"}
+
 
 async def schedule_fetch_articles():
     from utils.sources import fetch_articles
