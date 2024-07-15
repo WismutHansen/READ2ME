@@ -1,8 +1,25 @@
 import os
+import re
 import datetime
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC
 from PIL import Image, ImageDraw, ImageFont
 from pydub import AudioSegment
+
+def shorten_title(title):
+    # Shorten the title to 8 words max
+    words = title.split()
+    short_title = "_".join(words[:8])
+    # Replace spaces with underscores and remove special characters not allowed in filenames
+    short_title = re.sub(r'[^a-zA-Z0-9_]', '', short_title)
+    return short_title
+
+def shorten_text(text):
+    words = text.split()
+    if len(words) > 400:
+        short_text = ' '.join(words[:400])
+    else:
+        short_text = text
+    return short_text
 
 
 def get_date_subfolder(output_dir):
@@ -13,17 +30,20 @@ def get_date_subfolder(output_dir):
     return subfolder
 
 
-async def get_output_files(output_dir):
+async def get_output_files(output_dir, title):
     subfolder = get_date_subfolder(output_dir)
+    short_title = shorten_title(title)
     file_number = 1
     while True:
-        base_file_name = f"{subfolder}/{file_number:03d}"
+        base_file_name = f"{subfolder}/{file_number:03d}_{short_title}"
         mp3_file_name = f"{base_file_name}.mp3"
         md_file_name = f"{base_file_name}.md"
-        if not os.path.exists(mp3_file_name) and not os.path.exists(md_file_name):
+        
+        # Check if any files start with the same three-digit number
+        existing_files = [f for f in os.listdir(subfolder) if f.startswith(f"{file_number:03d}_")]
+        if not existing_files:
             return base_file_name, mp3_file_name, md_file_name
-        else:
-            file_number += 1
+        file_number += 1
 
 
 def create_image_with_date(image_path: str, output_path: str, date_text: str):
@@ -74,7 +94,12 @@ def add_mp3_tags(mp3_file: str, title: str, img_pth: str, output_dir: str):
     audio.save(mp3_file)
 
 
-def convert_wav_to_mp3(wav_file: str, mp3_file: str):
+def convert_wav_to_mp3(wav_file: str, mp3_file: str, bitrate: str = "192k"):
+    # Load WAV file
     audio = AudioSegment.from_wav(wav_file)
-    audio.export(mp3_file, format="mp3")
+    
+    # Export as MP3 with specified bitrate and other parameters to maintain quality
+    audio.export(mp3_file, format="mp3", bitrate=bitrate, parameters=["-q:a", "0"])
+    
+    # Remove the original WAV file
     os.remove(wav_file)
