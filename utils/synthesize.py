@@ -5,6 +5,9 @@ from edge_tts import VoicesManager
 from .text_extraction import extract_text
 from .common_utils import get_output_files, add_mp3_tags
 from .markdown_utils import write_markdown_file
+from llm.LLM_calls import generate_title
+
+
 
 
 async def synthesize_text_to_speech(url: str, output_dir, img_pth):
@@ -24,7 +27,7 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
         print("No text extracted from the provided URL")
         return None, None, None  # Instead of raising an exception, return None
 
-    base_file_name, mp3_file, md_file = await get_output_files(output_dir)
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
     write_markdown_file(md_file, text, url)
 
     voices = await VoicesManager.create()
@@ -46,12 +49,16 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
 
 
 async def read_text(text: str, output_dir, img_pth):
+    title = generate_title(text)
+
     if not text:
         logging.error(f"No text provided")
         print("No text provided")
         return None, None, None  # Instead of raising an exception, return None
+    
+    title = generate_title(text)
 
-    base_file_name, mp3_file, md_file = await get_output_files(output_dir)
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
     write_markdown_file(md_file, text)
 
     voices = await VoicesManager.create()

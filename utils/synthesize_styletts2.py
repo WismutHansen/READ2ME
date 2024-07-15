@@ -26,7 +26,7 @@ async def extract_text_from_url(url: str):
 
 
 async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, img_pth: str):
-    base_file_name, mp3_file, md_file = await get_output_files(output_dir)
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
     write_markdown_file(md_file, text, title)
 
     wav_output = f"{base_file_name}_stts2.wav"
@@ -84,17 +84,13 @@ async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, 
             version="v2"
         )
     
-    rvc_file = f"{base_file_name}_rvc.wav"
+        rvc_file = f"{base_file_name}_rvc.wav"
+        convert_wav_to_mp3(rvc_file, mp3_file)
 
-    # Determine which file to convert
-    if os.path.exists(rvc_file):
-        wav_to_convert = rvc_file
     else:
-        wav_to_convert = wav_output
+        convert_wav_to_mp3(wav_output, mp3_file)
 
-    # Convert the WAV file to MP3
-    # convert_wav_to_mp3(wav_output, mp3_file)
-    convert_wav_to_mp3(wav_to_convert, mp3_file)
+
 
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
 
