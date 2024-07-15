@@ -4,6 +4,7 @@ import datetime
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC
 from PIL import Image, ImageDraw, ImageFont
 from pydub import AudioSegment
+import logging
 
 def shorten_title(title):
     # Shorten the title to 8 words max
@@ -13,6 +14,7 @@ def shorten_title(title):
     short_title = re.sub(r'[^a-zA-Z0-9_]', '', short_title)
     return short_title
 
+
 def shorten_text(text):
     words = text.split()
     if len(words) > 400:
@@ -20,6 +22,65 @@ def shorten_text(text):
     else:
         short_text = text
     return short_text
+
+
+def split_text(text, max_words=1500):
+    def count_words(text):
+        return len(re.findall(r'\w+', text))
+
+    def split_into_paragraphs(text):
+        return text.split('\n\n')
+
+    def split_into_sentences(text):
+        return re.split(r'(?<=[.!?]) +', text)
+
+    words = count_words(text)
+    logging.debug(f"Total number of words in text: {words}")
+    
+    if words <= max_words:
+        return [text]
+
+    paragraphs = split_into_paragraphs(text)
+    chunks = []
+    current_chunk = ""
+    current_word_count = 0
+
+    for paragraph in paragraphs:
+        paragraph_word_count = count_words(paragraph)
+        logging.debug(f"Paragraph word count: {paragraph_word_count}")
+
+        if current_word_count + paragraph_word_count <= max_words:
+            current_chunk += paragraph + "\n\n"
+            current_word_count += paragraph_word_count
+        else:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            if paragraph_word_count > max_words:
+                sentences = split_into_sentences(paragraph)
+                for sentence in sentences:
+                    sentence_word_count = count_words(sentence)
+                    logging.debug(f"Sentence word count: {sentence_word_count}")
+
+                    if current_word_count + sentence_word_count <= max_words:
+                        current_chunk += sentence + " "
+                        current_word_count += sentence_word_count
+                    else:
+                        if current_chunk:
+                            chunks.append(current_chunk.strip())
+                        current_chunk = sentence + " "
+                        current_word_count = sentence_word_count
+            else:
+                current_chunk = paragraph + "\n\n"
+                current_word_count = paragraph_word_count
+            current_chunk = ""
+            current_word_count = 0
+
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+
+    logging.debug(f"Number of chunks created: {len(chunks)}")
+    return chunks
+
 
 
 def get_date_subfolder(output_dir):
