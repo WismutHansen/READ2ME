@@ -27,3 +27,4 @@ pydub
 readabilipy
 ollama
 openai
+marker

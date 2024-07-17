@@ -12,6 +12,7 @@ def ask_Ollama(user_message, system_message="You are a helpful assistant"):
         model=model_name,
         messages=[{'role': 'user', 'content': user_message}],
         stream=True,
+        keep_alive="-1m",
     )
 
     response = ""
