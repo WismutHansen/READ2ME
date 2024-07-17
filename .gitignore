@@ -30,8 +30,10 @@ sources.txt
 #Output folder containing the audio and .md files
 Output/
 
-# Model folder in utils/Models
-utils/piper/Models
+# Ignore everything in the piper_tts directory
+/utils/piper_tts/*
+# But don't ignore the voices folder
+!/utils/piper_tts/voices/
 
 # Model folder in utils/Models
 utils/Models/
@@ -42,9 +44,6 @@ utils/styletts2/Models/
 # RVC models
 utils/rvc/Models/*.pth
 utils/rvc/Models/*.index
-
-# Piper-TTS binaries
-utils/piper
 
 # Wheels folder
 Wheels/
