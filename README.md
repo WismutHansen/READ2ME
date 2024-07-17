@@ -4,7 +4,7 @@
 
 ## Overview
 
-Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content types, extracting meaningful text and generating audio files.
+Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content and PDF types, extracting meaningful text and generating audio files.
 
 This is a first alpha version but I plan to extend it to support other content types (e.g., PDF) in the future and provide more robust support for languages other than English.
 
