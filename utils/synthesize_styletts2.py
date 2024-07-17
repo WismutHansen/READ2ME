@@ -1,7 +1,6 @@
 import os
 import logging
-from .common_utils import get_output_files, add_mp3_tags, convert_wav_to_mp3
-from .markdown_utils import write_markdown_file
+from .common_utils import get_output_files, add_mp3_tags, convert_wav_to_mp3, write_markdown_file
 from .text_extraction import extract_text
 import torch
 import numpy as np
