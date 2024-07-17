@@ -6,19 +6,25 @@ from PIL import Image, ImageDraw, ImageFont
 from pydub import AudioSegment
 import logging
 
+def write_markdown_file(md_file_path, text, url=None):
+    with open(md_file_path, "w", encoding="utf-8") as md_file_handle:
+        md_file_handle.write(text)
+        if url:
+            md_file_handle.write(f"\n\nSource: {url}")
+
 def shorten_title(title):
     # Shorten the title to 8 words max
     words = title.split()
     short_title = "_".join(words[:8])
     # Replace spaces with underscores and remove special characters not allowed in filenames
-    short_title = re.sub(r'[^a-zA-Z0-9_]', '', short_title)
+    short_title = re.sub(r"[^a-zA-Z0-9_]", "", short_title)
     return short_title
 
 
 def shorten_text(text):
     words = text.split()
     if len(words) > 400:
-        short_text = ' '.join(words[:400])
+        short_text = " ".join(words[:400])
     else:
         short_text = text
     return short_text
@@ -26,13 +32,13 @@ def shorten_text(text):
 
 def split_text(text, max_words=1500):
     def count_words(text):
-        return len(re.findall(r'\w+', text))
+        return len(re.findall(r"\w+", text))
 
     def split_into_paragraphs(text):
-        return text.split('\n\n')
+        return text.split("\n\n")
 
     def split_into_sentences(text):
-        return re.split(r'(?<=[.!?]) +', text)
+        return re.split(r"(?<=[.!?]) +", text)
 
     words = count_words(text)
     logging.debug(f"Total number of words in text: {words}")
@@ -81,6 +87,44 @@ def split_text(text, max_words=1500):
     logging.debug(f"Number of chunks created: {len(chunks)}")
     return chunks
 
+
+def strip_markdown(text):
+    # Removes special characters from the input text
+    
+    disallowed_chars = '"<>[]{}|\\~`^*!#$()_;'
+    symbol_text_pairs = [
+        (" & ", " and "), 
+        (" % ", " percent "), 
+        (" @ ", " at "), 
+        (" = ", " equals "), 
+        (" + ", " plus "),
+        (" / ", " slash "),
+        (" $ ", " dollar "),
+        (" € ", " euro "),
+        (" £ ", " pound "),
+        (" ¥ ", " yen "),
+        (" ¢ ", " cent "),
+        (" ® ", "registered trade mark "),
+        (" © ", "copyright"),
+    ]
+
+    # Remove special characters
+    cleaned_text = "".join(filter(lambda x: x not in disallowed_chars, text))
+    
+    # Replace symbols with their text equivalents
+    for symbol, text_equivalent in symbol_text_pairs:
+        cleaned_text = cleaned_text.replace(symbol, text_equivalent)
+    
+    # Remove brackets containing only numbers
+    cleaned_text = re.sub(r'\[\d+\]', '', cleaned_text)
+    
+    # Remove instances where a number is directly after a word or a name
+    cleaned_text = re.sub(r'(\b\w+\b)\d+', r'\1', cleaned_text)
+    
+    # Remove instances of more than two hyphens
+    cleaned_text = re.sub(r'-{2,}', '', cleaned_text)
+    
+    return cleaned_text
 
 
 def get_date_subfolder(output_dir):
@@ -133,7 +177,7 @@ def add_mp3_tags(mp3_file: str, title: str, img_pth: str, output_dir: str):
     if title:
         audio.add(TIT2(encoding=3, text=title))
     audio.add(
-        TALB(encoding=3, text=f"READ2ME{datetime.date.today().strftime('%Y%m%d')}")
+        TALB(encoding=3, text=f"READ2ME{datetime.date.today().strftime("%Y%m%d")}")
     )
     audio.add(TPE1(encoding=3, text="READ2ME"))
     audio.add(TCON(encoding=3, text="Spoken Audio"))
