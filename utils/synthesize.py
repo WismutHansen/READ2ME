@@ -3,8 +3,7 @@ import logging
 import edge_tts
 from edge_tts import VoicesManager
 from .text_extraction import extract_text
-from .common_utils import get_output_files, add_mp3_tags
-from .markdown_utils import write_markdown_file
+from .common_utils import get_output_files, add_mp3_tags, write_markdown_file
 from llm.LLM_calls import generate_title
 
 
