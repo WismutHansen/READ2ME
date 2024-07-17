@@ -105,7 +105,7 @@ def strip_markdown(text):
         (" ¥ ", " yen "),
         (" ¢ ", " cent "),
         (" ® ", "registered trade mark "),
-        (" © ", "copyright"),
+        (" © ", " copyright "),
     ]
 
     # Remove special characters
@@ -177,7 +177,7 @@ def add_mp3_tags(mp3_file: str, title: str, img_pth: str, output_dir: str):
     if title:
         audio.add(TIT2(encoding=3, text=title))
     audio.add(
-        TALB(encoding=3, text=f"READ2ME{datetime.date.today().strftime("%Y%m%d")}")
+        TALB(encoding=3, text=f"READ2ME{datetime.date.today().strftime('%Y%m%d')}")
     )
     audio.add(TPE1(encoding=3, text="READ2ME"))
     audio.add(TCON(encoding=3, text="Spoken Audio"))
