@@ -4,9 +4,9 @@
 
 ## Overview
 
-Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content and PDF types, extracting meaningful text and generating audio files.
+Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS or optionally with the local TTS models StyleTTS2 or Piper TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content and urls pointing to PDF, extracting meaningful text and generating audio files. You can install the provided Chromium Extension in any Chromium-based browser (e.g. Microsoft Edge) to send current urls or any text to the sever, add sources and keywords for automatic fetching.
 
-This is a first alpha version but I plan to extend it to support other content types (e.g., PDF) in the future and provide more robust support for languages other than English.
+This is a currently a beta version but I plan to extend it to support other content types (e.g., epub) in the future and provide more robust support for languages other than English. Currently, when using the default Azure Edge TTS, it already supports [other languages](https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/speech-service/includes/language-support/multilingual-voices.md) and tries to autodetect it from the text but quality might vary depending on the language.
 
 ## Features
 
@@ -37,8 +37,14 @@ This is a first alpha version but I plan to extend it to support other content t
 2. **Create and activate a virtual environment:**
 
    ```sh
-   python -m venv venv
-   source venv/bin/activate   # On Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+   ```
+   or if you like to use uv for package management:
+
+   ```sh
+   uv venv
+   source .venv/bin/activate # On Windows: .venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
@@ -50,7 +56,7 @@ This is a first alpha version but I plan to extend it to support other content t
    ```sh
    pip install -r requirements_stts2.txt
    ```
-   **Note:** StlyTTS2 also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
+   **Note:** [ffmpeg](https://www.ffmpeg.org/) is required when using either StyleTTS2 or PiperTTS for converting wav files into mp3. StyleTTS also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
 
 4. **Set up environment variables:**
 
