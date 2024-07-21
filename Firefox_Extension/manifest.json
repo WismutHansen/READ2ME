@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "READ2ME Browser Companion",
+  "version": "1.0",
+  "description": "Call READ2ME API endpoints. Please make sure to download and run the READ2ME server: https://github.com/WismutHansen/READ2ME",
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "*://*/*",
+    "http://*/",
+    "https://*/"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "thumb_16.png",
+      "32": "thumb_32.png",
+      "48": "thumb_48.png",
+      "128": "thumb_128.png"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "icons": {
+    "16": "thumb_16.png",
+    "32": "thumb_32.png",
+    "48": "thumb_48.png",
+    "128": "thumb_128.png"
+  },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "read2me@example.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>READ2ME Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 300px;
+      padding: 20px;
+      background-color: #333;
+      margin: 0;
+    }
+    .logo {
+      display: block;
+      margin: 0 auto 20px;
+      width: 80px;
+      height: auto;
+    }
+    .section {
+      margin-bottom: 15px;
+      background-color: #ffffff;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 4px;
+      box-sizing: border-box;
+      background-color: #ffffff;
+    }
+    button {
+      width: 100%;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      background-color: #008080;
+      color: white;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+    #serverList {
+      list-style-type: none;
+      padding: 0;
+      margin: 0 0 10px 0;
+    }
+    #serverList li {
+      color: #ffffff;
+      padding: 5px;
+      cursor: pointer;
+    }
+    #serverList li.selected {
+      background-color: #555;
+    }
+    #serverList li.default {
+      font-weight: bold;
+    }
+    #homeLink {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #008080;
+      text-decoration: none;
+    }
+    .home {
+      display: block;
+      margin: 10px auto 20px;
+      width: 24px;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <a href="https://github.com/WismutHansen/READ2ME" target="_blank">
+    <img src="icon_white.png" alt="Logo" class="logo">
+  </a>
+  
+  <div class="section">
+    <input type="text" id="serverUrl" placeholder="Server URL: http://example.com:7777">
+    <button id="addServerButton">Add Server</button>
+  </div>
+  
+  <ul id="serverList"></ul>
+  <button id="setDefaultButton">Set Default</button>
+  
+  <a href="popup.html">
+    <img src="home.png" alt="Home" class="home">
+  </a>
+  
+  <script src="settings.js"></script>
+</body>
+</html>
