@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>READ2ME API Caller</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 300px;
+      padding: 20px;
+      background-color: #333;
+      margin: 0;
+      height:auto;
+    }
+    .logo {
+      display: block;
+      margin: 0 auto 20px;
+      width: 80px;
+      height: auto;
+    }
+    .section {
+      margin-bottom: 15px;
+      background-color: #ffffff;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #333;
+    }
+    select, input, textarea, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    select, button {
+      background-color: #008080;
+      color: white;
+      cursor: pointer;
+    }
+    select {
+      appearance: none;
+      background-position: right 10px top 50%;
+      background-size: 12px auto;
+      padding-right: 30px;
+    }
+    select:hover, button:hover {
+      background-color: #008080;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      background-color: #ffffff;
+      color: #333;
+    }
+    input[type="text"] {
+      background-color: #ffffff;
+      color: #333;
+    }
+    .hidden {
+      display: none;
+    }
+    #result {
+      margin-top: 5px;
+      margin-bottom: 5px;
+      padding: 5px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #ffffff;
+      text-align: center;
+    }
+    #sourceKeywords {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .settings {
+      display: block;
+      margin: 0 auto 20px;
+      width: 24px;
+      height: auto;
+    }
+    #settingsLink {
+      width: 24px
+      height: auto
+      align-items: center;
+      display: block;
+      align-self: center;
+      margin-top: 20px;
+    }
+    #settingsLink:hover {
+      text-decoration: underline;
+    }
+    #serverSelect {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #808080;
+    color: white;
+    cursor: pointer;
+    }
+
+    #serverSelect:hover {
+      background-color: #008080;
+    }
+
+    /* Adjust the settings link margin */
+    #settingsLink {
+      margin-top: 10px;
+      color: #008080;
+    }
+  </style>
+</head>
+<body>
+  <a href="https://github.com/WismutHansen/READ2ME" target="_blank">
+    <img src="icon_white.png" alt="Logo" class="logo">
+  </a>
+  
+  <div class="section">
+    <label for="actionSelect">Select Action:</label>
+    <select id="actionSelect">
+      <option value="url">URL</option>
+      <option value="text">Text</option>
+      <option value="sources">Sources</option>
+    </select>
+  </div>
+
+  <div id="urlSection" class="section">
+    <label for="urlInput">Enter URL:</label>
+    <input type="text" id="urlInput" placeholder="https://example.com">
+    <label for="urlTypeSelect">Processing Type:</label>
+    <select id="urlTypeSelect">
+      <option value="full">Full</option>
+      <option value="summary">Summary</option>
+    </select>
+    <label for="urlTtsEngine">TTS Engine:</label>
+    <select id="urlTtsEngine">
+      <option value="edge">Edge TTS (online)</option>
+      <option value="styletts2">StyleTTS2 (local)</option>
+      <option value="piper">Piper (local)</option>
+    </select>
+    <button id="addUrlButton">Add URL</button>
+  </div>
+
+  <div id="textSection" class="section hidden">
+    <label for="textInput">Enter Text:</label>
+    <textarea id="textInput" placeholder="Enter your text here..."></textarea>
+    <label for="textTypeSelect">Processing Type:</label>
+    <select id="textTypeSelect">
+      <option value="full">Full</option>
+      <option value="summary">Summary</option>
+    </select>
+    <label for="textTtsEngine">TTS Engine:</label>
+    <select id="textTtsEngine">
+      <option value="edge">Edge TTS (online)</option>
+      <option value="styletts2">StyleTTS2 (local)</option>
+      <option value="piper">Piper (local)</option>
+    </select>
+    <button id="addTextButton">Add Text</button>
+  </div>
+
+  <div id="sourcesSection" class="section hidden">
+    <label for="sourceUrl">Source URL:</label>
+    <input type="text" id="sourceUrl" placeholder="https://example.com">
+    <label for="sourceKeywords">Keywords (comma-separated):</label>
+    <input type="text" id="sourceKeywords" placeholder="news,technology">
+    <button id="addSourceButton">Add Source</button>
+    <button id="fetchSourcesButton">Fetch New Articles</button>
+    <button id="getSourcesButton">Display Sources</button>
+  </div>
+    <select id="serverSelect"></select>
+  </div>
+  <!-- <a id="settingsLink" href="settings.html">Settings</a> -->
+  <a href="settings.html">
+    <img src="settings.png" alt="Settings" class="settings">
+  </a>
+  <div id="result"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
