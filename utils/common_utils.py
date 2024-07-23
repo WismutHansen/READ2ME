@@ -12,6 +12,14 @@ def write_markdown_file(md_file_path, text, url=None):
         if url:
             md_file_handle.write(f"\n\nSource: {url}")
 
+def read_markdown_file(md_file_path):
+    try:
+        with open(md_file_path, "r", encoding="utf-8") as md_file_handle:
+            return md_file_handle.read()
+    except FileNotFoundError:
+        print(f"Error: {md_file_path} not found.")
+        return None
+
 def shorten_title(title):
     # Shorten the title to 8 words max
     words = title.split()
