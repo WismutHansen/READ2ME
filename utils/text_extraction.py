@@ -285,12 +285,13 @@ async def extract_text(url):
         try:
             response = requests.head(url, allow_redirects=True)
             resolved_url = response.url
+            content_type = response.headers.get('Content-Type', '').lower()
             logging.info(f"Resolved URL {resolved_url}")
         except requests.RequestException as e:
             logging.error(f"Error resolving url: {e}")
             return None, None
         
-        if url.lower().endswith(".pdf"):
+        if url.lower().endswith(".pdf") or content_type == 'application/pdf':
             logging.info(f"Extracting text from PDF: {resolved_url}")
             return extract_text_from_pdf(resolved_url)
 
