@@ -12,7 +12,8 @@ test.py
 .venv/               
 
 # process log file
-process_log*.txt
+process_log.txt*
+process_log.txt
 
 output.txt
 
