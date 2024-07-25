@@ -16,6 +16,7 @@ process_log.txt*
 process_log.txt
 
 output.txt
+overview.txt
 
 # task file
 tasks.json
@@ -33,6 +34,7 @@ Output/
 
 # Ignore everything in the piper_tts directory
 /utils/piper_tts/*
+/utils/whisper/*
 # But don't ignore the voices folder
 !/utils/piper_tts/voices/
 

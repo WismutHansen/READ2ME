@@ -1,11 +1,15 @@
 import logging
-from fastapi import FastAPI, Request, UploadFile, HTTPException, File
+from fastapi import FastAPI, Request, UploadFile, HTTPException, File, WebSocket
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from utils.env import setup_env
 from utils.logging_utils import setup_logging
 from utils.task_file_handler import add_task
 from utils.task_processor import start_task_processor
 from utils.source_manager import update_sources, read_sources
+from urllib.parse import unquote
 from contextlib import asynccontextmanager
 from threading import Event
 import asyncio
@@ -65,6 +69,7 @@ class SourceUpdate(BaseModel):
     sources: Optional[List[Source]] = None
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stop_event.clear()  # Ensure the event is clear before starting the thread
@@ -86,6 +91,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.mount("/static", StaticFiles(directory="Output"), name="static")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Update with your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 @app.post("/v1/url/full")
@@ -145,6 +161,78 @@ async def url_audio_reprocess(request: URLRequest):
     await add_to_history(request.url)  # Add to history to avoid future re-processing
     await add_task("url", request.url, request.tts_engine)
     return {"message": "URL reprocessing added to the READ2ME task list"}
+
+@app.get("/v1/audio-files")
+async def get_audio_files():
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    audio_files = []
+    for root, dirs, files in os.walk(output_dir):
+        for file in files:
+            if file.endswith(".mp3"):
+                relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                audio_files.append({
+                    "audio_file": f"static/{relative_path.replace(os.sep, '/')}",
+                    "title": os.path.splitext(file)[0].replace("_", " ")
+                })
+    return JSONResponse(content={"audio_files": audio_files})
+
+@app.get("/v1/audio-file/{file_name}")
+async def get_audio_file(file_name: str):
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    md_file_path = os.path.join("", f"{file_name}.md")
+    if not os.path.exists(md_file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    with open(md_file_path, "r", encoding="utf-8") as file:
+        text_content = file.read()
+    return JSONResponse(content={"text": text_content})
+
+@app.get("/v1/audio-file/{title}")
+async def get_audio_file_text(title: str):
+    # Assuming the text files are stored in the Output directory with the same name as the title
+    text_file_path = os.path.join("", f"{title}.md")
+    
+    if not os.path.isfile(text_file_path):
+        raise HTTPException(status_code=404, detail="Text file not found")
+    
+    with open(text_file_path, "r") as file:
+        text = file.read()
+    
+    return {"text": text}
+
+@app.get("/v1/audio-file/{file_path:path}")
+async def get_audio_file_text(file_path: str):
+    # Normalize the file path to use the correct directory separator
+    file_path = os.path.normpath(file_path)
+    
+    # Construct the full path to the text file
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    text_file_path = os.path.join(output_dir, f"{file_path}.md")
+    
+    if not os.path.isfile(text_file_path):
+        raise HTTPException(status_code=404, detail=f"Text file not found: {text_file_path}")
+    
+    try:
+        with open(text_file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+        return JSONResponse(content={"text": text})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+clients = []
+
+@app.websocket("/ws/playback")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    clients.append(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Process the playback position data here
+            await websocket.send_text(f"Received: {data}")
+    except WebSocketDisconnect:
+        clients.remove(websocket)
+
+
 
 
 async def schedule_fetch_articles():
