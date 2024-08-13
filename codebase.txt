@@ -1,0 +1,4205 @@
+Project Path: /Users/tommyfalkowski/Code/READ2ME
+
+Source Tree:
+
+```
+READ2ME
+├── database
+│   ├── models.py
+│   ├── database.py
+│   ├── __init__.py
+│   └── crud.py
+├── llm
+│   ├── Local_OpenAI.py
+│   ├── Local_Ollama.py
+│   ├── prompts.json
+│   └── LLM_calls.py
+├── frontend
+│   ├── app
+│   │   ├── favicon.ico
+│   │   ├── layout.tsx
+│   │   ├── [id]
+│   │   │   └── pages.tsx
+│   │   ├── page.tsx
+│   │   └── globals.css
+│   ├── postcss.config.mjs
+│   ├── next.config.mjs
+│   ├── README.md
+│   ├── tailwind.config.ts
+│   ├── components
+│   │   ├── theme-provider.tsx
+│   │   ├── ui
+│   │   │   ├── pagination.tsx
+│   │   │   ├── slider.tsx
+│   │   │   ├── progress.tsx
+│   │   │   ├── drawer.tsx
+│   │   │   ├── switch.tsx
+│   │   │   ├── button.tsx
+│   │   │   └── dropdown-menu.tsx
+│   │   ├── AudioPlayer.tsx
+│   │   ├── ArticleList.tsx
+│   │   ├── BottomBar.tsx
+│   │   ├── MarkdownRenderer.tsx
+│   │   ├── ModeToggle.tsx
+│   │   └── ArticlePage.tsx
+│   ├── public
+│   │   ├── vercel.svg
+│   │   └── next.svg
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── lib
+│   │   ├── utils.ts
+│   │   └── api.ts
+│   ├── components.json
+│   └── tsconfig.json
+├── LICENSE
+├── requirements.txt
+├── Banner.png
+├── dockerfile
+├── utils
+│   ├── text_extraction.py
+│   ├── installpipertts.py
+│   ├── image_utils.py
+│   ├── pdfextraction.py
+│   ├── crawlwebsite.py
+│   ├── task_file_handler.py
+│   ├── env.py
+│   ├── synthesize_styletts2.py
+│   ├── piper_tts
+│   │   └── voices
+│   │       └── default_female_voice
+│   │           ├── en_US-hfc_female-medium.onnx
+│   │           └── en_en_US_hfc_female_medium_en_US-hfc_female-medium.onnx.json
+│   ├── rssfeed.py
+│   ├── __init__.py
+│   ├── history_handler.py
+│   ├── styletts2
+│   │   ├── text_utils.py
+│   │   ├── LICENSE
+│   │   ├── models.py
+│   │   ├── __init__.py
+│   │   ├── Utils
+│   │   │   ├── JDC
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── model.py
+│   │   │   │   └── bst.t7
+│   │   │   ├── __init__.py
+│   │   │   ├── PLBERT
+│   │   │   │   ├── util.py
+│   │   │   │   ├── config.yml
+│   │   │   │   └── step_1000000.t7
+│   │   │   └── ASR
+│   │   │       ├── models.py
+│   │   │       ├── __init__.py
+│   │   │       ├── config.yml
+│   │   │       ├── layers.py
+│   │   │       └── epoch_00080.pth
+│   │   ├── utils.py
+│   │   ├── ljspeechimportable.py
+│   │   ├── _run.py
+│   │   └── Modules
+│   │       ├── slmadv.py
+│   │       ├── istftnet.py
+│   │       ├── discriminators.py
+│   │       ├── __init__.py
+│   │       ├── diffusion
+│   │       │   ├── diffusion.py
+│   │       │   ├── __init__.py
+│   │       │   ├── utils.py
+│   │       │   ├── modules.py
+│   │       │   └── sampler.py
+│   │       ├── hifigan.py
+│   │       └── utils.py
+│   ├── synthesize.py
+│   ├── sources.py
+│   ├── task_processor.py
+│   ├── voices
+│   │   ├── Female_en-US_Ava_Neural.mp3
+│   │   ├── Male_en-US_Guy_Neural.mp3
+│   │   ├── Female_en-US_Emma_Neural.mp3
+│   │   ├── __init__.py
+│   │   ├── Male_en-US_Steffan_Neural.mp3
+│   │   ├── Female_en-US_Jenny_Neural.mp3
+│   │   ├── Female_en-US_Michelle_Neural.mp3
+│   │   ├── Male_en-US_Roger_Neural.mp3
+│   │   ├── Male_en-US_Brian_Neural.mp3
+│   │   ├── Female_en-US_Aria_Neural.mp3
+│   │   ├── voicelist.py
+│   │   └── Male_en-US_Andrew_Neural.mp3
+│   ├── transcribe.py
+│   ├── search.py
+│   ├── parler.py
+│   ├── urltest.py
+│   ├── piper_tts_client.py
+│   ├── synthesize_piper.py
+│   ├── common_utils.py
+│   ├── source_manager.py
+│   ├── scrape.py
+│   └── logging_utils.py
+├── README.md
+├── requirements_stts2.txt
+├── main.py
+├── Fonts
+│   └── PermanentMarker.ttf
+├── Chromium_Extension
+│   ├── icon_white.png
+│   ├── icon.png
+│   ├── popup.js
+│   ├── Settings.png
+│   ├── background.js
+│   ├── popup.html
+│   ├── thumb_32.png
+│   ├── Home.png
+│   ├── thumb_128.png
+│   ├── manifest.json
+│   ├── thumb_16.png
+│   ├── settings.html
+│   ├── settings.js
+│   ├── thumb_48.png
+│   └── thumb.png
+└── front.jpg
+
+```
+
+`/Users/tommyfalkowski/Code/READ2ME/llm/Local_OpenAI.py`:
+
+```````py
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+
+
+load_dotenv()
+openai_base_url = os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+model_name = os.getenv("MODEL_NAME")
+
+
+client = OpenAI(base_url=openai_base_url, api_key=openai_api_key)
+
+def ask_LLM(user_message, system_message="You are a helpful assistant"):
+
+    stream = client.chat.completions.create(
+        model=model_name,
+        messages=[{"role": "user", "content": user_message}],
+        stream=True,
+    )
+
+    assistant_message = ""
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            assistant_message += chunk.choices[0].delta.content
+    return assistant_message
+
+if __name__ == "__main__":
+    history = ""
+    while True:
+        question = input("\n\nYou\n--------\n")
+        if history == "":
+            answer = ask_LLM(question)
+            print("\nAssistant\n--------\n", end="")
+            print(answer)
+        else:
+            answer = ask_LLM(history + question)
+            print("\nAssistant\n--------\n", end="")
+            print(answer)
+        history += f"User: {question}\nAssistant: {answer}\n"
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/llm/Local_Ollama.py`:
+
+```````py
+from ollama import Client
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+model_name = os.getenv("MODEL_NAME")
+
+def ask_Ollama(user_message, system_message="You are a helpful assistant"):
+    client = Client(host=ollama_base_url)
+    stream = client.chat(
+        model=model_name,
+        messages=[{'role': 'user', 'content': user_message}],
+        stream=True,
+        keep_alive="-1m",
+    )
+
+    response = ""
+    for chunk in stream:
+        response += chunk['message']['content']
+
+    return response
+
+
+if __name__ == "__main__":
+    history = ""
+    while True:
+        question = input("\n\nYou\n--------\n")
+        if history == "":
+            answer = ask_Ollama(question)
+            print("\nAssistant\n--------\n", end="")
+            print(answer)
+        else:
+            answer = ask_Ollama(history + question)
+            print("\nAssistant\n--------\n", end="")
+            print(answer)
+        history += f"User: {question}\nAssistant: {answer}\n"
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/llm/prompts.json`:
+
+```````json
+{
+    "prompts": [
+      {
+        "id": 001,
+        "name": "Title Generation",
+        "role": "user",
+        "text": "Create a concise, 3-5 word phrase as a header for the above text, strictly adhering to the 3-5 word limit and avoiding the use of the word 'title': "
+      },
+      {
+        "id": 002,
+        "name": "Summarization",
+        "role": "user",
+        "text": "Create a concise summary of the above text, without refering to the text. Only directly summarize the content"
+      },
+      {
+        "id": 003,
+        "name": "Summarization (continued)",
+        "role": "user",
+        "text": "Continue giving a concise summary of the above text snippet, which is taken from a larger text. Do not refer to the text directly and to not include closing phrases such as 'in summary'"
+      }
+    ]
+}  
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/llm/LLM_calls.py`:
+
+```````py
+import sys
+import os
+import logging
+from utils.common_utils import shorten_text, split_text
+from dotenv import load_dotenv
+from .Local_Ollama import ask_Ollama
+from .Local_OpenAI import ask_LLM
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+load_dotenv()
+
+def generate_title(text):
+    try:
+        short_text = shorten_text(text)
+        prompt = f"{short_text}\n--------\nReturn a concise, 3-5 word phrase as the title for the above text, strictly adhering to the 3-5 word limit and avoiding the use of the word 'title'"
+        
+        llm_engine = os.getenv('LLM_ENGINE')
+        logging.debug(f"LLM_ENGINE: {llm_engine}")
+        
+        if llm_engine == "Ollama":
+            title = ask_Ollama(prompt)
+        elif llm_engine == "OpenAI":
+            title = ask_LLM(prompt)
+        else:
+            logging.error("Unsupported or unavailable LLM_engine")
+            return ""
+        
+        return title
+    except Exception as e:
+        logging.error(f"Title Generation failed, returning empty string: {e}")
+        return ""
+
+def tldr(text):
+    try:
+        chunks = split_text(text, max_words=64000)
+        summaries = []
+
+        logging.debug(f"Number of chunks: {len(chunks)}")
+
+        for i, chunk in enumerate(chunks):
+            logging.debug(f"Processing chunk {i + 1}/{len(chunks)} with {len(chunk.split())} words")
+            prompt = f"{chunk}\n--------\nReturn a concise summary for the above text, without referencing the text or mentioning 'in the text' or similar phrases. Keep the tone and perspective of the original text."
+            
+            llm_engine = os.getenv('LLM_ENGINE')
+            logging.debug(f"LLM_ENGINE: {llm_engine}")
+
+            if llm_engine == "Ollama":
+                summary = ask_Ollama(prompt)
+            elif llm_engine == "OpenAI":
+                summary = ask_LLM(prompt)
+            else:
+                logging.error("Unsupported or unavailable LLM_engine")
+                return text
+            
+            logging.debug(f"Generated summary for chunk {i + 1}/{len(chunks)}")
+            summaries.append(summary)
+        
+        return ' '.join(summaries)
+    except Exception as e:
+        logging.error(f"Summary Generation failed, returning empty string: {e}")
+        return ""
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        logging.error("Usage: python script_name.py <path_to_md_file>")
+        print("Usage: python script_name.py <path_to_md_file>")
+        sys.exit(1)
+
+    file_path = sys.argv[1]
+
+    if not os.path.exists(file_path):
+        logging.error(f"File not found: {file_path}")
+        print(f"File not found: {file_path}")
+        sys.exit(1)
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            text = file.read()
+
+        if text:
+            logging.info("File read successfully, generating summary...")
+            result = tldr(text)
+            print(result)
+        else:
+            logging.error("No text found in the file, returning empty string.")
+            print("No text found in the file")
+    except Exception as e:
+        logging.error(f"Failed to read file: {e}")
+        print(f"Failed to read file: {e}")
+        sys.exit(1)
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/requirements.txt`:
+
+```````txt
+beautifulsoup4
+requests
+tldextract
+trafilatura
+edge-tts
+fastapi
+uvicorn
+mutagen
+pillow
+watchdog
+cached-path
+phonemizer
+txtsplit
+playwright
+newspaper4k
+schedule
+wikipedia
+aiohttp
+aiofiles
+tqdm
+pymupdf
+readabilipy
+werkzeug==2.0.3
+feedparser
+feedsearch
+pydub
+readabilipy
+ollama
+openai
+marker
+fastapi-cors
+whisper
+num2words
+sqlalchemy
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/dockerfile`:
+
+```````
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements_stts2.txt
+
+# Install ffmpeg for edge_tts and cifs-utils for mounting SMB shares
+RUN apt-get update && \
+    apt-get install -y ffmpeg cifs-utils espeak-ng && \
+    apt-get clean
+
+# Install fonts for PIL
+RUN apt-get install -y fonts-dejavu-core
+
+# Set environment variables
+ENV OUTPUT_DIR="Output"
+ENV SOURCES_FILE="sources.json"
+ENV IMG_PATH="front.jpg"
+
+# Make port 7777 available to the world outside this container
+EXPOSE 7777
+
+# Define environment variable
+ENV NAME World
+
+# Run app.py when the container launches
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7777"]
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/text_extraction.py`:
+
+```````py
+from datetime import datetime
+import logging
+import requests
+from bs4 import BeautifulSoup
+import trafilatura
+import tldextract
+import re
+import asyncio
+from playwright.async_api import async_playwright
+import wikipedia
+from urllib.parse import urlparse, unquote
+import tempfile
+import fitz
+from readabilipy import simple_json_from_html_string
+
+
+# Format in this format: January 1st 2024
+def get_formatted_date():
+    now = datetime.now()
+    day = now.day
+    month = now.strftime("%B")
+    year = now.year
+    suffix = (
+        "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+    )
+    return f"{month} {day}{suffix}, {year}"
+
+
+# Function to check if word count is less than 100
+def check_word_count(text):
+    words = re.findall(r"\b\w+\b", text)
+    return len(words) < 100
+
+
+# Function to check for paywall or robot disclaimer
+def is_paywall_or_robot_text(text):
+    paywall_phrases = [
+        "Please make sure your browser supports JavaScript and cookies",
+        "To continue, please click the box below",
+        "Please enable cookies on your web browser",
+        "For inquiries related to this message",
+        "If you are a robot" "robot.txt",
+    ]
+    for phrase in paywall_phrases:
+        if phrase in text:
+            return True
+    return False
+
+
+# Async Function to extract text using playwright
+async def extract_with_playwright(url):
+    async with async_playwright() as p:
+        # Launch a headless browser
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+
+        try:
+            # Go to the website
+            await page.goto(url)
+
+            # Wait for the page to load completely
+            await page.wait_for_timeout(2000)  # Increased timeout for loading
+            content = await page.content()
+
+        except Exception as e:
+            logging.error(f"Error extracting text with Playwright: {e}")
+            content = None
+        finally:
+            await browser.close()
+
+        return content
+
+
+# Function to extract text using Jina
+def extract_with_jina(url):
+    try:
+        headers = {"X-Return-Format": "html"}
+        response = requests.get(f"https://r.jina.ai/{url}", headers=headers)
+        if response.status_code == 200:
+            if is_paywall_or_robot_text(response.text):
+                logging.error(
+                    f"Jina could not bypass the paywall: {response.status_code}"
+                )
+                return None
+            else:
+                return response.text
+        else:
+            logging.error(
+                f"Jina extraction failed with status code: {response.status_code}"
+            )
+            return None
+    except Exception as e:
+        logging.error(f"Error extracting text with Jina: {e}")
+        return None
+
+
+def clean_text(text):
+    # Remove extraneous whitespace within paragraphs
+    text = re.sub(r"[ \t]+", " ", text)
+
+    # Ensure that there are two newlines between paragraphs
+    text = re.sub(r"\n\s*\n", "\n\n", text)  # Ensure two newlines between paragraphs
+    text = re.sub(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|!|\n)\n", "\n\n", text)
+    text = re.sub(r"\n[\-_]\n", "", text)  # Remove 3 or more consecutive dashes
+    text = re.sub(r"[\-_]{3,}", "", text)  # Remove 3 or more consecutive underscores
+
+    # Convert HTML entities to plain text
+    text = BeautifulSoup(text, "html.parser").text
+
+    return text
+
+
+def clean_wikipedia_content(content):
+    # Function to replace headline markers with formatted text
+    def replace_headline(match):
+        level = len(match.group(1))  # Count the number of '=' symbols
+        text = match.group(2).strip()
+
+        # Create appropriate formatting based on the headline level
+        if level == 2:
+            return f"{text.upper()}\n"
+        elif level == 3:
+            return f"{text.upper()}\n"
+        else:
+            return f"{text.upper()}\n"
+
+    # Replace all levels of headlines
+    cleaned_content = re.sub(r"(={2,})\s*(.*?)\s*\1", replace_headline, content)
+
+    # Remove any remaining single '=' characters at the start of lines
+    cleaned_content = re.sub(r"^\s*=\s*", "", cleaned_content, flags=re.MULTILINE)
+
+    return cleaned_content
+
+
+import re
+
+
+def clean_pdf_text(text):
+    # Import the re module
+    import re
+
+    # Remove headers and footers (assuming they're separated by multiple dashes)
+    text = re.sub(r"^.*?-{3,}|-{3,}.*?$", "", text, flags=re.MULTILINE)
+
+    # Remove extraneous whitespace within paragraphs
+    text = re.sub(r"[ \t]+", " ", text)
+
+    # Ensure that there are two newlines between paragraphs
+    text = re.sub(r"\n\s*\n+", "\n\n", text)
+
+    # Remove the references section
+    text = re.sub(r"References\s*\n(.*\n)*", "", text, flags=re.IGNORECASE)
+
+    # Remove any remaining citation numbers in square brackets
+    text = re.sub(r"\[\d+(?:,\s*\d+)*\]", "", text)
+
+    # Remove any remaining URLs
+    text = re.sub(r"http[s]?://\S+", "", text)
+
+    # Remove any remaining publication date lines
+    text = re.sub(
+        r", Vol\. \d+, No\. \d+, Article \d+\. Publication date: [A-Za-z]+ \d{4}\.?",
+        "",
+        text,
+    )
+
+    # Remove any remaining page numbers and headers/footers
+    text = re.sub(r"^\d+(\s*[A-Za-z\s,]+)*$", "", text, flags=re.MULTILINE)
+
+    # Remove empty lines at the beginning and end of the text
+    text = text.strip()
+
+    # Merge hyphenated words split across lines
+    text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
+
+    # Ensure proper spacing after punctuation
+    text = re.sub(r"([.!?])(\w)", r"\1 \2", text)
+
+    # Normalize spaces around em dashes
+    text = re.sub(r"\s*—\s*", " — ", text)
+
+    # Format paragraphs: remove single newlines within paragraphs, ensure double newlines between paragraphs
+    paragraphs = text.split("\n\n")
+    formatted_paragraphs = [
+        re.sub(r"\s+", " ", p.strip()) for p in paragraphs if p.strip()
+    ]
+    text = "\n\n".join(formatted_paragraphs)
+
+    # Remove occurrences with more than three dots
+    text = re.sub(r"\.{3,}", "", text)
+
+    # Remove words ending with a hyphen directly before a newline
+    text = re.sub(r"(\w+)-\n", r"\1", text)
+
+    # Remove lines that contain numbers only
+    text = re.sub(r"^\d+\s*$", "", text, flags=re.MULTILINE)
+
+    return text
+
+
+def extract_from_wikipedia(url):
+    try:
+        # Reformat the URL to remove additional parameters
+        parsed_url = urlparse(url)
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+
+        # Extract the title from the URL
+        title = clean_url.split("/wiki/")[-1].replace("_", " ")
+
+        # Fetch the Wikipedia page
+        page = wikipedia.page(title, auto_suggest=False)
+
+        # Construct the article content
+        article_content = f"{page.title}.\n\n"
+        article_content += f"From Wikipedia. Retrieved on {get_formatted_date()}\n\n"
+
+        # Add summary
+        # article_content += "Summary:\n"
+        # article_content += page.summary + "\n\n"
+
+        # Add full content
+        article_content += clean_wikipedia_content(page.content)
+
+        return article_content, page.title
+    except wikipedia.exceptions.DisambiguationError as e:
+        logging.error(f"DisambiguationError: {e}")
+        return None, None
+    except wikipedia.exceptions.PageError as e:
+        logging.error(f"PageError: {e}")
+        return None, None
+    except Exception as e:
+        logging.error(f"Error extracting text from Wikipedia: {e}")
+        return None, None
+
+
+def download_pdf_file(url, timeout=30):
+    try:
+        response = requests.get(url, timeout=timeout)
+        response.raise_for_status()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+            temp_file.write(response.content)
+            logging.info(f"PDF file downloaded to {temp_file.name}")
+            return temp_file.name
+    except requests.RequestException as e:
+        logging.error(f"Error downloading PDF: {e}")
+        return None
+
+
+def extract_text_from_pdf(url):
+    try:
+        pdf_path = download_pdf_file(url)
+        if pdf_path is None:
+            logging.error("Failed to download PDF file.")
+            return None, None
+
+        # Open the PDF file
+        document = fitz.open(pdf_path)
+
+        # Extract the title from the PDF metadata if available
+        title = document.metadata.get("title", "No Title Available")
+
+        # Initialize an empty string to store the main text
+        main_text = ""
+
+        # Loop through each page and extract text
+        for page in document:
+            main_text += page.get_text()
+
+        document.close()  # Close the document to free resources
+
+        logging.info(f"Extracted text from PDF: {len(main_text)} characters")
+        return main_text, title
+
+    except Exception as e:
+        logging.error(f"Error processing PDF: {e}")
+        return None, None
+
+
+# This Function extracts the main text from a given URL along with the title,
+# list of authors and the date of publication (if available) and formats the text
+# accordingly
+async def extract_text(url):
+    try:
+        try:
+            response = requests.head(url, allow_redirects=True)
+            resolved_url = response.url
+            content_type = response.headers.get('Content-Type', '').lower()
+            logging.info(f"Resolved URL {resolved_url}")
+        except requests.RequestException as e:
+            logging.error(f"Error resolving url: {e}")
+            return None, None
+        
+        if url.lower().endswith(".pdf") or content_type == 'application/pdf':
+            logging.info(f"Extracting text from PDF: {resolved_url}")
+            return extract_text_from_pdf(resolved_url)
+
+        # Check if it's a Wikipedia URL
+        elif "wikipedia.org" in resolved_url:
+            logging.info(f"Extracting text from Wikipedia: {resolved_url}")
+            return extract_from_wikipedia(resolved_url)
+
+        downloaded = trafilatura.fetch_url(resolved_url)
+        if (
+            downloaded is None
+            or check_word_count(downloaded)
+            or is_paywall_or_robot_text(downloaded)
+        ):
+            logging.info("Extraction with trafilatura failed, trying with playwright")
+            # If trafilatura fails extracting html, we try with playwright
+            try:
+                downloaded = await extract_with_playwright(resolved_url)
+                if downloaded is None or is_paywall_or_robot_text(downloaded):
+                    logging.info(
+                        "Extracted text is a paywall or robot disclaimer, trying with Jina."
+                    )
+                    downloaded = extract_with_jina(resolved_url)
+                    if downloaded is None:
+                        return None, None
+            except Exception as e:
+                logging.error(f"Error extracting text with playwright: {e}")
+                return None, None
+
+        if downloaded is None:
+            logging.error(f"No content downloaded from {resolved_url}")
+            return None, None
+
+        # We use tldextract to extract the main domain name from a URL
+        domainname = tldextract.extract(resolved_url)
+        main_domain = f"{domainname.domain}.{domainname.suffix}"
+
+        # We use trafilatura to extract the text content from the HTML page
+        result = trafilatura.extract(downloaded, include_comments=False)
+        # if result is None or check_word_count(result):
+        #     logging.error(f"Extracted text is less than 100 words.")
+        #     return None, None
+
+        soup = BeautifulSoup(downloaded, "html.parser")
+        title = soup.find("title").text if soup.find("title") else ""
+        date_tag = soup.find("meta", attrs={"property": "article:published_time"})
+        timestamp = date_tag["content"] if date_tag else ""
+        article_content = f"{title}.\n\n" if title else ""
+        article_content += f"From {main_domain}.\n\n"
+        authors = []
+        for attr in ["name", "property"]:
+            author_tags = soup.find_all("meta", attrs={attr: "author"})
+            for tag in author_tags:
+                if tag and tag.get("content"):
+                    authors.append(tag["content"])
+        authors = sorted(set(authors))
+        if authors:
+            article_content += "Written by: " + ", ".join(authors) + ".\n\n"
+        date_formats = [
+            "%Y-%m-%dT%H:%M:%S%z",
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+            "%Y-%m-%dT%H:%M:%S",
+        ]
+        date_str = ""
+        if timestamp:
+            for date_format in date_formats:
+                try:
+                    date = datetime.strptime(timestamp, date_format)
+                    date_str = date.strftime("%B %d, %Y")
+                    break
+                except ValueError:
+                    continue
+        if date_str:
+            article_content += f"Published on: {date_str}.\n\n"
+
+        if result:
+            cleaned_text = clean_text(result)
+            article_content += cleaned_text
+        return article_content, title
+    except Exception as e:
+        logging.error(f"Error extracting text from HTML: {e}")
+        return None, None
+    
+def readability(url):
+    response = requests.head(url, allow_redirects=True)
+    resolved_url = response.url
+    downloaded = trafilatura.fetch_url(resolved_url)
+    article = simple_json_from_html_string(downloaded, use_readability=True)
+    
+    title = article.get('title', 'No Title')
+    byline = article.get('byline')
+    content = article.get('plain_text', [])
+
+    markdown = f"# {title}\n\n"
+    if byline:
+        markdown += f"**Written by:** {byline}\n\n"
+    markdown += f"**From:** {url}\n\n"
+    
+    # Extract text from each dictionary item in content
+    markdown += "\n".join([item.get('text', '') if isinstance(item, dict) else str(item) for item in content])
+    
+    return markdown
+
+
+
+if __name__ == "__main__":
+    url = input("Enter URL to extract text from: ")
+    article_content, title = asyncio.run(extract_text(url))
+    if article_content:
+        print(article_content)
+    else:
+        print("Failed to extract text.")
+    # content = readability(url)
+    # print(f"\n--------------\n")
+    # print(content)
+
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/installpipertts.py`:
+
+```````py
+import os
+import sys
+import platform
+import shutil
+import tarfile
+import zipfile
+import subprocess
+
+def download_file(url, save_path):
+    # Install requests library within the virtual environment
+    subprocess.run([sys.executable, "-m", "pip", "install", "requests"], check=True)
+    import requests
+    
+    print(f"Downloading from {url}")
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        total_length = int(r.headers.get('content-length', 0))
+        dl = 0
+        with open(save_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    dl += len(chunk)
+                    f.write(chunk)
+                    done = int(50 * dl / total_length)
+                    print(f"\r[{'=' * done}{' ' * (50-done)}] {dl/total_length*100:.2f}%", end='')
+    print("\nDownload complete.")
+
+def extract_tar_gz(file_path, destination_dir):
+    print(f"Extracting {file_path}")
+    with tarfile.open(file_path, "r:gz") as tar:
+        tar.extractall(path=destination_dir)
+    print("Extraction complete.")
+
+def extract_zip(file_path, destination_dir):
+    print(f"Extracting {file_path}")
+    with zipfile.ZipFile(file_path, "r") as zip_ref:
+        zip_ref.extractall(destination_dir)
+    print("Extraction complete.")
+
+def setup_piper_tts():
+    # Determine the operating system and machine architecture
+    operating_system = platform.system()
+    machine = platform.machine()
+
+    # Set up URLs and file names based on the GitHub repository
+    url_base = "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/"
+    additional_url_base = "https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/"
+    binary_file, binary_name, extract_func = None, None, None
+    additional_file = None
+
+    # Determine the correct binary and extraction method based on the OS and architecture
+    if operating_system == "Windows":
+        binary_file = "piper_windows_amd64.zip"
+        extract_func = extract_zip
+    elif operating_system == "Darwin":  # macOS
+        if machine == "x86_64":
+            binary_file = "piper_macos_x64.tar.gz"
+            additional_file = "piper-phonemize_macos_x64.tar.gz"
+        elif machine == "arm64":
+            binary_file = "piper_macos_aarch64.tar.gz"
+            additional_file = "piper-phonemize_macos_aarch64.tar.gz"
+        else:
+            raise ValueError(f"Unsupported macOS architecture: {machine}")
+        extract_func = extract_tar_gz
+    elif operating_system == "Linux":
+        if machine == "x86_64":
+            binary_file = "piper_linux_x86_64.tar.gz"
+        elif machine == "aarch64":
+            binary_file = "piper_linux_aarch64.tar.gz"
+        elif machine == "armv7l":
+            binary_file = "piper_linux_armv7l.tar.gz"
+        else:
+            raise ValueError(f"Unsupported Linux architecture: {machine}")
+        extract_func = extract_tar_gz
+    else:
+        raise ValueError(f"Unsupported operating system: {operating_system}")
+
+    # Set up paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # parent_dir = os.path.dirname(script_dir)
+    binary_path = os.path.join(script_dir, binary_file)
+    additional_path = os.path.join(script_dir, additional_file) if additional_file else None
+    extraction_dir = os.path.join(script_dir, "piper_tts_extracted")
+    destination_dir = os.path.join(script_dir, "piper_tts")
+
+    # Download the main binary
+    download_url = url_base + binary_file
+    download_file(download_url, binary_path)
+
+    # Download the additional file for macOS if needed
+    if additional_file:
+        additional_url = additional_url_base + additional_file
+        download_file(additional_url, additional_path)
+
+    # Create extraction directory
+    if not os.path.exists(extraction_dir):
+        os.makedirs(extraction_dir)
+
+    # Extract the main binary
+    extract_func(binary_path, extraction_dir)
+
+    # Extract the additional file if downloaded (for macOS)
+    if additional_file and additional_path:
+        with tarfile.open(additional_path, "r:gz") as tar:
+            members = [m for m in tar.getmembers() if 'lib/' in m.name]
+            tar.extractall(path=destination_dir, members=members)
+        print("Extracted additional files to lib directory.")
+
+    # Find the extracted directory
+    first_dir_path = next((os.path.join(extraction_dir, d) for d in os.listdir(extraction_dir) if os.path.isdir(os.path.join(extraction_dir, d))), None)
+    if not first_dir_path:
+        raise Exception("No directory found within the extracted archive.")
+
+    # Create the destination directory if it doesn't exist
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+
+    # Copy files to the destination directory, handling existing files/directories
+    for item in os.listdir(first_dir_path):
+        source_item_path = os.path.join(first_dir_path, item)
+        destination_item_path = os.path.join(destination_dir, item)
+        if os.path.isfile(source_item_path):
+            shutil.copy(source_item_path, destination_item_path)
+        elif os.path.isdir(source_item_path):
+            if os.path.exists(destination_item_path):
+                shutil.rmtree(destination_item_path)
+            shutil.copytree(source_item_path, destination_item_path)
+
+    # Adjust the paths to dylib files using install_name_tool on macOS
+    if operating_system == "Darwin":
+        piper_executable = os.path.join(destination_dir, "piper")
+        lib_dir = os.path.join(destination_dir, "piper-phonemize", "lib")
+        dylib_files = ["libespeak-ng.1.dylib", "libpiper_phonemize.1.dylib", "libonnxruntime.1.14.1.dylib"]
+
+        for dylib in dylib_files:
+            dylib_path = os.path.join(lib_dir, dylib)
+            subprocess.run(["install_name_tool", "-change", f"@rpath/{dylib}", dylib_path, piper_executable], check=True)
+
+    # Clean up temporary files and directories
+    shutil.rmtree(extraction_dir)
+    os.remove(binary_path)
+    if additional_file and additional_path:
+        os.remove(additional_path)
+
+    print("Piper TTS setup completed successfully.")
+
+if __name__ == "__main__":
+    setup_piper_tts()
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/image_utils.py`:
+
+```````py
+import os
+from PIL import Image, ImageDraw, ImageFont
+
+
+def create_image_with_date(image_path: str, output_path: str, date_text: str):
+    if not os.path.exists(output_path):
+        image = Image.open(image_path)
+        draw = ImageDraw.Draw(image)
+        font_path = "Fonts/PermanentMarker.ttf"
+        font = ImageFont.truetype(font_path, 50)
+        width, height = image.size
+        text_bbox = draw.textbbox((0, 0), date_text, font=font)
+        text_width, text_height = (
+            text_bbox[2] - text_bbox[0],
+            text_bbox[3] - text_bbox[1],
+        )
+        position = ((width - text_width) // 2, height - text_height - 35)
+        draw.text(position, date_text, font=font, fill="black")
+        image.save(output_path)
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/pdfextraction.py`:
+
+```````py
+import subprocess
+import logging
+import asyncio
+from fastapi import FastAPI, HTTPException
+import os
+
+
+async def pdf2markdown(pdfpath, output_path="Output"):
+    try:
+        os.environ['EXTRACT_IMAGES'] = 'false'
+        
+        command = [
+            "marker_single",
+            pdfpath,
+            output_path,
+            "--batch_multiplier=4",
+        ]
+        process = await asyncio.create_subprocess_exec(
+        *command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+        )
+        
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode == 0:
+            logging.info("PDF converted into markdown")
+            return True
+        else:
+            logging.error(f"Failed to convert PDF to markdown: {stderr.decode()}")
+            return False
+
+    except Exception as e:
+        logging.error(f"Exception occurred: {e}")
+        return False
+
+if __name__ == "__main__":
+    pdf = input("Enter the path of the PDF file to be converted: ")
+    asyncio.run(pdf2markdown(pdf))    
+
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/crawlwebsite.py`:
+
+```````py
+from urllib.parse import urljoin, urlparse, urldefrag
+import aiohttp
+from bs4 import BeautifulSoup
+from utils.text_extraction import extract_text
+import logging
+import asyncio
+
+logging.basicConfig(level=logging.INFO)
+
+async def fetch(session, url):
+    async with session.get(url) as response:
+        return await response.text()
+
+async def crawl_website(root_url, max_pages=100):
+    parsed_root = urlparse(root_url)
+    base_url = f"{parsed_root.scheme}://{parsed_root.netloc}"
+    
+    visited = set()
+    to_visit = {root_url}
+    extracted_content = []
+
+    async with aiohttp.ClientSession() as session:
+        while to_visit and len(visited) < max_pages:
+            url = to_visit.pop()
+            url_without_fragment = urldefrag(url)[0]
+            
+            if url_without_fragment in visited:
+                continue
+
+            logging.info(f"Crawling: {url}")
+            visited.add(url_without_fragment)
+
+            try:
+                html = await fetch(session, url)
+                soup = BeautifulSoup(html, 'html.parser')
+
+                # Extract text content
+                content, title = await extract_text(url)
+                if content:
+                    extracted_content.append((title, url, content))
+
+                # Find new links
+                for link in soup.find_all('a', href=True):
+                    href = link['href']
+                    full_url = urljoin(base_url, href)
+                    full_url_without_fragment = urldefrag(full_url)[0]
+                    if full_url.startswith(base_url) and full_url_without_fragment not in visited:
+                        to_visit.add(full_url)
+
+            except Exception as e:
+                logging.error(f"Error processing {url}: {e}")
+
+    return extracted_content
+
+
+def save_to_markdown(content, output_file):
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for title, url, text in content:
+            f.write(f"# {title}\n\n")
+            f.write(f"Source: {url}\n\n")
+            f.write(f"{text}\n\n")
+            f.write("---\n\n")  # Separator between pages
+
+async def main():
+    root_url = input("Enter the root URL to crawl: ")
+    output_file = input("Enter the output file name (e.g., output.md): ")
+    max_pages = int(input("Enter the maximum number of pages to crawl: "))
+
+    extracted_content = await crawl_website(root_url, max_pages)
+    save_to_markdown(extracted_content, output_file)
+    logging.info(f"Crawling completed. Content saved to {output_file}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/task_file_handler.py`:
+
+```````py
+import os
+import aiofiles
+import logging
+import json
+from utils.env import setup_env
+
+output_dir, task_file, img_pth, sources_file = setup_env()
+
+async def add_task(task_type, content, tts_engine):
+    task = {
+        "type": task_type,
+        "content": content,
+        "tts_engine": tts_engine
+    }
+    task_json = json.dumps(task)
+    logging.info(f"Adding task: {task_json}")
+    try:
+        async with aiofiles.open(task_file, "a") as file:
+            await file.write(task_json + "\n")
+        logging.info(f"Task added to {task_file}")
+    except IOError as e:
+        logging.error(f"Error adding task to {task_file}: {e}")
+        raise
+
+async def get_tasks():
+    if not os.path.exists(task_file):
+        logging.warning(f"Task file {task_file} does not exist.")
+        return []
+
+    try:
+        async with aiofiles.open(task_file, "r") as file:
+            tasks = await file.readlines()
+
+        valid_tasks = []
+        for task in tasks:
+            try:
+                task_dict = json.loads(task.strip())
+                if all(key in task_dict for key in ["type", "content", "tts_engine"]):
+                    valid_tasks.append(task_dict)
+            except json.JSONDecodeError:
+                logging.warning(f"Invalid task format: {task}")
+
+        if valid_tasks:
+            logging.info(f"Retrieved {len(valid_tasks)} valid tasks from {task_file}")
+        return valid_tasks
+    except IOError as e:
+        logging.error(f"Error reading tasks from {task_file}: {e}")
+        raise
+
+async def clear_tasks():
+    try:
+        async with aiofiles.open(task_file, "w") as file:
+            await file.write("")
+        logging.info(f"Tasks cleared from {task_file}")
+    except IOError as e:
+        logging.error(f"Error clearing tasks from {task_file}: {e}")
+        raise
+
+async def remove_task(task_to_remove):
+    try:
+        tasks = await get_tasks()
+        tasks = [task for task in tasks if task != task_to_remove]
+
+        async with aiofiles.open(task_file, "w") as file:
+            for task in tasks:
+                await file.write(json.dumps(task) + "\n")
+
+        logging.info(f"Task removed from {task_file}")
+    except IOError as e:
+        logging.error(f"Error removing task from {task_file}: {e}")
+        raise
+
+async def get_task_count():
+    tasks = await get_tasks()
+    return len(tasks)
+
+# Initialize logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/env.py`:
+
+```````py
+import os
+from dotenv import load_dotenv
+import logging
+
+def setup_env():
+    task_file = "tasks.json"
+    sources_file_path = "sources.json"
+
+    if not os.path.isfile(task_file):
+        print("Creating tasks.json")
+        with open(task_file, "w") as f:
+            pass  # This creates an empty tasks.json file
+     
+    def check_env_file_exists(directory="."):
+        env_file_path = os.path.join(directory, ".env")
+        exists = os.path.isfile(env_file_path)
+        return exists
+
+    if check_env_file_exists():
+        load_dotenv()
+        
+        output_dir = os.getenv("OUTPUT_DIR", "Output")
+        img_pth = os.getenv("IMG_PATH", "front.jpg")
+        
+    else:
+        print(".env file not found, using default values")
+        output_dir = "Output"
+        img_pth = "front.jpg"
+
+    if not os.path.isfile(sources_file_path):
+        print("Creating sources.json")
+        with open(sources_file_path, "w") as f:
+            pass  # This creates an empty sources.txt file
+
+    logging.info("Setup complete, following values will be used:")
+    logging.info("Output folder: "+os.path.abspath(output_dir))
+    logging.info("Task file: "+os.path.abspath(task_file))
+    logging.info("Album Art Image: "+os.path.abspath(img_pth))
+    logging.info("Sources file: "+os.path.abspath(sources_file_path))
+
+    return output_dir, task_file, img_pth, sources_file_path
+
+
+def print_env_contents():
+    env_path = '.env'
+    if os.path.isfile(env_path):
+        print("Contents of .env file:")
+        with open(env_path, 'r') as f:
+            print(f.read())
+    else:
+        print(".env file not found")
+
+
+if __name__ == "__main__":
+    output_dir, task_file, img_pth, sources_file_path, keywords_file_path = setup_env()
+    print_env_contents()
+    print("Setup complete, following values will be used:")
+    print("Output folder: "+os.path.abspath(output_dir))
+    print("Task file: "+os.path.abspath(task_file))
+    print("Album Art Image: "+os.path.abspath(img_pth))
+    print("Sources file: "+os.path.abspath(sources_file_path))
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/synthesize_styletts2.py`:
+
+```````py
+import os
+import logging
+from .common_utils import get_output_files, add_mp3_tags, convert_wav_to_mp3, write_markdown_file
+from .text_extraction import extract_text
+import torch
+import numpy as np
+from scipy.io.wavfile import write
+from txtsplit import txtsplit
+from tqdm import tqdm
+from .styletts2.ljspeechimportable import inference
+from rvc_python.infer import infer_file
+import glob
+
+
+async def extract_text_from_url(url: str):
+    try:
+        text, title = await extract_text(url)
+        if not text or not title:
+            logging.error("Failed to extract text or title")
+            return None, None
+    except Exception as e:
+        logging.error(f"Failed to extract text and title from URL {url}: {e}")
+        return None, None
+    return text, title
+
+
+async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, img_pth: str):
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
+    write_markdown_file(md_file, text, title)
+
+    wav_output = f"{base_file_name}_stts2.wav"
+
+    sr = 24000
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    noise = torch.randn(1, 1, 256).to(device)
+
+    if not text.strip():
+        logging.error("You must enter some text")
+        return None, None, None
+
+    if len(text) > 150000:
+        logging.error("Text must be <150k characters")
+        return None, None, None
+
+    texts = txtsplit(text)
+    audios = []
+    for t in tqdm(texts, desc="Synthesizing"):
+        audio = inference(t, noise, diffusion_steps=5, embedding_scale=1)
+        if audio is not None:
+            audios.append(audio)
+        else:
+            logging.error(f"Inference returned None for text segment: {t}")
+
+    if not audios:
+        logging.error("No audio segments were generated")
+        return None, None, None
+
+    full_audio = np.concatenate(audios)
+    write(wav_output, sr, full_audio)
+
+    # Check if there is a checkpoint with .pth ending in .utils/rvc/Models
+    checkpoint_path = "./utils/rvc/Models/Female_1.pth"
+    if os.path.isfile(checkpoint_path):
+        # Using RVC to change the voice:
+        
+        backend = "cpu"
+        if torch.cuda.is_available():
+            backend = "cuda:0"
+
+        infer_file(
+            input_path=wav_output,
+            model_path=checkpoint_path,
+            index_path="./utils/rvc/Models/Female_1.index",  # Optional: specify path to index file if available
+            device=backend, # Use cpu or cuda 
+            f0method="rmvpe",  # Choose between 'harvest', 'crepe', 'rmvpe', 'pm'
+            f0up_key=0,  # Transpose setting
+            opt_path=f"{base_file_name}_rvc.wav", # Output file path
+            index_rate=0.5,
+            filter_radius=3,
+            resample_sr=0,  # Set to desired sample rate or 0 for no resampling.
+            rms_mix_rate=0.25,
+            protect=0.33,
+            version="v2"
+        )
+    
+        rvc_file = f"{base_file_name}_rvc.wav"
+        convert_wav_to_mp3(rvc_file, mp3_file)
+
+    else:
+        convert_wav_to_mp3(wav_output, mp3_file)
+
+
+
+    add_mp3_tags(mp3_file, title, img_pth, output_dir)
+
+    # Delete the _stts2.wav file after processing
+    if os.path.exists(wav_output):
+        os.remove(wav_output)
+        logging.info(f"Deleted temporary file {wav_output}")
+
+    logging.info(f"Successfully processed text with title {title}")
+    return base_file_name, mp3_file, md_file
+
+
+async def say_with_styletts2(url: str, output_dir: str, img_pth: str):
+    text, title = await extract_text_from_url(url)
+    if not text or not title:
+        return None, None, None
+    return await text_to_speech_with_styletts2(text, title, output_dir, img_pth)
+
+
+if __name__ == "__main__":
+    import os
+    import asyncio
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    output_dir = os.path.join(parent_dir, "Output")
+    img_pth = os.path.join(parent_dir, "front.jpg")
+
+    url = input("Enter URL to convert: ")
+    asyncio.run(say_with_styletts2(url, output_dir, img_pth))
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/piper_tts/voices/default_female_voice/en_en_US_hfc_female_medium_en_US-hfc_female-medium.onnx.json`:
+
+```````json
+{
+  "dataset": "hfc_female",
+  "audio": {
+    "sample_rate": 22050,
+    "quality": "medium"
+  },
+  "espeak": {
+    "voice": "en-us"
+  },
+  "language": {
+    "code": "en_US",
+    "family": "en",
+    "region": "US",
+    "name_native": "English",
+    "name_english": "English",
+    "country_english": "United States"
+  },
+  "inference": {
+    "noise_scale": 0.667,
+    "length_scale": 1,
+    "noise_w": 0.8
+  },
+  "phoneme_type": "espeak",
+  "phoneme_map": {},
+  "phoneme_id_map": {
+    " ": [
+      3
+    ],
+    "!": [
+      4
+    ],
+    "\"": [
+      150
+    ],
+    "#": [
+      149
+    ],
+    "$": [
+      2
+    ],
+    "'": [
+      5
+    ],
+    "(": [
+      6
+    ],
+    ")": [
+      7
+    ],
+    ",": [
+      8
+    ],
+    "-": [
+      9
+    ],
+    ".": [
+      10
+    ],
+    "0": [
+      130
+    ],
+    "1": [
+      131
+    ],
+    "2": [
+      132
+    ],
+    "3": [
+      133
+    ],
+    "4": [
+      134
+    ],
+    "5": [
+      135
+    ],
+    "6": [
+      136
+    ],
+    "7": [
+      137
+    ],
+    "8": [
+      138
+    ],
+    "9": [
+      139
+    ],
+    ":": [
+      11
+    ],
+    ";": [
+      12
+    ],
+    "?": [
+      13
+    ],
+    "X": [
+      156
+    ],
+    "^": [
+      1
+    ],
+    "_": [
+      0
+    ],
+    "a": [
+      14
+    ],
+    "b": [
+      15
+    ],
+    "c": [
+      16
+    ],
+    "d": [
+      17
+    ],
+    "e": [
+      18
+    ],
+    "f": [
+      19
+    ],
+    "g": [
+      154
+    ],
+    "h": [
+      20
+    ],
+    "i": [
+      21
+    ],
+    "j": [
+      22
+    ],
+    "k": [
+      23
+    ],
+    "l": [
+      24
+    ],
+    "m": [
+      25
+    ],
+    "n": [
+      26
+    ],
+    "o": [
+      27
+    ],
+    "p": [
+      28
+    ],
+    "q": [
+      29
+    ],
+    "r": [
+      30
+    ],
+    "s": [
+      31
+    ],
+    "t": [
+      32
+    ],
+    "u": [
+      33
+    ],
+    "v": [
+      34
+    ],
+    "w": [
+      35
+    ],
+    "x": [
+      36
+    ],
+    "y": [
+      37
+    ],
+    "z": [
+      38
+    ],
+    "æ": [
+      39
+    ],
+    "ç": [
+      40
+    ],
+    "ð": [
+      41
+    ],
+    "ø": [
+      42
+    ],
+    "ħ": [
+      43
+    ],
+    "ŋ": [
+      44
+    ],
+    "œ": [
+      45
+    ],
+    "ǀ": [
+      46
+    ],
+    "ǁ": [
+      47
+    ],
+    "ǂ": [
+      48
+    ],
+    "ǃ": [
+      49
+    ],
+    "ɐ": [
+      50
+    ],
+    "ɑ": [
+      51
+    ],
+    "ɒ": [
+      52
+    ],
+    "ɓ": [
+      53
+    ],
+    "ɔ": [
+      54
+    ],
+    "ɕ": [
+      55
+    ],
+    "ɖ": [
+      56
+    ],
+    "ɗ": [
+      57
+    ],
+    "ɘ": [
+      58
+    ],
+    "ə": [
+      59
+    ],
+    "ɚ": [
+      60
+    ],
+    "ɛ": [
+      61
+    ],
+    "ɜ": [
+      62
+    ],
+    "ɞ": [
+      63
+    ],
+    "ɟ": [
+      64
+    ],
+    "ɠ": [
+      65
+    ],
+    "ɡ": [
+      66
+    ],
+    "ɢ": [
+      67
+    ],
+    "ɣ": [
+      68
+    ],
+    "ɤ": [
+      69
+    ],
+    "ɥ": [
+      70
+    ],
+    "ɦ": [
+      71
+    ],
+    "ɧ": [
+      72
+    ],
+    "ɨ": [
+      73
+    ],
+    "ɪ": [
+      74
+    ],
+    "ɫ": [
+      75
+    ],
+    "ɬ": [
+      76
+    ],
+    "ɭ": [
+      77
+    ],
+    "ɮ": [
+      78
+    ],
+    "ɯ": [
+      79
+    ],
+    "ɰ": [
+      80
+    ],
+    "ɱ": [
+      81
+    ],
+    "ɲ": [
+      82
+    ],
+    "ɳ": [
+      83
+    ],
+    "ɴ": [
+      84
+    ],
+    "ɵ": [
+      85
+    ],
+    "ɶ": [
+      86
+    ],
+    "ɸ": [
+      87
+    ],
+    "ɹ": [
+      88
+    ],
+    "ɺ": [
+      89
+    ],
+    "ɻ": [
+      90
+    ],
+    "ɽ": [
+      91
+    ],
+    "ɾ": [
+      92
+    ],
+    "ʀ": [
+      93
+    ],
+    "ʁ": [
+      94
+    ],
+    "ʂ": [
+      95
+    ],
+    "ʃ": [
+      96
+    ],
+    "ʄ": [
+      97
+    ],
+    "ʈ": [
+      98
+    ],
+    "ʉ": [
+      99
+    ],
+    "ʊ": [
+      100
+    ],
+    "ʋ": [
+      101
+    ],
+    "ʌ": [
+      102
+    ],
+    "ʍ": [
+      103
+    ],
+    "ʎ": [
+      104
+    ],
+    "ʏ": [
+      105
+    ],
+    "ʐ": [
+      106
+    ],
+    "ʑ": [
+      107
+    ],
+    "ʒ": [
+      108
+    ],
+    "ʔ": [
+      109
+    ],
+    "ʕ": [
+      110
+    ],
+    "ʘ": [
+      111
+    ],
+    "ʙ": [
+      112
+    ],
+    "ʛ": [
+      113
+    ],
+    "ʜ": [
+      114
+    ],
+    "ʝ": [
+      115
+    ],
+    "ʟ": [
+      116
+    ],
+    "ʡ": [
+      117
+    ],
+    "ʢ": [
+      118
+    ],
+    "ʦ": [
+      155
+    ],
+    "ʰ": [
+      145
+    ],
+    "ʲ": [
+      119
+    ],
+    "ˈ": [
+      120
+    ],
+    "ˌ": [
+      121
+    ],
+    "ː": [
+      122
+    ],
+    "ˑ": [
+      123
+    ],
+    "˞": [
+      124
+    ],
+    "ˤ": [
+      146
+    ],
+    "̃": [
+      141
+    ],
+    "̊": [
+      158
+    ],
+    "̝": [
+      157
+    ],
+    "̧": [
+      140
+    ],
+    "̩": [
+      144
+    ],
+    "̪": [
+      142
+    ],
+    "̯": [
+      143
+    ],
+    "̺": [
+      152
+    ],
+    "̻": [
+      153
+    ],
+    "β": [
+      125
+    ],
+    "ε": [
+      147
+    ],
+    "θ": [
+      126
+    ],
+    "χ": [
+      127
+    ],
+    "ᵻ": [
+      128
+    ],
+    "↑": [
+      151
+    ],
+    "↓": [
+      148
+    ],
+    "ⱱ": [
+      129
+    ]
+  },
+  "num_symbols": 256,
+  "num_speakers": 1,
+  "speaker_id_map": {},
+  "piper_version": "1.0.0"
+}
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/rssfeed.py`:
+
+```````py
+import feedparser
+from datetime import datetime
+import pytz
+from bs4 import BeautifulSoup as bs4
+import requests
+import urllib.parse
+from feedsearch import search
+import logging
+
+def get_articles_from_feed(url):
+    feed = feedparser.parse(url)
+
+    # Get the current date and time in UTC
+    now = datetime.now(pytz.utc)
+    today = now.date()
+
+    print(f"Today's date (UTC): {today}")
+
+    # Check the entries
+    today_entries = []
+    for entry in feed.entries:
+        entry_date = datetime(*entry.published_parsed[:6], tzinfo=pytz.utc).date()
+        # print(f"Entry date: {entry_date}, Title: {entry.title}, Link: {entry.link}")  # DEBUG
+        if entry_date == today:
+            today_entries.append(entry)
+
+    # Print the filtered entries
+    if today_entries:
+        for entry in today_entries:
+            print(f"Title: {entry.title}")
+            print(f"Link: {entry.link}")
+            print(f"Published: {entry.published}")
+            print()
+    else:
+        print("No articles published today.")
+    
+    # Return the links of the entries published today
+    return [entry.link for entry in today_entries if 'link' in entry]
+
+def find_rss_feed(url):
+    def validate_feed(feed_url):
+        f = feedparser.parse(feed_url)
+        return len(f.entries) > 0
+
+    possible_feeds = []
+
+    # Add /feed for WordPress sites
+    possible_feeds.append(url.rstrip('/') + '/feed')
+
+    # Add /rss for Tumblr sites
+    possible_feeds.append(url.rstrip('/') + '/rss')
+
+    # Add feeds/posts/default for Blogger sites
+    if 'blogspot.com' in url:
+        possible_feeds.append(url.rstrip('/') + '/feeds/posts/default')
+
+    # Add /feed/ before the publication's name for Medium sites
+    if 'medium.com' in url:
+        parsed_url = urllib.parse.urlparse(url)
+        medium_feed_url = f"{parsed_url.scheme}://{parsed_url.netloc}/feed{parsed_url.path}"
+        possible_feeds.append(medium_feed_url)
+
+    # For YouTube channels
+    if 'youtube.com' in url or 'youtu.be' in url:
+        possible_feeds.append(url)
+
+    # Validate each possible feed URL
+    for feed_url in possible_feeds:
+        if validate_feed(feed_url):
+            return feed_url
+        
+    try:    
+        feeds = search(url, as_urls=True)
+        if feeds:
+            return min(feeds, key=len)  # Return the shortest URL
+        else:
+            return None
+    
+    except Exception as e:
+        logging.error(f"Unable to find rrs feed for url: {e}")
+        return None
+
+
+if __name__ == "__main__":
+
+    feed = find_rss_feed(input("Enter a URL: "))
+    if feed:
+        print(feed)
+        print(get_articles_from_feed(feed))
+    else:
+        print('No RSS feed found.')
+
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/history_handler.py`:
+
+```````py
+#####################
+# history_handler.py
+#####################
+
+# This module handles the history of processed items
+# to make sure the same item is not processed twice
+
+import os
+import aiofiles
+import json
+import logging
+
+HISTORY_FILE = "history.json"
+
+async def load_history():
+    if not os.path.exists(HISTORY_FILE):
+        return []
+    async with aiofiles.open(HISTORY_FILE, "r") as file:
+        content = await file.read()
+        return json.loads(content) if content else []
+
+async def save_history(history):
+    async with aiofiles.open(HISTORY_FILE, "w") as file:
+        await file.write(json.dumps(history, indent=2))
+
+async def add_to_history(url):
+    history = await load_history()
+    if url not in history:
+        history.append(url)
+        await save_history(history)
+        logging.info(f"URL added to history: {url}")
+
+async def check_history(url):
+    history = await load_history()
+    return url in history
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/synthesize.py`:
+
+```````py
+import random
+import logging
+import edge_tts
+from edge_tts import VoicesManager, SubMaker
+from .text_extraction import extract_text
+from .common_utils import get_output_files, add_mp3_tags, write_markdown_file
+from llm.LLM_calls import generate_title
+from .common_utils import get_mp3_duration
+
+async def synthesize_text_to_speech(url: str, output_dir, img_pth):
+    try:
+        text, title = await extract_text(url)
+        print(title)
+        if not text:
+            print("Failed to extract text or title")
+            raise ValueError("Failed to extract text or title")
+    except Exception as e:
+        logging.error(f"Failed to extract text and title from URL {url}: {e}")
+        print("Failed to extract text and title from URL")
+        return None, None, None, None  # Added None for VTT file
+
+    if not text:
+        logging.error(f"No text extracted from the provided URL {url}")
+        print("No text extracted from the provided URL")
+        return None, None, None, None  # Added None for VTT file
+
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
+    vtt_file = f"{base_file_name}.vtt"  # New VTT file path
+    write_markdown_file(md_file, text, url)
+
+    voices = await VoicesManager.create()
+    multilingual_voices = [
+        voice
+        for voice in voices.voices
+        if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
+    ]
+    if not multilingual_voices:
+        logging.error("No MultilingualNeural voices found")
+        return None, None, None, None  # Added None for VTT file
+
+    voice = random.choice(multilingual_voices)["Name"]
+    communicate = edge_tts.Communicate(text, voice, rate="+10%")
+    submaker = SubMaker()
+
+    with open(mp3_file, "wb") as file:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                file.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                submaker.create_sub((chunk["offset"], chunk["duration"]), chunk["text"])
+
+    # Write VTT file
+    with open(vtt_file, "w", encoding="utf-8") as file:
+        file.write(submaker.generate_subs())
+
+    add_mp3_tags(mp3_file, title, img_pth, output_dir)
+    duration = get_mp3_duration(mp3_file)
+
+    logging.info(f"Successfully processed URL {url}")
+    return base_file_name, mp3_file, md_file, vtt_file  # Added vtt_file to return
+
+async def read_text(text: str, output_dir, img_pth):
+    title = generate_title(text)
+
+    if not text:
+        logging.error(f"No text provided")
+        print("No text provided")
+        return None, None, None, None  # Added None for VTT file
+    
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
+    vtt_file = f"{base_file_name}.vtt"  # New VTT file path
+    write_markdown_file(md_file, text)
+
+    voices = await VoicesManager.create()
+    multilingual_voices = [
+        voice
+        for voice in voices.voices
+        if "MultilingualNeural" in voice["Name"] and "en-US" in voice["Name"]
+    ]
+    if not multilingual_voices:
+        logging.error("No MultilingualNeural voices found")
+        return None, None, None, None  # Added None for VTT file
+
+    voice = random.choice(multilingual_voices)["Name"]
+    communicate = edge_tts.Communicate(text, voice, rate="+10%")
+    submaker = SubMaker()
+
+    with open(mp3_file, "wb") as file:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                file.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                submaker.create_sub((chunk["offset"], chunk["duration"]), chunk["text"])
+
+    # Write VTT file
+    with open(vtt_file, "w", encoding="utf-8") as file:
+        file.write(submaker.generate_subs())
+
+    add_mp3_tags(mp3_file, "READ2ME", img_pth, output_dir)
+    logging.info(f"Successfully processed text")
+    return base_file_name, mp3_file, md_file, vtt_file  # Added vtt_file to return
+
+if __name__ == "__main__":
+    import os
+    import asyncio
+
+    # Get the current directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Go one directory up
+    parent_dir = os.path.dirname(current_dir)
+
+    # Navigate into the "Output" folder
+    output_dir = os.path.join(parent_dir, "Output")
+
+    # Image path in parent directory
+    img_pth = os.path.join(parent_dir, "front.jpg")
+
+    url = input("Enter URL to convert: ")
+    asyncio.run(synthesize_text_to_speech(url, output_dir, img_pth))
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/sources.py`:
+
+```````py
+import json
+import os
+import re
+import aiofiles
+import asyncio
+import logging
+import newspaper
+from .task_file_handler import add_task
+from .rssfeed import find_rss_feed, get_articles_from_feed
+
+MAX_ARTICLES_PER_SOURCE = 10
+
+def compile_patterns(keywords):
+    return [re.compile(r"\b" + re.escape(keyword).replace("\\ ", "\\s+") + r"\b", re.IGNORECASE) for keyword in keywords if keyword != "*"]
+
+async def fetch_articles():
+    sources_file = "sources.json"
+
+    async def read_sources_from_json(file_path):
+        try:
+            async with aiofiles.open(file_path, "r") as file:
+                data = json.loads(await file.read())
+                logging.info(f"Read configuration from {file_path}")
+                return data
+        except Exception as e:
+            logging.error(f"Error reading configuration from file: {e}")
+            return {"global_keywords": [], "sources": []}
+
+    async def create_sample_sources_file(file_path):
+        sample_data = {
+            "global_keywords": ["example", "test"],
+            "sources": [
+                {
+                    "url": "https://example.com",
+                    "keywords": ["specific", "example"]
+                },
+                {
+                    "url": "https://all-articles-example.com",
+                    "keywords": ["*"]
+                }
+            ]
+        }
+        try:
+            async with aiofiles.open(file_path, "w") as file:
+                await file.write(json.dumps(sample_data, indent=2))
+            print(f"Created sample {file_path}")
+        except Exception as e:
+            print(f"Error creating sample {file_path}: {e}")
+
+    if not os.path.exists(sources_file):
+        await create_sample_sources_file(sources_file)
+
+    logging.info("Starting fetch_articles function")
+    config = await read_sources_from_json(sources_file)
+    global_keywords = config.get("global_keywords", [])
+    sources = config.get("sources", [])
+
+    logging.info(f"Global keywords: {global_keywords}")
+    logging.info(f"Number of sources: {len(sources)}")
+
+    global_patterns = compile_patterns(global_keywords)
+    logging.info(f"Compiled {len(global_patterns)} global patterns")
+
+    for i, source in enumerate(sources, 1):
+        logging.info(f"Processing source {i}/{len(sources)}: {source['url']}")
+        await process_source(source, global_patterns)
+        logging.info(f"Completed processing source {i}/{len(sources)}: {source['url']}")
+
+    logging.info("Completed processing all sources and articles.")
+
+async def process_article(article_url, global_patterns, source_patterns, download_all):
+    try:
+        if download_all:
+            logging.info(f"Adding article to task list: {article_url}")
+            await add_task("url", article_url, "edge_tts")
+            return True
+
+        # Extract the headline from the URL
+        headline = article_url.split('/')[-1].replace('-', ' ').lower()
+        all_patterns = global_patterns if not source_patterns else (global_patterns + source_patterns)
+        
+        for pattern in all_patterns:
+            if pattern.search(headline):
+                logging.info(f"Keyword '{pattern.pattern}' found in headline: {article_url}")
+                await add_task("url", article_url, "edge_tts")
+                return True
+
+        logging.debug(f"No keywords found in headline: {article_url}")
+        return False
+
+    except Exception as e:
+        logging.error(f"Failed to process article {article_url}: {e}")
+        return False
+
+async def process_source(source, global_patterns):
+    source_url = source["url"]
+    source_keywords = source.get("keywords", [])
+    download_all = "*" in source_keywords
+    source_patterns = compile_patterns([k for k in source_keywords if k and k != "*"])
+
+    if source.get("is_rss", False):
+        logging.info(f"Source {source_url} is an RSS feed.")
+        articles = get_articles_from_feed(source_url)
+    else:
+        logging.info(f"Starting to build newspaper for source: {source_url}")
+        paper = newspaper.build(source_url, memoize_articles=True)
+        logging.info(f"Found {len(paper.articles)} articles in {source_url}")
+        articles = [article.url for article in paper.articles]
+
+    if not articles:
+        logging.info(f"No articles found for source: {source_url}")
+        return
+
+    tasks = []
+    articles_processed = 0
+    for article_url in articles:
+        if download_all and articles_processed >= MAX_ARTICLES_PER_SOURCE:
+            break
+        task = asyncio.create_task(process_article_with_timeout(article_url, global_patterns, source_patterns, download_all))
+        tasks.append(task)
+        if download_all:
+            articles_processed += 1
+
+    results = await asyncio.gather(*tasks)
+    articles_added = sum(results)
+    logging.info(f"Added {articles_added} articles from {source_url}")
+
+async def process_article_with_timeout(article_url, global_patterns, source_patterns, download_all):
+    try:
+        return await asyncio.wait_for(
+            process_article(article_url, global_patterns, source_patterns, download_all),
+            timeout=30  # Adjust this value as needed
+        )
+    except asyncio.TimeoutError:
+        logging.warning(f"Processing timed out for article: {article_url}")
+        return False
+    
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(fetch_articles())
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/task_processor.py`:
+
+```````py
+import asyncio
+import logging
+from threading import Thread, Event
+from utils.task_file_handler import get_tasks, clear_tasks
+from utils.synthesize import synthesize_text_to_speech as synthesize_edge_tts, read_text
+from utils.env import setup_env
+from utils.history_handler import add_to_history, check_history
+
+output_dir, task_file, img_pth, sources_file = setup_env()
+
+def process_tasks(stop_event):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    async def process():
+        while not stop_event.is_set():
+            tasks = await get_tasks()
+            if tasks:
+                logging.info(f"Tasks retrieved: {tasks}")
+
+            for task in tasks:
+                task_type = task.get('type')
+                content = task.get('content')
+                tts_engine = task.get('tts_engine')
+
+                if not all([task_type, content, tts_engine]):
+                    logging.error(f"Invalid task format: {task}")
+                    continue
+
+                # Check if the URL has been processed before
+                if task_type == "url" and await check_history(content):
+                    logging.info(f"URL {content} has already been processed. Skipping.")
+                    continue
+
+                if task_type == "url":
+                    if tts_engine == "styletts2":
+                        from utils.synthesize_styletts2 import say_with_styletts2
+                        await say_with_styletts2(content, output_dir, img_pth)
+                    elif tts_engine == "piper":
+                        from utils.synthesize_piper import url_with_piper
+                        await url_with_piper(content, output_dir, img_pth)
+                    else:
+                        await synthesize_edge_tts(content, output_dir, img_pth)
+                    await add_to_history(content)  # Add URL to history after processing
+                elif task_type == "text":
+                    if tts_engine == "styletts2":
+                        from utils.synthesize_styletts2 import text_to_speech_with_styletts2
+                        await text_to_speech_with_styletts2(content,"Text", output_dir, img_pth)
+                    elif tts_engine == "piper":
+                        from utils.synthesize_piper import read_text_piper
+                        await read_text_piper(content, output_dir, img_pth)
+
+                    else:
+                        await read_text(content, output_dir, img_pth)
+            if tasks:
+                await clear_tasks()
+            await asyncio.sleep(5)
+
+    loop.run_until_complete(process())
+
+def start_task_processor(stop_event):
+    thread = Thread(target=process_tasks, args=(stop_event,))
+    thread.daemon = True
+    thread.start()
+    return thread
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/voices/voicelist.py`:
+
+```````py
+import asyncio
+import logging
+import edge_tts
+from edge_tts import VoicesManager
+
+
+async def amain() -> None:
+    voices = await VoicesManager.create()
+    en_us_voices = [
+        voice
+        for voice in voices.voices
+        if "en-US" in voice["Name"]
+        and ("MultilingualNeural" in voice["Name"] or "Neural" in voice["Name"])
+    ]
+    if not en_us_voices:
+        logging.error("No en-US MultilingualNeural or en-US Neural voices found")
+        return None, None, None  # Instead of raising an exception, return None
+    for voice in en_us_voices:
+        print(voice["Name"])
+
+
+if __name__ == "__main__":
+    asyncio.run(amain())
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/transcribe.py`:
+
+```````py
+import whisperx
+import gc 
+
+device = "cuda" 
+audio_file = "Output/20240715/001.mp3"
+batch_size = 16 # reduce if low on GPU mem
+compute_type = "float16" # change to "int8" if low on GPU mem (may reduce accuracy)
+
+# 1. Transcribe with original whisper (batched)
+model = whisperx.load_model("large-v2", device, compute_type=compute_type)
+
+# save model to local path (optional)
+model_dir = "/utils/whisper/"
+model = whisperx.load_model("large-v2", device, compute_type=compute_type, download_root=model_dir)
+
+audio = whisperx.load_audio(audio_file)
+result = model.transcribe(audio, batch_size=batch_size)
+print(result["segments"]) # before alignment
+
+# delete model if low on GPU resources
+import gc; gc.collect(); torch.cuda.empty_cache(); del model
+
+# 2. Align whisper output
+model_a, metadata = whisperx.load_align_model(language_code=result["language"], device=device)
+result = whisperx.align(result["segments"], model_a, metadata, audio, device, return_char_alignments=False)
+
+print(result["segments"]) # after alignment
+
+# delete model if low on GPU resources
+import gc; gc.collect(); torch.cuda.empty_cache(); del model_a
+
+# # 3. Assign speaker labels
+# diarize_model = whisperx.DiarizationPipeline(use_auth_token=YOUR_HF_TOKEN, device=device)
+
+# # add min/max number of speakers if known
+# diarize_segments = diarize_model(audio)
+# # diarize_model(audio, min_speakers=min_speakers, max_speakers=max_speakers)
+
+# result = whisperx.assign_word_speakers(diarize_segments, result)
+# print(diarize_segments)
+# print(result["segments"]) # segments are now assigned speaker IDs
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/search.py`:
+
+```````py
+import requests
+import logging
+import json
+from urllib.parse import quote
+
+def encode_search_query(query):
+    base_url = "https://s.jina.ai/"
+    encoded_query = quote(query)
+    return f"{base_url}{encoded_query}"
+
+# Function to search the web using Jina
+def search_with_jina(search_term: str) -> str:
+    search_url = encode_search_query(search_term)
+    try:
+        headers = {
+             "Accept":"application/json",
+             "X-With-Links-Summary": "true"
+        }
+        response = requests.get(search_url, headers=headers)
+        if response.status_code == 200:
+            return response.text
+        else:
+            logging.error(
+                f"Jina search failed with status code: {response.status_code}"
+            )
+            return None
+    except Exception as e:
+        logging.error(f"Error searching with Jina: {e}")
+        return None
+
+def save_to_json(data: str, filename: str) -> None:
+    try:
+        parsed_data = json.loads(data)
+        with open(filename, 'w', encoding='utf-8') as json_file:
+            json.dump(parsed_data, json_file, indent=4)
+        logging.info(f"Data successfully saved to {filename}")
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to decode JSON: {e}")
+    except Exception as e:
+        logging.error(f"Error saving to JSON: {e}")
+
+if __name__ == "__main__":
+    query = input("Enter the search term to search: ")
+    result = search_with_jina(query)
+    if result:
+        print(result)
+        save_to_json(result, "search_results.json")
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/parler.py`:
+
+```````py
+import asyncio
+from parler_tts import ParlerTTSForConditionalGeneration
+from transformers import AutoTokenizer
+import soundfile as sf
+import torch
+from tqdm import tqdm
+import nltk
+import numpy as np
+
+# Download the punkt tokenizer for sentence splitting
+nltk.download('punkt')
+
+device = "cpu"
+if torch.cuda.is_available():
+    device = "cuda:0"
+elif torch.backends.mps.is_available():
+    device = "mps"
+elif torch.xpu.is_available():
+    device = "xpu"
+torch_dtype = torch.float16 if device != "cpu" else torch.float32
+
+model = ParlerTTSForConditionalGeneration.from_pretrained("parler-tts/parler_tts_mini_v0.1").to(device, dtype=torch_dtype)
+tokenizer = AutoTokenizer.from_pretrained("parler-tts/parler_tts_mini_v0.1", use_fast=True)
+
+# If setting add_prefix_space, ensure the tokenizer supports it
+tokenizer.add_prefix_space = False
+
+async def generate_audio(description, prompt):
+    # Split the description into sentences
+    sentences = nltk.sent_tokenize(description)
+
+    # Prepare the prompt input
+    prompt_input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
+
+    # Generate audio for each sentence
+    audio_segments = []
+
+    for sentence in tqdm(sentences, desc="Generating audio"):
+        input_ids = tokenizer(sentence, return_tensors="pt").input_ids.to(device)
+        
+        generation = model.generate(
+            input_ids=input_ids, 
+            prompt_input_ids=prompt_input_ids
+        ).to(torch.float32)
+        
+        audio_arr = generation.cpu().numpy().squeeze()
+        audio_segments.append(audio_arr)
+
+    # Concatenate all audio segments
+    full_audio = np.concatenate(audio_segments)
+
+    return full_audio
+
+if __name__ == "__main__":
+    print("Welcome to the Parler TTS Generator!")
+    
+    # Get user input for the description
+    prompt = input("Please enter the text you want to convert to speech: ")
+    
+    # You can modify this prompt or even ask the user to input it
+    description = "A female speaker with a slightly low-pitched voice delivers her words quite expressively, in a very confined sounding environment with clear audio quality. She speaks very fast."
+    
+    print("\nGenerating audio... This may take a while depending on the length of your text.")
+    
+    # Run the async function
+    full_audio = asyncio.run(generate_audio(description, prompt))
+    
+    # Write the full audio to a file
+    output_file = "parler_tts_out.wav"
+    sf.write(output_file, full_audio, model.config.sampling_rate)
+    
+    print(f"\nAudio generation complete! The output has been saved to {output_file}")
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/urltest.py`:
+
+```````py
+import requests
+import time
+
+
+def fetch_url(url):
+    try:
+        response = requests.get(url)
+        print(f"Status Code: {response.status_code}")
+
+        if response.status_code == 429:
+            print("Rate limited. Retrying after delay...")
+            retry_after = response.headers.get(
+                "Retry-After", 60
+            )  # default to 60 seconds if not provided
+            time.sleep(int(retry_after))
+            return fetch_url(url)
+        elif response.status_code == 403:
+            print("Access forbidden. You might be blocked.")
+        elif response.status_code == 503:
+            print("Service unavailable. Retrying after delay...")
+            time.sleep(60)
+            return fetch_url(url)
+        else:
+            # Check for rate limit headers
+            rate_limit_limit = response.headers.get("X-RateLimit-Limit")
+            rate_limit_remaining = response.headers.get("X-RateLimit-Remaining")
+            retry_after = response.headers.get("Retry-After")
+
+            if rate_limit_limit:
+                print(f"Rate Limit: {rate_limit_limit}")
+            if rate_limit_remaining:
+                print(f"Rate Limit Remaining: {rate_limit_remaining}")
+            if retry_after:
+                print(f"Retry After: {retry_after}")
+
+            return response.content
+
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+
+
+url = input("Enter URL to test: ")
+content = fetch_url(url)
+if content:
+    print("Fetched content successfully")
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/piper_tts_client.py`:
+
+```````py
+import os
+import subprocess
+import utils
+import platform
+from .common_utils import strip_markdown
+
+
+class PiperTTSClient:
+    def __init__(self, verbose=False):
+        """Initialize the Piper TTS client."""
+        self.verbose = verbose
+
+    def tts(self, text_to_speak, output_file, voice_folder):
+        """
+        This function uses the Piper TTS engine to convert text to speech.
+        
+        Args:
+            text_to_speak (str): The text to be converted to speech.
+            output_file (str): The path where the output audio file will be saved.
+            voice_folder (str): The folder containing the voice files for the TTS engine.
+            
+        Returns:
+            str: "success" if the TTS process was successful, "failed" otherwise.
+        """
+
+
+        # Sanitize the text to be spoken
+        text_to_speak = strip_markdown(text_to_speak)
+
+        # If there's no text left after sanitization, return "failed"
+        if not text_to_speak.strip():
+            if self.verbose:
+                print("No text to speak after sanitization.")
+            return "failed"
+
+        # Determine the operating system
+        operating_system = platform.system()
+        script_folder = os.path.dirname(os.path.abspath(__file__))
+        if operating_system == "Windows":
+            piper_binary = os.path.join(script_folder, "piper_tts", "piper.exe")
+        else:
+            piper_binary = os.path.join(script_folder, "piper_tts", "piper")
+
+        # Construct the path to the voice files
+        voice_path = os.path.join(script_folder, "piper_tts", "voices", voice_folder)
+
+        # If the voice folder doesn't exist, return "failed"
+        if not os.path.exists(voice_path):
+            if self.verbose:
+                print(f"Voice folder '{voice_folder}' does not exist.")
+            return "failed"
+
+        # Find the model and JSON files in the voice folder
+        files = os.listdir(voice_path)
+        model_path = next((os.path.join(voice_path, f) for f in files if f.endswith('.onnx')), None)
+        json_path = next((os.path.join(voice_path, f) for f in files if f.endswith('.json')), None)
+
+        # If either the model or JSON file is missing, return "failed"
+        if not model_path or not json_path:
+            if self.verbose:
+                print("Required voice files not found.")
+            return "failed"
+        
+        PIPER_VOICE_INDEX = 0 # For multi-voice models, select the index of the voice you want to use
+        PIPER_VOICE_SPEED = 0.8 # Speed of the TTS, 1.0 is normal speed, 2.0 is double speed, 0.5 is half speed
+
+        try:
+            # Construct and execute the Piper TTS command
+            command = [
+                piper_binary,
+                "-m", model_path,
+                "-c", json_path,
+                "-f", output_file,
+                "-s", str(PIPER_VOICE_INDEX),
+                "--length_scale", str(1/PIPER_VOICE_SPEED)
+            ]
+            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=(None if self.verbose else subprocess.DEVNULL), stderr=subprocess.STDOUT)
+            process.communicate(text_to_speak.encode("utf-8"))
+            process.wait()
+            if self.verbose:
+                print(f"Piper TTS command executed successfully.")
+            return "success"
+        except subprocess.CalledProcessError as e:
+            # If the command fails, print an error message and return "failed"
+            if self.verbose:
+                print(f"Error running Piper TTS command: {e}")
+            return "failed"
+        
+if __name__ == "__main__":
+
+    text_to_speak = input("Please enter the text you want to convert to speech: ")
+    
+    script_folder = os.path.dirname(os.path.abspath(__file__))
+    voice_folder = "default_female_voice/"
+    output_file = os.path.join(script_folder, "output.wav")
+
+    tts_client = PiperTTSClient(verbose=True)
+    result = tts_client.tts(text_to_speak, output_file, voice_folder)
+
+    if result == "success":
+        print(f"Speech synthesis successful. The output file is saved at: {output_file}")
+    else:
+        print("Speech synthesis failed.")
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/synthesize_piper.py`:
+
+```````py
+import random
+import logging
+import edge_tts
+from edge_tts import VoicesManager
+from .text_extraction import extract_text
+from .common_utils import get_output_files, add_mp3_tags, write_markdown_file, convert_wav_to_mp3
+from llm.LLM_calls import generate_title
+from .piper_tts_client import PiperTTSClient
+import os
+
+
+
+
+async def url_with_piper(url: str, output_dir, img_pth):
+    try:
+        text, title = await extract_text(url)
+        print(title)
+        if not text:
+            print("Failed to extract text or title")
+            raise ValueError("Failed to extract text or title")
+    except Exception as e:
+        logging.error(f"Failed to extract text and title from URL {url}: {e}")
+        print("Failed to extract text and title from URL")
+        return None, None, None  # Instead of raising an exception, return None
+
+    if not text:
+        logging.error(f"No text extracted from the provided URL {url}")
+        print("No text extracted from the provided URL")
+        return None, None, None  # Instead of raising an exception, return None
+
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
+    write_markdown_file(md_file, text, url)
+
+    wav_file = f"{base_file_name}.wav"
+    script_folder = os.path.dirname(os.path.abspath(__file__))
+    voice_folder = "default_female_voice/"
+    parent_folder = os.path.dirname(script_folder)  # One folder up from the script folder
+    output_file = os.path.join(parent_folder, wav_file)
+
+    tts_client = PiperTTSClient(verbose=True)
+    tts_client.tts(text, output_file, voice_folder)
+
+    convert_wav_to_mp3(output_file, mp3_file)
+
+    add_mp3_tags(mp3_file, title, img_pth, output_dir)
+
+    # Delete the _stts2.wav file after processing
+    if os.path.exists(output_file):
+        os.remove(output_file)
+        logging.info(f"Deleted temporary file {output_file}")
+
+    logging.info(f"Successfully processed text with title {title}")
+    return base_file_name, mp3_file, md_file
+
+
+async def read_text_piper(text: str, output_dir, img_pth):
+    title = generate_title(text)
+
+    if not text:
+        logging.error(f"No text provided")
+        print("No text provided")
+        return None, None, None  # Instead of raising an exception, return None
+    
+    title = generate_title(text)
+
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
+    write_markdown_file(md_file, text)
+
+    wav_file = f"{base_file_name}.wav"
+    script_folder = os.path.dirname(os.path.abspath(__file__))
+    voice_folder = "default_female_voice/"
+    output_file = os.path.join(script_folder, wav_file)
+
+    tts_client = PiperTTSClient(verbose=True)
+    tts_client.tts(text, output_file, voice_folder)
+
+    convert_wav_to_mp3(output_file, mp3_file)
+
+    add_mp3_tags(mp3_file, title, img_pth, output_dir)
+
+    # Delete the _stts2.wav file after processing
+    if os.path.exists(output_file):
+        os.remove(output_file)
+        logging.info(f"Deleted temporary file {output_file}")
+
+    logging.info(f"Successfully processed text with title {title}")
+    return base_file_name, mp3_file, md_file
+
+
+if __name__ == "__main__":
+    import os
+    import asyncio
+
+    # Get the current directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Go one directory up
+    parent_dir = os.path.dirname(current_dir)
+
+    # Navigate into the "Output" folder
+    output_dir = os.path.join(parent_dir, "Output")
+
+    # Image path in parent directory
+    img_pth = os.path.join(parent_dir, "front.jpg")
+
+    url = input("Enter URL to convert: ")
+    asyncio.run(url_with_piper(url, output_dir, img_pth))
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/common_utils.py`:
+
+```````py
+import os
+import re
+import datetime
+from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC
+from mutagen.mp3 import MP3
+from PIL import Image, ImageDraw, ImageFont
+from pydub import AudioSegment
+import logging
+from num2words import num2words
+
+def write_markdown_file(md_file_path, text, url=None):
+    with open(md_file_path, "w", encoding="utf-8") as md_file_handle:
+        md_file_handle.write(text)
+        if url:
+            md_file_handle.write(f"\n\nSource: {url}")
+
+def read_markdown_file(md_file_path):
+    try:
+        with open(md_file_path, "r", encoding="utf-8") as md_file_handle:
+            return md_file_handle.read()
+    except FileNotFoundError:
+        print(f"Error: {md_file_path} not found.")
+        return None
+
+def shorten_title(title):
+    # Shorten the title to 8 words max
+    words = title.split()
+    short_title = "_".join(words[:8])
+    # Replace spaces with underscores and remove special characters not allowed in filenames
+    short_title = re.sub(r"[^a-zA-Z0-9_]", "", short_title)
+    return short_title
+
+
+def shorten_text(text):
+    words = text.split()
+    if len(words) > 400:
+        short_text = " ".join(words[:400])
+    else:
+        short_text = text
+    return short_text
+
+
+def split_text(text, max_words=1500):
+    def count_words(text):
+        return len(re.findall(r"\w+", text))
+
+    def split_into_paragraphs(text):
+        return text.split("\n\n")
+
+    def split_into_sentences(text):
+        return re.split(r"(?<=[.!?]) +", text)
+
+    words = count_words(text)
+    logging.debug(f"Total number of words in text: {words}")
+    
+    if words <= max_words:
+        return [text]
+
+    paragraphs = split_into_paragraphs(text)
+    chunks = []
+    current_chunk = ""
+    current_word_count = 0
+
+    for paragraph in paragraphs:
+        paragraph_word_count = count_words(paragraph)
+        logging.debug(f"Paragraph word count: {paragraph_word_count}")
+
+        if current_word_count + paragraph_word_count <= max_words:
+            current_chunk += paragraph + "\n\n"
+            current_word_count += paragraph_word_count
+        else:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            if paragraph_word_count > max_words:
+                sentences = split_into_sentences(paragraph)
+                for sentence in sentences:
+                    sentence_word_count = count_words(sentence)
+                    logging.debug(f"Sentence word count: {sentence_word_count}")
+
+                    if current_word_count + sentence_word_count <= max_words:
+                        current_chunk += sentence + " "
+                        current_word_count += sentence_word_count
+                    else:
+                        if current_chunk:
+                            chunks.append(current_chunk.strip())
+                        current_chunk = sentence + " "
+                        current_word_count = sentence_word_count
+            else:
+                current_chunk = paragraph + "\n\n"
+                current_word_count = paragraph_word_count
+            current_chunk = ""
+            current_word_count = 0
+
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+
+    logging.debug(f"Number of chunks created: {len(chunks)}")
+    return chunks
+
+
+def strip_markdown(text):
+    # Removes special characters from the input text
+    
+    disallowed_chars = '"<>[]{}|\\~`^*!#$()_;'
+    symbol_text_pairs = [
+        (" & ", " and "), 
+        (" % ", " percent "), 
+        (" @ ", " at "), 
+        (" = ", " equals "), 
+        (" + ", " plus "),
+        (" / ", " slash "),
+        (" $ ", " dollar "),
+        (" € ", " euro "),
+        (" £ ", " pound "),
+        (" ¥ ", " yen "),
+        (" ¢ ", " cent "),
+        (" ® ", "registered trade mark "),
+        (" © ", " copyright "),
+    ]
+
+    # Remove special characters
+    cleaned_text = "".join(filter(lambda x: x not in disallowed_chars, text))
+    
+    # Replace symbols with their text equivalents
+    for symbol, text_equivalent in symbol_text_pairs:
+        cleaned_text = cleaned_text.replace(symbol, text_equivalent)
+    
+    # Remove brackets containing only numbers
+    cleaned_text = re.sub(r'\[\d+\]', '', cleaned_text)
+    
+    # Remove instances where a number is directly after a word or a name
+    cleaned_text = re.sub(r'(\b\w+\b)\d+', r'\1', cleaned_text)
+    
+    # Remove instances of more than two hyphens
+    cleaned_text = re.sub(r'-{2,}', '', cleaned_text)
+    
+    return cleaned_text
+
+
+def get_date_subfolder(output_dir):
+    current_date = datetime.date.today().strftime("%Y%m%d")
+    subfolder = os.path.join(output_dir, current_date)
+    if not os.path.exists(subfolder):
+        os.makedirs(subfolder)
+    return subfolder
+
+
+async def get_output_files(output_dir, title):
+    subfolder = get_date_subfolder(output_dir)
+    short_title = shorten_title(title)
+    file_number = 1
+    while True:
+        base_file_name = f"{subfolder}/{file_number:03d}_{short_title}"
+        mp3_file_name = f"{base_file_name}.mp3"
+        md_file_name = f"{base_file_name}.md"
+        
+        # Check if any files start with the same three-digit number
+        existing_files = [f for f in os.listdir(subfolder) if f.startswith(f"{file_number:03d}_")]
+        if not existing_files:
+            return base_file_name, mp3_file_name, md_file_name
+        file_number += 1
+
+
+def create_image_with_date(image_path: str, output_path: str, date_text: str):
+    if not os.path.exists(output_path):
+        image = Image.open(image_path)
+        draw = ImageDraw.Draw(image)
+        font_path = "Fonts/PermanentMarker.ttf"
+        font = ImageFont.truetype(font_path, 50)
+        width, height = image.size
+        text_bbox = draw.textbbox((0, 0), date_text, font=font)
+        text_width, text_height = (
+            text_bbox[2] - text_bbox[0],
+            text_bbox[3] - text_bbox[1],
+        )
+        position = ((width - text_width) // 2, height - text_height - 35)
+        draw.text(position, date_text, font=font, fill="black")
+        image.save(output_path)
+
+
+def add_mp3_tags(mp3_file: str, title: str, img_pth: str, output_dir: str):
+    track_number = os.path.basename(mp3_file).split("_")[-1].split(".")[0]
+    try:
+        audio = ID3(mp3_file)
+    except Exception:
+        audio = ID3()
+    if title:
+        audio.add(TIT2(encoding=3, text=title))
+    audio.add(
+        TALB(encoding=3, text=f"READ2ME{datetime.date.today().strftime('%Y%m%d')}")
+    )
+    audio.add(TPE1(encoding=3, text="READ2ME"))
+    audio.add(TCON(encoding=3, text="Spoken Audio"))
+    audio.add(TRCK(encoding=3, text=str(track_number)))
+    date_text = datetime.date.today().strftime("%Y-%m-%d")
+    image_path = img_pth
+    output_image_path = os.path.join(get_date_subfolder(output_dir), "cover.jpg")
+    create_image_with_date(image_path, output_image_path, date_text)
+    with open(output_image_path, "rb") as img_file:
+        audio.add(
+            APIC(
+                encoding=3,
+                mime="image/jpeg",
+                type=3,
+                desc="Cover",
+                data=img_file.read(),
+            )
+        )
+    audio.save(mp3_file)
+
+
+def convert_wav_to_mp3(wav_file: str, mp3_file: str, bitrate: str = "192k"):
+    # Load WAV file
+    audio = AudioSegment.from_wav(wav_file)
+    
+    # Export as MP3 with specified bitrate and other parameters to maintain quality
+    audio.export(mp3_file, format="mp3", bitrate=bitrate, parameters=["-q:a", "0"])
+    
+    # Remove the original WAV file
+    os.remove(wav_file)
+
+def get_mp3_duration(file_path):
+    audio = MP3(file_path)
+    return audio.info.length
+
+def estimate_word_duration(word):
+    # Convert numbers to words for better duration estimation
+    if word.isdigit():
+        word = num2words(int(word))
+    
+    # Count syllables (this is a simple approximation)
+    syllables = len(re.findall(r'[aeiou]', word.lower())) + 1
+    
+    # Estimate duration based on syllables (adjust these values as needed)
+    base_duration = 0.2  # seconds
+    syllable_duration = 0.06  # seconds per syllable
+    
+    return base_duration + (syllables * syllable_duration)
+
+def is_end_of_sentence(word):
+    return word.endswith(('.', '!', '?'))
+
+def generate_word_timestamps(duration, text):
+    words = text.split()
+    estimated_durations = [estimate_word_duration(word) for word in words]
+    
+    # Add pause durations
+    word_pause = 0.2  # seconds
+    sentence_pause = 1.5  # seconds
+    pause_durations = [sentence_pause if is_end_of_sentence(word) else word_pause for word in words]
+    
+    # Calculate total estimated duration including pauses
+    total_estimated_duration = sum(estimated_durations) + sum(pause_durations)
+    
+    # Scale factor to match actual audio duration
+    scale_factor = duration / total_estimated_duration
+    
+    timestamps = []
+    current_time = 0.0
+    
+    for word, est_duration, pause in zip(words, estimated_durations, pause_durations):
+        word_duration = est_duration * scale_factor
+        pause_duration = pause * scale_factor
+        start_time = current_time
+        end_time = start_time + word_duration
+        timestamps.append((word, start_time, end_time))
+        current_time = end_time + pause_duration
+    
+    return timestamps
+
+def save_subtitles(timestamps, output_file):
+    with open(output_file, 'w', encoding='utf-8') as file:
+        file.write("WEBVTT\n\n")
+        for i, (word, start, end) in enumerate(timestamps, 1):
+            file.write(f"{i}\n")
+            file.write(f"{format_timestamp(start)} --> {format_timestamp(end)}\n")
+            file.write(f"{word}\n\n")
+
+def format_timestamp(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    seconds = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{seconds:06.3f}"
+
+def create_subtitle_test_html(mp3_file, vtt_file, output_html):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Subtitle Test</title>
+        <style>
+            .subtitle-container {{
+                width: 100%;
+                min-height: 50px;
+                border: 1px solid #ccc;
+                padding: 10px;
+                margin-top: 10px;
+            }}
+        </style>
+    </head>
+    <body>
+        <audio controls>
+            <source src="{mp3_file}" type="audio/mpeg">
+            <track kind="subtitles" src="{vtt_file}" default>
+        </audio>
+        <div class="subtitle-container" id="subtitle-display"></div>
+
+        <script>
+            const audio = document.querySelector('audio');
+            const track = audio.textTracks[0];
+            const subtitleDisplay = document.getElementById('subtitle-display');
+
+            track.mode = 'hidden';
+            track.addEventListener('cuechange', () => {{
+                if (track.activeCues.length > 0) {{
+                    subtitleDisplay.textContent = track.activeCues[0].text;
+                }} else {{
+                    subtitleDisplay.textContent = '';
+                }}
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    with open(output_html, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    print(f"Test HTML created at: {output_html}")
+
+def generate_vtt_for_directory(base_dir):
+    for root, dirs, files in os.walk(base_dir):
+        for file in files:
+            if file.endswith('.mp3'):
+                mp3_path = os.path.join(root, file)
+                md_path = os.path.splitext(mp3_path)[0] + '.md'
+                vtt_path = os.path.splitext(mp3_path)[0] + '.vtt'
+                html_path = os.path.splitext(mp3_path)[0] + '.html'
+                
+                if os.path.exists(md_path) and not os.path.exists(vtt_path):
+                    print(f"Generating VTT for: {mp3_path}")
+                    
+                    # Get MP3 duration
+                    duration = get_mp3_duration(mp3_path)
+                    
+                    # Read text from MD file
+                    with open(md_path, 'r', encoding='utf-8') as md_file:
+                        text = md_file.read()
+                    
+                    # Generate timestamps
+                    timestamps = generate_word_timestamps(duration, text)
+                    
+                    # Save VTT file
+                    save_subtitles(timestamps, vtt_path)
+                    
+                    # Create test HTML
+                    create_subtitle_test_html(os.path.basename(mp3_path), 
+                                              os.path.basename(vtt_path), 
+                                              html_path)
+                    
+                    print(f"VTT file created: {vtt_path}")
+                    print(f"Test HTML created: {html_path}")
+
+if __name__ == "__main__":
+    output_dir = input("Enter the output directory: ")
+    generate_vtt_for_directory(output_dir)
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/source_manager.py`:
+
+```````py
+import json
+import os
+import argparse
+from typing import List, Optional, Dict
+from .rssfeed import find_rss_feed
+
+SOURCES_FILE = "sources.json"
+
+def read_sources() -> Dict:
+    if not os.path.exists(SOURCES_FILE):
+        return {"global_keywords": [], "sources": []}
+    with open(SOURCES_FILE, 'r') as file:
+        try:
+            return json.load(file)
+        except json.JSONDecodeError:
+            return {"global_keywords": [], "sources": []}
+
+def write_sources(data: Dict):
+    with open(SOURCES_FILE, 'w') as file:
+        json.dump(data, file, indent=2)
+
+def print_sources():
+    data = read_sources()
+    if not data['sources']:
+        print("No source has been added to the directory yet")
+    else:
+        print("Global Keywords:", ", ".join(data['global_keywords']))
+        print("\nSources:")
+        for source in data['sources']:
+            keywords = source['keywords']
+            if keywords == ["*"]:
+                keyword_str = "* (all articles)"
+            elif not keywords:
+                keyword_str = "No source-specific keywords"
+            else:
+                keyword_str = ", ".join(keywords)
+            print(f" URL: {source['url']}")
+            print(f" Keywords: {keyword_str}")
+            print(f" Is RSS Feed: {source.get('is_rss', False)}")
+            print()
+
+def update_sources(global_keywords: Optional[List[str]] = None, sources: Optional[List[Dict[str, List[str]]]] = None) -> Dict:
+    data = read_sources()
+    if global_keywords is not None:
+        data['global_keywords'] = list(set(data['global_keywords'] + global_keywords))
+    if sources is not None:
+        for new_source in sources:
+            existing_source = next((s for s in data['sources'] if s['url'] == new_source['url']), None)
+            rss_feed_url = find_rss_feed(new_source['url'])
+            if rss_feed_url:
+                new_source['url'] = rss_feed_url
+                new_source['is_rss'] = True
+            else:
+                new_source['is_rss'] = False
+            if existing_source:
+                existing_source['keywords'] = new_source['keywords']
+                existing_source['is_rss'] = new_source['is_rss']
+            else:
+                data['sources'].append(new_source)
+    
+    write_sources(data)
+    return data
+
+def remove_source(url: str) -> Dict:
+    data = read_sources()
+    data['sources'] = [s for s in data['sources'] if s['url'] != url]
+    write_sources(data)
+    return data
+
+def remove_global_keyword(keyword: str) -> Dict:
+    data = read_sources()
+    data['global_keywords'] = [k for k in data['global_keywords'] if k != keyword]
+    write_sources(data)
+    return data
+
+def cli():
+    parser = argparse.ArgumentParser(description="Manage sources and keywords for article fetching")
+    parser.add_argument("--add-global", nargs="+", help="Add global keywords")
+    parser.add_argument("--add-source", nargs=2, metavar=("URL", "KEYWORDS"), action="append", help="Add a source with keywords")
+    parser.add_argument("--remove-source", metavar="URL", help="Remove a source by URL")
+    parser.add_argument("--remove-global", metavar="KEYWORD", help="Remove a global keyword")
+    parser.add_argument("--print", action="store_true", help="Print current sources and keywords")
+    args = parser.parse_args()
+
+    if args.print:
+        print_sources()
+    elif args.add_global or args.add_source:
+        sources = [{"url": url, "keywords": keywords.split(",")} for url, keywords in args.add_source] if args.add_source else None
+        update_sources(args.add_global, sources)
+        print_sources()
+    elif args.remove_source:
+        remove_source(args.remove_source)
+        print_sources()
+    elif args.remove_global:
+        remove_global_keyword(args.remove_global)
+        print_sources()
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    cli()
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/scrape.py`:
+
+```````py
+from playwright.sync_api import sync_playwright
+
+import datetime
+import logging
+import requests
+from bs4 import BeautifulSoup
+import trafilatura
+import tldextract
+import re
+
+
+def scrape_main_text(url):
+    with sync_playwright() as p:
+        # Launch a headless browser
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+
+        # Go to the website
+        page.goto(url)
+
+        # Wait for the page to load completely
+        page.wait_for_timeout(2000)  # Adjust the timeout as needed
+
+        # Extract the main text content
+        content = page.content()
+        browser.close()
+
+    return content, url
+
+
+def extract_text(content, url):
+    domainname = tldextract.extract(url)
+    main_domain = f"{domainname.domain}.{domainname.suffix}"
+    result = trafilatura.extract(content, include_comments=False)
+    soup = BeautifulSoup(content, "html.parser")
+    title = soup.find("title").text if soup.find("title") else ""
+    date_tag = soup.find("meta", attrs={"property": "article:published_time"})
+    timestamp = date_tag["content"] if date_tag else ""
+    article_content = f"{title}.\n\n" if title else ""
+    article_content += f"From {main_domain}.\n\n"
+    authors = []
+    for attr in ["name", "property"]:
+        author_tags = soup.find_all("meta", attrs={attr: "author"})
+        for tag in author_tags:
+            if tag and tag.get("content"):
+                authors.append(tag["content"])
+    authors = sorted(set(authors))
+    if authors:
+        article_content += "Written by: " + ", ".join(authors) + ".\n\n"
+    date_formats = [
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S.%f%z",
+        "%Y-%m-%dT%H:%M:%S",
+    ]
+    date_str = ""
+    if timestamp:
+        for date_format in date_formats:
+            try:
+                date = datetime.datetime.strptime(timestamp, date_format)
+                date_str = date.strftime("%B %d, %Y")
+                break
+            except ValueError:
+                continue
+    if date_str:
+        article_content += f"Published on: {date_str}.\n\n"
+    if result:
+        lines = result.split("\n")
+        filtered_lines = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if len(line.split()) < 15:
+                if i + 1 < len(lines) and len(lines[i + 1].split()) < 15:
+                    while i < len(lines) and len(lines[i].split()) < 15:
+                        i += 1
+                    continue
+            filtered_lines.append(line)
+            i += 1
+        formatted_text = "\n\n".join(filtered_lines)
+        formatted_text = re.sub(r"\n[\-_]\n", "\n\n", formatted_text)
+        formatted_text = re.sub(r"[\-_]{3,}", "", formatted_text)
+        article_content += formatted_text
+    return article_content, title
+
+
+if __name__ == "__main__":
+    content, url = scrape_main_text(input("Enter URL to extract text from: "))
+    article_content, title = extract_text(content, url)
+    print(article_content)
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/utils/logging_utils.py`:
+
+```````py
+import logging
+import sys
+
+
+class ForcedFlushHandler(logging.FileHandler):
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
+
+def setup_logging(log_file_path):
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[ForcedFlushHandler(log_file_path), logging.StreamHandler(sys.stdout)],
+    )
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/README.md`:
+
+```````md
+# Read2Me
+
+![READ2ME Banner](Banner.png)
+
+## Overview
+
+Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS or optionally with the local TTS models StyleTTS2 or Piper TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content and urls pointing to PDF, extracting meaningful text and generating audio files. You can install the provided Chromium Extension in any Chromium-based browser (e.g. Microsoft Edge) to send current urls or any text to the sever, add sources and keywords for automatic fetching.
+
+This is a currently a beta version but I plan to extend it to support other content types (e.g., epub) in the future and provide more robust support for languages other than English. Currently, when using the default Azure Edge TTS, it already supports [other languages](https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/speech-service/includes/language-support/multilingual-voices.md) and tries to autodetect it from the text but quality might vary depending on the language.
+
+## Features
+
+- Fetches and processes content from HTML URLs and saves it as a markdown file.
+- Converts text to speech using Microsoft Azure's Edge TTS (currently randomly selecting from the available multi-lingual voices to easily handle multiple languages).
+- Tags MP3 files with metadata, including the title, author, and publication date, if available.
+- Adds a cover image with the current date to the MP3 files.
+- For urls from wikipedia, uses the wikipedia python library to extract article content
+- Automatic retrieval of new articles from specified sources at defined intervals (currently hard coded to twice a day at 5AM and 5PM local time). Sources and keywords can be specified via text files.
+
+## Requirements
+
+- Python 3.7 or higher
+- Dependencies listed in `requirements.txt`
+- If you want to use the local styleTTS2 text-to-speech model, please also install `requirements_stts2.txt`
+
+## Installation
+
+### Native Python Installation
+
+1. **Clone the repository:**
+
+   ```sh
+   git clone https://github.com/WismutHansen/READ2ME.git
+   cd read2me
+   ```
+
+2. **Create and activate a virtual environment:**
+
+   ```sh
+   python -m venv .venv
+   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+   ```
+   or if you like to use uv for package management:
+
+   ```sh
+   uv venv
+   source .venv/bin/activate # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+
+   ```sh
+   pip install -r requirements.txt
+   ```
+   if you want to use the local styleTTS2 text-to-speech model, please also install the additional dependencies:
+   ```sh
+   pip install -r requirements_stts2.txt
+   ```
+   Install playwright
+   ```sh
+   playwright install
+   ```
+   **Note:** [ffmpeg](https://www.ffmpeg.org/) is required when using either StyleTTS2 or PiperTTS for converting wav files into mp3. StyleTTS also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
+
+4. **Set up environment variables:**
+
+   Rename  `.env.example` file in the root director to `.env` and edit the content to your preference:
+
+   ```sh
+   OUTPUT_DIR=Output # Directory to store output files
+   SOURCES_FILE=sources.json # File containing sources to retrieve articles from twice a day
+   IMG_PATH=front.jpg # Path to image file to use as cover
+   ```
+### Docker Installation
+
+   **Build the Docker image**
+   ```sh
+   docker build -t read2me .
+   ```
+
+
+## Usage
+
+1. 
+   ### Native
+
+   **Prepare the environment variables file (.env):**
+
+   copy and rename `.env.example` to `.env`. Edit the content of this file as you wish, specifying the output directory, task file and image path to use for the mp3 file cover as well as the sources and keywords file.
+
+   **Run the FastAPI application:**
+
+   ```sh
+   uvicorn main:app --host 0.0.0.0 --port 7777
+   ```
+   **or, if you're connected to a Linux server e.g. via ssh and want to keep the app running after closing your session**
+
+   ```sh
+   nohup uvicorn main:app --host 0.0.0.0 --port 7777 &
+   ```
+   this will write all commandline output into a file called `nohup.out` in your current working directory.
+   
+   ### Docker
+
+
+
+   **Run the Docker container (with a volume mount if you want to access the Output Folder from outside the container):**
+
+   ```sh
+   docker run -p 7777:7777 -v /path/to/local/output/dir:/app/Output read2me
+   ```
+
+
+2. **Add URLs for processing:**
+
+   Send a POST request to `http://localhost:7777/v1/url/full` with a JSON body containing the URL:
+
+   ```json
+   {
+     "url": "https://example.com/article"
+   }
+   ```
+
+   You can use `curl` or any API client like Postman to send this request like this:
+
+   ```sh
+   curl -X POST http://localhost:7777/v1/url/full/ \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://example.com/article"}'
+     -d '{"tts-engine": "edge"}'
+   ```
+   The repository also contains a working Chromium Extension that you can install in any Chromium-based browser (e.g. Google Chrome) when the developer settings are enabled.
+
+3. **Processing URLs:**
+
+   The application periodically checks the `tasks.json` file for new Jobs to process. It fetches the content for a given url, extracts text, converts it to speech, and saves the resulting MP3 files with appropriate metadata.
+
+4. **Specify Sources and keywords for automatic retrieval:**
+
+Create a file called `sources.json` in your current working directory with URLs to websites that you want to monitor for new articles. You can also set global keywords and per-source keywords to be used as filters for automatic retrieval. If you set "*" for a source, all new articles will be retrieved. Here is an example structure:
+
+```json
+{
+  "global_keywords": [
+    "globalkeyword1",
+    "globalkeyword2"
+  ],
+  "sources": [
+    {
+      "url": "https://example.com",
+      "keywords": ["keyword1","keyword2"]
+    },
+    {
+      "url": "https://example2.com",
+      "keywords": ["*"]
+    }
+  ]
+}
+```
+
+Location of both files is configurable in .env file.
+
+## API Endpoints
+
+- **POST /v1/url/full**
+
+  Adds a URL to the processing list.
+
+  **Request Body:**
+
+  ```json
+  {
+    "url": "https://example.com/article",
+    "tts-engine": "edge"
+  }
+  ```
+
+  **Response:**
+
+  ```json
+  {
+    "message": "URL added to the processing list"
+  }
+  ```
+
+## File Structure
+
+- **main.py**: The main FastAPI application file.
+- **requirements.txt**: List of dependencies.
+- **.env**: Environment variables file.
+- **utils/**: Directory with helper functions for task handling, text extraction, speech synthesis etc.
+- **Output/**: Directory where the output files (MP3 and MD) are saved.
+
+## Dependencies
+
+- **FastAPI**: Web framework for building APIs.
+- **Uvicorn**: ASGI server implementation for serving FastAPI applications.
+- **edge-tts**: Microsoft Azure Edge Text-to-Speech library.
+- **mutagen**: Library for handling audio metadata.
+- **Pillow**: Python Imaging Library (PIL) for image processing.
+- **trafilatura**: Library for web scraping and text extraction.
+- **requests**: HTTP library for sending requests.
+- **BeautifulSoup**: Library for parsing HTML and XML documents.
+- **pdfminer**: Library for extracting text from PDF documents.
+- **python-dotenv**: Library for managing environment variables.
+- **newspaper4k**: Library for extracting articles from news websites.
+- **wikipedia**: Library for extracting information from Wikipedia articles.
+- **schedule**: Library for scheduling tasks. Used to schedule automatic news retrieval twice a day.
+
+## Contributing
+
+1. **Fork the repository.**
+2. **Create a new branch:**
+
+   ```sh
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make your changes and commit them:**
+
+   ```sh
+   git commit -m 'Add some feature'
+   ```
+
+4. **Push to the branch:**
+
+   ```sh
+   git push origin feature/your-feature-name
+   ```
+
+5. **Submit a pull request.**
+
+## License
+
+This project is licensed under the Apache License Version 2.0, January 2004, except for the styletts2 code, which is licensed under the MIT License. The styletts2 pre-trained models are under their own license.
+
+StyleTTS2 Pre-Trained Models: Before using these pre-trained models, you agree to inform the listeners that the speech samples are synthesized by the pre-trained models, unless you have the permission to use the voice you synthesize. That is, you agree to only use voices whose speakers grant the permission to have their voice cloned, either directly or by license before making synthesized voices public, or you have to publicly announce that these voices are synthesized if you do not have the permission to use these voices.
+
+## Roadmap
+
+- [ ] language detection and voice selection based on detected language.
+- [ ] Add support for handling of pdf files
+- [x] Add support for local text-to-speech (TTS) engine like StyleTTS2.
+- [ ] Add support for LLM-based text processing like summarization with local LLMs through Ollama or the OpenAI API
+- [ ] Add support for automatic image captioning using local vision models or the OpenAI API
+
+
+
+
+
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/requirements_stts2.txt`:
+
+```````txt
+git+https://github.com/resemble-ai/monotonic_align.git
+torch
+torchaudio
+torchvision
+rvc-python
+nltk
+munch
+einops
+einops_exts
+setuptools
+matplotlib
+transformers
+tensorboardx
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+```````
+
+`/Users/tommyfalkowski/Code/READ2ME/main.py`:
+
+```````py
+import logging
+from fastapi import FastAPI, Request, UploadFile, HTTPException, File, WebSocket
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from utils.env import setup_env
+from utils.logging_utils import setup_logging
+from utils.task_file_handler import add_task
+from utils.task_processor import start_task_processor
+from utils.source_manager import update_sources, read_sources
+from urllib.parse import unquote
+from contextlib import asynccontextmanager
+from threading import Event
+import asyncio
+from datetime import datetime, time, timedelta
+from tzlocal import get_localzone
+from logging.handlers import TimedRotatingFileHandler
+from typing import List, Optional
+import sys
+import os
+import re
+
+# Load environment variables
+output_dir, urls_file, img_pth, sources_file = setup_env()
+
+# Background thread stop event
+stop_event = Event()
+
+
+def setup_logging(log_file_path):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    file_handler = TimedRotatingFileHandler(
+        log_file_path, when="midnight", interval=1, backupCount=14
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    )
+
+    logger.addHandler(file_handler)
+
+
+# Set up logging
+try:
+    log_file_path = os.path.abspath("process_log.txt")
+    setup_logging(log_file_path)
+    logging.info(f"Logging setup completed. Log file path: {log_file_path}")
+except Exception as e:
+    print(f"Error setting up logging: {e}")
+
+
+class URLRequest(BaseModel):
+    url: str
+    tts_engine: str = "edge"  # Default to edge-tts
+
+
+class TextRequest(BaseModel):
+    text: str
+    tts_engine: str = "edge"  # Default to edge-tts
+
+class Source(BaseModel):
+    url: str
+    keywords: List[str]
+
+class SourceUpdate(BaseModel):
+    global_keywords: Optional[List[str]] = None
+    sources: Optional[List[Source]] = None
+
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    stop_event.clear()  # Ensure the event is clear before starting the thread
+    thread = start_task_processor(stop_event)
+    scheduler_task = asyncio.create_task(schedule_fetch_articles())
+    try:
+        yield
+    except Exception as e:
+        logging.error(f"Unhandled exception during server lifecycle: {e}")
+    finally:
+        stop_event.set()  # Signal the thread to stop
+        thread.join()  # Wait for the thread to finish
+        scheduler_task.cancel()  # Cancel the scheduler task
+        try:
+            await scheduler_task  # Wait for the scheduler task to finish
+        except asyncio.CancelledError:
+            logging.info("Scheduler task cancelled.")
+        logging.info("Clean shutdown completed.")
+
+
+app = FastAPI(lifespan=lifespan)
+
+# Update this line to use an absolute path
+output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+
+# Mount the static files with the correct directory
+app.mount("/static", StaticFiles(directory=output_dir), name="static")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Update with the frontend URL if different from the standard
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
+@app.post("/v1/url/full")
+async def url_audio_full(request: URLRequest):
+    logging.info(f"Received URL: {request.url}")
+    await add_task("url", request.url, request.tts_engine)
+    return {"message": "URL added to the READ2ME task list"}
+
+
+@app.post("/v1/url/summary")
+async def url_audio_summary(request: URLRequest):
+    return {"message": "Endpoint not yet implemented"}
+
+
+@app.post("/v1/text/full")
+async def read_text(request: TextRequest):
+    logging.info(f"Received text: {request.text}")
+    await add_task("text", request.text, request.tts_engine)
+    return {"message": "Text added to the READ2ME task list"}
+
+
+@app.post("/v1/text/summary")
+async def read_text_summary(request: TextRequest):
+    return {"message": "Endpoint not yet implemented"}
+
+
+@app.post("/v1/pdf/full")
+async def read_text_summary(request: TextRequest):
+    return {"message": "Endpoint not yet implemented"}
+
+
+@app.post("/v1/sources/fetch")
+async def fetch_sources(request: Request):
+    from utils.sources import fetch_articles
+
+    await fetch_articles()
+    logging.info(f"Received manual article fetch request")
+    return {"message": "Checking for new articles in sources"}
+
+@app.post("/v1/sources/add")
+async def api_update_sources(update: SourceUpdate):
+    try:
+        sources = [{"url": source.url, "keywords": source.keywords} for source in update.sources] if update.sources else None
+        updated_data = update_sources(update.global_keywords, sources)
+        return {"message": "Sources updated successfully", "data": updated_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/v1/sources/get")
+async def api_get_sources():
+    return read_sources()
+
+# New endpoint to force re-process a URL in case of e.g. a change in the source  
+@app.post("/v1/url/reprocess")
+async def url_audio_reprocess(request: URLRequest):
+    logging.info(f"Reprocessing URL: {request.url}")
+    await add_to_history(request.url)  # Add to history to avoid future re-processing
+    await add_task("url", request.url, request.tts_engine)
+    return {"message": "URL reprocessing added to the READ2ME task list"}
+
+@app.get("/v1/audio-files")
+async def get_audio_files(request: Request, page: int = 1, limit: int = 20):
+    audio_files = []
+    total_files = 0
+    
+    for root, dirs, files in os.walk(output_dir):
+        for file in files:
+            if file.endswith(".mp3"):
+                total_files += 1
+                if (page - 1) * limit <= len(audio_files) < page * limit:
+                    relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                    audio_url = f"/v1/audio/{relative_path}"
+                    audio_files.append({
+                        "audio_file": audio_url,
+                        "title": os.path.splitext(file)[0].replace("_", " ")
+                    })
+                
+                if len(audio_files) >= limit:
+                    break
+        
+        if len(audio_files) >= limit:
+            break
+
+    return JSONResponse(content={
+        "audio_files": audio_files,
+        "total_files": total_files,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total_files + limit - 1) // limit
+    })
+
+@app.get("/v1/audio/{file_path:path}")
+async def get_audio(file_path: str):
+    full_path = os.path.join(output_dir, file_path)
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    return FileResponse(full_path, media_type="audio/mpeg")
+
+@app.get("/v1/audio-file/{file_name}")
+async def get_audio_file(file_name: str):
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    md_file_path = os.path.join("", f"{file_name}.md")
+    if not os.path.exists(md_file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    with open(md_file_path, "r", encoding="utf-8") as file:
+        text_content = file.read()
+    return JSONResponse(content={"text": text_content})
+
+@app.get("/v1/audio-file/{title}")
+async def get_audio_file_text(title: str):
+    # Assuming the text files are stored in the Output directory with the same name as the title
+    text_file_path = os.path.join("", f"{title}.md")
+    
+    if not os.path.isfile(text_file_path):
+        raise HTTPException(status_code=404, detail="Text file not found")
+    
+    with open(text_file_path, "r") as file:
+        text = file.read()
+    
+    return {"text": text}
+
+@app.get("/v1/audio-file/{file_path:path}")
+async def get_audio_file_text(file_path: str):
+    # Normalize the file path to use the correct directory separator
+    file_path = os.path.normpath(file_path)
+    
+    # Construct the full path to the text file
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    text_file_path = os.path.join(output_dir, f"{file_path}.md")
+    
+    if not os.path.isfile(text_file_path):
+        raise HTTPException(status_code=404, detail=f"Text file not found: {text_file_path}")
+    
+    try:
+        with open(text_file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+        return JSONResponse(content={
+            "text": text, 
+            "title": os.path.basename(file_path),
+            "audio_file": f"{file_path}.mp3"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+# Endpoint for fetching the VTT file
+@app.get("/v1/vtt-file/{file_path:path}")
+async def get_vtt_file(file_path: str):
+    # Normalize the file path to use the correct directory separator
+    file_path = os.path.normpath(file_path)
+    
+    # Construct the full path to the VTT file
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    vtt_file_path = os.path.join(output_dir, f"{file_path}.vtt")
+    
+    if not os.path.isfile(vtt_file_path):
+        raise HTTPException(status_code=404, detail=f"VTT file not found: {vtt_file_path}")
+    
+    return FileResponse(vtt_file_path, media_type="text/vtt")
+
+clients = []
+
+@app.websocket("/ws/playback")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    clients.append(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Process the playback position data here
+            await websocket.send_text(f"Received: {data}")
+    except WebSocketDisconnect:
+        clients.remove(websocket)
+
+def generate_article_id(date_folder, mp3_filename):
+    # Extract the first three digits from the MP3 filename
+    digits = re.findall(r'\d+', mp3_filename)
+    if digits:
+        return f"{date_folder}_{digits[0][:3]}"
+    return f"{date_folder}_000"  # Fallback if no digits found
+
+@app.get("/v1/articles")
+async def get_articles(request: Request, page: int = 1, limit: int = 20):
+    articles = []
+    total_articles = 0
+    
+    for root, dirs, files in os.walk(output_dir, topdown=False):
+        date_folder = os.path.basename(root)
+        if not date_folder.isdigit() or len(date_folder) != 8:
+            continue  # Skip if not a date folder
+        
+        for file in files:
+            if file.endswith(".mp3"):
+                total_articles += 1
+                if (page - 1) * limit <= len(articles) < page * limit:
+                    article_id = generate_article_id(date_folder, file)
+                    relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                    audio_url = f"/v1/audio/{relative_path}"
+                    articles.append({
+                        "id": article_id,
+                        "date": date_folder,
+                        "audio_file": audio_url,
+                        "title": os.path.splitext(file)[0].replace("_", " ")
+                    })
+                
+                if len(articles) >= limit:
+                    break
+        
+        if len(articles) >= limit:
+            break
+
+    return JSONResponse(content={
+        "articles": articles,
+        "total_articles": total_articles,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total_articles + limit - 1) // limit
+    })
+
+@app.get("/v1/article/{article_id}")
+async def get_article(article_id: str):
+    date_folder, file_prefix = article_id.split("_")
+    
+    for root, dirs, files in os.walk(os.path.join(output_dir, date_folder)):
+        for file in files:
+            if file.endswith(".mp3") and generate_article_id(date_folder, file) == article_id:
+                relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                audio_url = f"/v1/audio/{relative_path}"
+                text_file_path = os.path.join(root, f"{os.path.splitext(file)[0]}.md")
+                
+                if not os.path.isfile(text_file_path):
+                    raise HTTPException(status_code=404, detail="Article text not found")
+                
+                with open(text_file_path, "r", encoding="utf-8") as text_file:
+                    content = text_file.read()
+                
+                return JSONResponse(content={
+                    "id": article_id,
+                    "date": date_folder,
+                    "audio_file": audio_url,
+                    "title": os.path.splitext(file)[0].replace("_", " "),
+                    "content": content
+                })
+    
+    raise HTTPException(status_code=404, detail="Article not found")
+
+async def schedule_fetch_articles():
+    from utils.sources import fetch_articles
+
+    async def job():
+        logging.info("Fetching articles...")
+        await fetch_articles()
+
+    local_tz = get_localzone()
+    logging.info(f"Using local timezone: {local_tz}")
+
+    while not stop_event.is_set():
+        now = datetime.now(local_tz)
+        target_times = [time(6, 0), time(17, 0)]  # 6:00 AM and 5:00 PM
+
+        for target_time in target_times:
+            if now.time() <= target_time:
+                next_run = now.replace(
+                    hour=target_time.hour,
+                    minute=target_time.minute,
+                    second=0,
+                    microsecond=0,
+                )
+                break
+        else:
+            next_run = now.replace(
+                hour=target_times[0].hour,
+                minute=target_times[0].minute,
+                second=0,
+                microsecond=0,
+            )
+            next_run += timedelta(days=1)
+
+        wait_seconds = (next_run - now).total_seconds()
+        logging.info(
+            f"Next scheduled run at {next_run.strftime('%Y-%m-%d %H:%M:%S %Z')}"
+        )
+        logging.info(f"Waiting for {wait_seconds:.2f} seconds")
+
+        try:
+            await asyncio.sleep(wait_seconds)
+            if not stop_event.is_set():
+                await job()
+        except asyncio.CancelledError:
+            logging.info("Scheduled fetch task cancelled.")
+            break
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=7777, log_config=None)
+    except Exception as e:
+        logging.error(f"Unhandled exception: {e}", exc_info=True)
+        raise
+```````
