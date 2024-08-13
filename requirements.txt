@@ -31,4 +31,3 @@ marker
 fastapi-cors
 whisper
 num2words
-sqlalchemy

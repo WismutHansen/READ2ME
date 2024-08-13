@@ -1,5 +1,6 @@
 import whisperx
-import gc 
+import gc
+import torch 
 
 device = "cuda" 
 audio_file = "Output/20240715/001.mp3"
