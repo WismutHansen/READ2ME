@@ -1,2 +1,3 @@
-from .database import engine, SessionLocal
-from .models import Base
+from .models import create_tables
+
+create_tables()

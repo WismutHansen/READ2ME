@@ -23,6 +23,9 @@ tasks.json
 sources.json
 history.json
 
+# database file
+database/read2me.db
+
 # keywords file
 keywords.txt
 

@@ -59,7 +59,7 @@ async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, 
     write(wav_output, sr, full_audio)
 
     # Check if there is a checkpoint with .pth ending in .utils/rvc/Models
-    checkpoint_path = "./utils/rvc/Models/Female_1.pth"
+    checkpoint_path = "./utils/rvc/Models/Male_1.pth"
     if os.path.isfile(checkpoint_path):
         # Using RVC to change the voice:
         
@@ -70,10 +70,10 @@ async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, 
         infer_file(
             input_path=wav_output,
             model_path=checkpoint_path,
-            index_path="./utils/rvc/Models/Female_1.index",  # Optional: specify path to index file if available
+            index_path="./utils/rvc/Models/Male_1.index",  # Optional: specify path to index file if available
             device=backend, # Use cpu or cuda 
             f0method="rmvpe",  # Choose between 'harvest', 'crepe', 'rmvpe', 'pm'
-            f0up_key=0,  # Transpose setting
+            f0up_key=-9,  # Transpose setting
             opt_path=f"{base_file_name}_rvc.wav", # Output file path
             index_rate=0.5,
             filter_radius=3,
