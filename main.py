@@ -19,6 +19,7 @@ from logging.handlers import TimedRotatingFileHandler
 from typing import List, Optional
 import sys
 import os
+import re
 
 # Load environment variables
 output_dir, urls_file, img_pth, sources_file = setup_env()
@@ -92,11 +93,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.mount("/static", StaticFiles(directory="Output"), name="static")
+# Update this line to use an absolute path
+output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+
+# Mount the static files with the correct directory
+app.mount("/static", StaticFiles(directory=output_dir), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Update with your frontend URL
+    allow_origins=["http://localhost:3000"],  # Update with the frontend URL if different from the standard
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -163,18 +168,42 @@ async def url_audio_reprocess(request: URLRequest):
     return {"message": "URL reprocessing added to the READ2ME task list"}
 
 @app.get("/v1/audio-files")
-async def get_audio_files():
-    output_dir = os.getenv("OUTPUT_DIR", "Output")
+async def get_audio_files(request: Request, page: int = 1, limit: int = 20):
     audio_files = []
+    total_files = 0
+    
     for root, dirs, files in os.walk(output_dir):
         for file in files:
             if file.endswith(".mp3"):
-                relative_path = os.path.relpath(os.path.join(root, file), output_dir)
-                audio_files.append({
-                    "audio_file": f"static/{relative_path.replace(os.sep, '/')}",
-                    "title": os.path.splitext(file)[0].replace("_", " ")
-                })
-    return JSONResponse(content={"audio_files": audio_files})
+                total_files += 1
+                if (page - 1) * limit <= len(audio_files) < page * limit:
+                    relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                    audio_url = f"/v1/audio/{relative_path}"
+                    audio_files.append({
+                        "audio_file": audio_url,
+                        "title": os.path.splitext(file)[0].replace("_", " ")
+                    })
+                
+                if len(audio_files) >= limit:
+                    break
+        
+        if len(audio_files) >= limit:
+            break
+
+    return JSONResponse(content={
+        "audio_files": audio_files,
+        "total_files": total_files,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total_files + limit - 1) // limit
+    })
+
+@app.get("/v1/audio/{file_path:path}")
+async def get_audio(file_path: str):
+    full_path = os.path.join(output_dir, file_path)
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    return FileResponse(full_path, media_type="audio/mpeg")
 
 @app.get("/v1/audio-file/{file_name}")
 async def get_audio_file(file_name: str):
@@ -214,9 +243,28 @@ async def get_audio_file_text(file_path: str):
     try:
         with open(text_file_path, "r", encoding="utf-8") as file:
             text = file.read()
-        return JSONResponse(content={"text": text})
+        return JSONResponse(content={
+            "text": text, 
+            "title": os.path.basename(file_path),
+            "audio_file": f"{file_path}.mp3"
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+# Endpoint for fetching the VTT file
+@app.get("/v1/vtt-file/{file_path:path}")
+async def get_vtt_file(file_path: str):
+    # Normalize the file path to use the correct directory separator
+    file_path = os.path.normpath(file_path)
+    
+    # Construct the full path to the VTT file
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    vtt_file_path = os.path.join(output_dir, f"{file_path}.vtt")
+    
+    if not os.path.isfile(vtt_file_path):
+        raise HTTPException(status_code=404, detail=f"VTT file not found: {vtt_file_path}")
+    
+    return FileResponse(vtt_file_path, media_type="text/vtt")
 
 clients = []
 
@@ -232,8 +280,77 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         clients.remove(websocket)
 
+def generate_article_id(date_folder, mp3_filename):
+    # Extract the first three digits from the MP3 filename
+    digits = re.findall(r'\d+', mp3_filename)
+    if digits:
+        return f"{date_folder}_{digits[0][:3]}"
+    return f"{date_folder}_000"  # Fallback if no digits found
 
+@app.get("/v1/articles")
+async def get_articles(request: Request, page: int = 1, limit: int = 20):
+    articles = []
+    total_articles = 0
+    
+    for root, dirs, files in os.walk(output_dir, topdown=False):
+        date_folder = os.path.basename(root)
+        if not date_folder.isdigit() or len(date_folder) != 8:
+            continue  # Skip if not a date folder
+        
+        for file in files:
+            if file.endswith(".mp3"):
+                total_articles += 1
+                if (page - 1) * limit <= len(articles) < page * limit:
+                    article_id = generate_article_id(date_folder, file)
+                    relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                    audio_url = f"/v1/audio/{relative_path}"
+                    articles.append({
+                        "id": article_id,
+                        "date": date_folder,
+                        "audio_file": audio_url,
+                        "title": os.path.splitext(file)[0].replace("_", " ")
+                    })
+                
+                if len(articles) >= limit:
+                    break
+        
+        if len(articles) >= limit:
+            break
 
+    return JSONResponse(content={
+        "articles": articles,
+        "total_articles": total_articles,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total_articles + limit - 1) // limit
+    })
+
+@app.get("/v1/article/{article_id}")
+async def get_article(article_id: str):
+    date_folder, file_prefix = article_id.split("_")
+    
+    for root, dirs, files in os.walk(os.path.join(output_dir, date_folder)):
+        for file in files:
+            if file.endswith(".mp3") and generate_article_id(date_folder, file) == article_id:
+                relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                audio_url = f"/v1/audio/{relative_path}"
+                text_file_path = os.path.join(root, f"{os.path.splitext(file)[0]}.md")
+                
+                if not os.path.isfile(text_file_path):
+                    raise HTTPException(status_code=404, detail="Article text not found")
+                
+                with open(text_file_path, "r", encoding="utf-8") as text_file:
+                    content = text_file.read()
+                
+                return JSONResponse(content={
+                    "id": article_id,
+                    "date": date_folder,
+                    "audio_file": audio_url,
+                    "title": os.path.splitext(file)[0].replace("_", " "),
+                    "content": content
+                })
+    
+    raise HTTPException(status_code=404, detail="Article not found")
 
 async def schedule_fetch_articles():
     from utils.sources import fetch_articles
