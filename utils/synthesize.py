@@ -6,6 +6,8 @@ from .text_extraction import extract_text
 from .common_utils import get_output_files, add_mp3_tags, write_markdown_file
 from llm.LLM_calls import generate_title
 from .common_utils import get_mp3_duration
+from database.crud import create_article
+
 
 async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     try:
@@ -56,8 +58,22 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
     duration = get_mp3_duration(mp3_file)
 
+    article_data = {
+        "url": url,
+        "title": title,
+        "plain_text": text,
+        "audio_file": mp3_file,
+        "markdown_file": md_file,
+        "vtt_file": vtt_file,
+    }
+    try:
+        create_article(article_data)
+    except Exception as e:
+        logging.error(f"Could not write to database: {e}")
+
     logging.info(f"Successfully processed URL {url}")
     return base_file_name, mp3_file, md_file, vtt_file  # Added vtt_file to return
+
 
 async def read_text(text: str, output_dir, img_pth):
     title = generate_title(text)
@@ -66,7 +82,7 @@ async def read_text(text: str, output_dir, img_pth):
         logging.error(f"No text provided")
         print("No text provided")
         return None, None, None, None  # Added None for VTT file
-    
+
     base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
     vtt_file = f"{base_file_name}.vtt"  # New VTT file path
     write_markdown_file(md_file, text)
@@ -100,6 +116,7 @@ async def read_text(text: str, output_dir, img_pth):
     logging.info(f"Successfully processed text")
     return base_file_name, mp3_file, md_file, vtt_file  # Added vtt_file to return
 
+
 if __name__ == "__main__":
     import os
     import asyncio
@@ -118,3 +135,4 @@ if __name__ == "__main__":
 
     url = input("Enter URL to convert: ")
     asyncio.run(synthesize_text_to_speech(url, output_dir, img_pth))
+
