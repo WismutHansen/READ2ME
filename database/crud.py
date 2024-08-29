@@ -11,7 +11,7 @@ def create_connection():
     conn = sqlite3.connect(DATABASE_PATH)
     return conn
 
-def create_article(article_data: dict):
+def create_article(article_data: dict, author_names: list = None):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -31,6 +31,28 @@ def create_article(article_data: dict):
         article_data.get('markdown_file'),
         article_data.get('vtt_file')
     ))
+
+    article_id = generate_hash(article_data['url'])
+
+    if author_names:
+        for author_name in author_names:
+            cursor.execute('''
+                SELECT id FROM authors WHERE name = ?
+            ''', (author_name,))
+            author = cursor.fetchone()
+            if author:
+                author_id = author[0]
+            else:
+                cursor.execute('''
+                    INSERT INTO authors (name) VALUES (?)
+                ''', (author_name,))
+                author_id = cursor.lastrowid
+
+            cursor.execute('''
+                INSERT INTO article_author (article_id, author_id)
+                VALUES (?, ?)
+            ''', (article_id, author_id))
+
     conn.commit()
     conn.close()
 
@@ -85,8 +107,7 @@ def generate_hash(value: str) -> str:
     hash_digest = hash_object.digest()
     return base64.urlsafe_b64encode(hash_digest)[:6].decode('utf-8')
 
-def article_exists(url):
-    article_id = generate_hash(url)
+def article_exists(article_id):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -162,8 +183,12 @@ def print_articles_summary():
         print(f"{id:<10} {title:<30} {author:<20} {date_published:<15} {url}")
 
 def main():
-    # Gather article data from user input
     url = input("Please enter the article URL: ")
+    article_id = generate_hash(url)
+    if article_exists(article_id):
+        print("An article with this URL already exists in the database.")
+        return
+
     title = input("Please enter the article title: ")
     date_published = input("Please enter the publication date (YYYY-MM-DD, optional): ") or None
     language = input("Please enter the language of the article: ")
@@ -187,14 +212,8 @@ def main():
         "markdown_file": markdown_file,
         "vtt_file": vtt_file
     }
-
-    # Check if the article already exists based on the URL
-    if article_exists(url):
-        print("An article with this URL already exists in the database.")
-    else:
-        # Add the article to the database
-        create_article(article_data)
-        print(f"Article '{title}' has been successfully added to the database.")
+    create_article(article_data)
+    print(f"Article '{title}' has been successfully added to the database.")
 
 if __name__ == "__main__":
     main()

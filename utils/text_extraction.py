@@ -367,6 +367,7 @@ async def extract_text(url):
         if result:
             cleaned_text = clean_text(result)
             article_content += cleaned_text
+
         return article_content, title
     except Exception as e:
         logging.error(f"Error extracting text from HTML: {e}")
