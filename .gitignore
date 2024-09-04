@@ -61,3 +61,6 @@ urls.txt
 __pycache__/
 utils/__pycache__
 llm/__pycache__
+
+github
+github.pub
