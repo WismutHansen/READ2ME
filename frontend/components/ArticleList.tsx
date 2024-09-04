@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 
 interface Article {
@@ -8,6 +9,9 @@ interface Article {
   title: string;
   date: string;
   audio_file: string;
+  image_url?: string;
+  source_name: string;
+  source_logo_url?: string;
 }
 
 interface ArticleListProps {
@@ -20,6 +24,8 @@ export default function ArticleList({ onSelectArticle }: ArticleListProps) {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     fetchArticles();
@@ -49,7 +55,18 @@ export default function ArticleList({ onSelectArticle }: ArticleListProps) {
   };
 
   const handleSelectArticle = (article: Article) => {
-    console.log('Article selected:', article);
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    // Create and play new audio
+    audioRef.current = new Audio(article.audio_file);
+    audioRef.current.play().catch(error => {
+      console.error('Error playing audio:', error);
+    });
+
+    // Call the onSelectArticle prop to update the parent component
     onSelectArticle(article);
   };
 
@@ -62,17 +79,37 @@ export default function ArticleList({ onSelectArticle }: ArticleListProps) {
       {articles.length === 0 && !isLoading ? (
         <div>No articles found.</div>
       ) : (
-        <ul className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {articles.map((article) => (
-            <li key={article.id} className="border p-4 rounded-md">
-              <h3 className="text-lg font-semibold">{article.title}</h3>
-              <p className="text-sm text-gray-500">Date: {article.date}</p>
-              <Button onClick={() => handleSelectArticle(article)} className="mt-2">
-                Play Article
-              </Button>
-            </li>
+            <div key={article.id} className="border rounded-md overflow-hidden shadow-md cursor-pointer" onClick={() => handleSelectArticle(article)}>
+              <div className="relative h-40">
+                <Image
+                  src={article.image_url || '/placeholder-image.jpg'}
+                  alt={article.title}
+                  layout="fill"
+                  objectFit="cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold line-clamp-2">{article.title}</h3>
+                <div className="mt-2 flex items-center">
+                  {article.source_logo_url ? (
+                    <Image
+                      src={article.source_logo_url}
+                      alt={article.source_name}
+                      width={20}
+                      height={20}
+                      className="mr-2"
+                    />
+                  ) : (
+                    <span className="mr-2 font-bold">{article.source_name}</span>
+                  )}
+                  <span className="text-sm text-gray-500">{article.date}</span>
+                </div>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
       {isLoading && <div>Loading...</div>}
       {hasMore && (

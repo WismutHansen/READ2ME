@@ -1,27 +1,27 @@
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   const baseUrl = request.serverUrl || 'http://127.0.0.1:7777';
 
-  async function makeRequest(endpoint, method, body) {
-    const options = {
-      method: method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
+    async function makeRequest(endpoint, method, body) {
+      const options = {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
 
-    if (method !== 'GET' && body !== null) {
-      options.body = JSON.stringify(body);
+      if (method !== 'GET' && body !== null) {
+        options.body = JSON.stringify(body);
+      }
+
+      try {
+        const response = await fetch(`${baseUrl}${endpoint}`, options);
+        const data = await response.json();
+        sendResponse({ message: data.message || JSON.stringify(data) });
+      } catch (error) {
+        sendResponse({ message: `Error: ${error.message}` });
+      }
     }
-
-    try {
-      const response = await fetch(`${baseUrl}${endpoint}`, options);
-      const data = await response.json();
-      sendResponse({ message: data.message || JSON.stringify(data) });
-    } catch (error) {
-      sendResponse({ message: `Error: ${error}` });
-    }
-  }
-
+    
   switch (request.action) {
     case 'addUrlFull':
       makeRequest('/v1/url/full', 'POST', { url: request.url, tts_engine: request.ttsEngine });

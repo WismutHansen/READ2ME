@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const defaultServer = 'http://127.0.0.1:7777';
 
   // Initialize default server if none exist and request permissions
-  chrome.storage.sync.get(['servers', 'defaultServer'], function(data) {
+  browser.storage.sync.get(['servers', 'defaultServer'], function(data) {
       let servers = data.servers || [];
       let currentDefaultServer = data.defaultServer || defaultServer;
 
@@ -17,16 +17,16 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       if (!data.defaultServer) {
-          chrome.storage.sync.set({defaultServer: defaultServer});
+          browser.storage.sync.set({defaultServer: defaultServer});
       }
 
-      chrome.permissions.contains({
+      browser.permissions.contains({
           origins: [new URL(defaultServer).origin + "/*"]
       }, function(result) {
           if (!result) {
               requestPermissionForServer(defaultServer, function(granted) {
                   if (granted) {
-                      chrome.storage.sync.set({servers: servers}, function() {
+                      browser.storage.sync.set({servers: servers}, function() {
                           renderServerList(servers, currentDefaultServer);
                       });
                   } else {
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   }
               });
           } else {
-              chrome.storage.sync.set({servers: servers}, function() {
+              browser.storage.sync.set({servers: servers}, function() {
                   renderServerList(servers, currentDefaultServer);
               });
           }
@@ -46,11 +46,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (newServer) {
           requestPermissionForServer(newServer, function(granted) {
               if (granted) {
-                  chrome.storage.sync.get(['servers', 'defaultServer'], function(data) {
+                  browser.storage.sync.get(['servers', 'defaultServer'], function(data) {
                       const servers = data.servers || [];
                       if (!servers.includes(newServer)) {
                           servers.push(newServer);
-                          chrome.storage.sync.set({servers: servers}, function() {
+                          browser.storage.sync.set({servers: servers}, function() {
                               renderServerList(servers, data.defaultServer);
                               serverUrlInput.value = '';
                           });
@@ -65,22 +65,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
   setDefaultButton.addEventListener('click', function() {
       if (selectedServer) {
-          chrome.storage.sync.set({defaultServer: selectedServer}, function() {
-              chrome.storage.sync.get(['servers'], function(data) {
+          browser.storage.sync.set({defaultServer: selectedServer}, function() {
+              browser.storage.sync.get(['servers'], function(data) {
                   renderServerList(data.servers, selectedServer);
               });
           });
       }
   });
 
-  function requestPermissionForServer(server, callback) {
+    function requestPermissionForServer(server, callback) {
       const origin = new URL(server).origin + "/*";
-      chrome.permissions.request({
-          origins: [origin]
-      }, function(granted) {
-          callback(granted);
+      browser.permissions.request({
+        origins: [origin]
+      }).then(function(granted) {
+        callback(granted);
       });
-  }
+    }
 
   function renderServerList(servers, defaultServer) {
       serverList.innerHTML = '';
