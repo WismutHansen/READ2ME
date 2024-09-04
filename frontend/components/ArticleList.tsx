@@ -35,7 +35,7 @@ export default function ArticleList({ onSelectArticle }: ArticleListProps) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:7777/v1/articles?page=${page}&limit=20`);
+      const response = await fetch("http://localhost:7777/v1/articles");
       if (!response.ok) {
         throw new Error('Failed to fetch articles');
       }

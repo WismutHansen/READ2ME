@@ -5,6 +5,8 @@ import ArticleList from '@/components/ArticleList';
 import BottomBar from '@/components/BottomBar';
 import { ModeToggle } from '@/components/ModeToggle';
 import { Switch } from './ui/switch';
+import SourceManager from '@/components/SourceManager';
+import ArticleAdder from '@/components/ArticleAdder';
 
 interface Article {
   id: string;
@@ -27,10 +29,10 @@ export default function Home() {
         <h1 className="text-3xl font-bold">READ2ME</h1>
         <ModeToggle />
       </div>
-      <ArticleList onSelectArticle={handleSelectArticle} />
-      <div className="mt-8 p-4 bg-gray-100 rounded">
-        <h2 className="text-xl font-semibold mb-2">Debug Info:</h2>
-        <p>Current Article: {currentArticle ? JSON.stringify(currentArticle) : 'None'}</p>
+      <div className="space-y-8">
+        <SourceManager />
+        <ArticleAdder />
+        <ArticleList onSelectArticle={handleSelectArticle} />
       </div>
       <BottomBar currentArticle={currentArticle} />
     </main>
