@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.body.insertBefore(serverDropdown, document.getElementById('settingsLink'));
 
   // Load servers from storage
-  chrome.storage.sync.get(['servers', 'defaultServer'], function(data) {
+    browser.storage.sync.get(['servers', 'defaultServer']).then(function(data){
     const servers = data.servers || ['http://127.0.0.1:7777'];
     const defaultServer = data.defaultServer || 'http://127.0.0.1:7777';
     servers.forEach(server => {
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Fetch current tab URL and prefill the inputs
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    browser.tabs.query({active: true, currentWindow: true}).then(function(tabs) {
     if (tabs[0] && tabs[0].url) {
       urlInput.value = tabs[0].url;
       // Prefill the source URL with the root of the current website
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const ttsEngine = document.getElementById('urlTtsEngine').value;
     const serverUrl = serverDropdown.value;
     if (url) {
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         action: `addUrl${type.charAt(0).toUpperCase() + type.slice(1)}`,
         url: url,
         ttsEngine: ttsEngine,
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const ttsEngine = document.getElementById('textTtsEngine').value;
     const serverUrl = serverDropdown.value;
     if (text) {
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         action: `addText${type.charAt(0).toUpperCase() + type.slice(1)}`,
         text: text,
         ttsEngine: ttsEngine,
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const keywords = document.getElementById('sourceKeywords').value.split(',').map(k => k.trim());
     const serverUrl = serverDropdown.value;
     if (url && keywords.length > 0) {
-      chrome.runtime.sendMessage({
+      browser.runtime.sendMessage({
         action: 'addSource',
         sourceData: { url, keywords },
         serverUrl: serverUrl
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('fetchSourcesButton').addEventListener('click', function() {
     const serverUrl = serverDropdown.value;
-    chrome.runtime.sendMessage({action: 'fetchSources', serverUrl: serverUrl}, function(response) {
+    browser.runtime.sendMessage({action: 'fetchSources', serverUrl: serverUrl}, function(response) {
       resultDiv.textContent = response.message;
     });
     adjustPopupHeight();
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('getSourcesButton').addEventListener('click', function() {
     const serverUrl = serverDropdown.value;
-    chrome.runtime.sendMessage({action: 'getSources', serverUrl: serverUrl}, function(response) {
+    browser.runtime.sendMessage({action: 'getSources', serverUrl: serverUrl}, function(response) {
       try {
         const data = JSON.parse(response.message);
         let displayText = "Global Keywords: " + (data.global_keywords ? data.global_keywords.join(", ") : "None") + "\n\nSources:\n";

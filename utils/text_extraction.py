@@ -12,6 +12,8 @@ from urllib.parse import urlparse, unquote
 import tempfile
 import fitz
 from readabilipy import simple_json_from_html_string
+from database.crud import create_text
+from llm.LLM_calls import tldr
 
 
 # Format in this format: January 1st 2024
@@ -367,8 +369,23 @@ async def extract_text(url):
         if result:
             cleaned_text = clean_text(result)
             article_content += cleaned_text
+        tl_dr = tldr(article_content)
+        article_data = {
+            "url": url,
+            "title": title,
+            "date_published": date_str,
+            "language": language,
+            "plain_text": result,
+            "markdown_text": article_content,
+            "tl_dr": tl_dr,
+        }
+        try:
+            create_article(article_data, authors)
+        except Exception as e:
+            logging.error(f"Couldn't add article data to database: {e}")
 
         return article_content, title
+
     except Exception as e:
         logging.error(f"Error extracting text from HTML: {e}")
         return None, None

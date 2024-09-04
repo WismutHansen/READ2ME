@@ -24,7 +24,7 @@ export default function Home() {
   return (
     <main className="container mx-auto px-4 py-8 mb-24">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">READ2ME Webapp</h1>
+        <h1 className="text-3xl font-bold">READ2ME</h1>
         <ModeToggle />
       </div>
       <ArticleList onSelectArticle={handleSelectArticle} />
