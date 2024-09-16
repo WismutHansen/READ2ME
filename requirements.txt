@@ -31,3 +31,4 @@ marker
 fastapi-cors
 whisper
 num2words
+lxml[html_clean]
