@@ -1,15 +1,16 @@
 import logging
-from fastapi import FastAPI, Request, UploadFile, HTTPException, File, WebSocket
+from fastapi import FastAPI, Request, UploadFile, HTTPException, File, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 from utils.env import setup_env
+from utils.history_handler import add_to_history
 from utils.logging_utils import setup_logging
 from utils.task_file_handler import add_task
 from utils.task_processor import start_task_processor
 from utils.source_manager import update_sources, read_sources
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 from contextlib import asynccontextmanager
 from threading import Event
 import asyncio
@@ -20,6 +21,17 @@ from typing import List, Optional
 import sys
 import os
 import re
+
+
+from utils.version_check import check_package_versions
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Check package versions
+check_package_versions()
+
+# Rest of your main.py code...
 
 # Load environment variables
 output_dir, urls_file, img_pth, sources_file = setup_env()
@@ -70,7 +82,6 @@ class SourceUpdate(BaseModel):
     sources: Optional[List[Source]] = None
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stop_event.clear()  # Ensure the event is clear before starting the thread
@@ -91,7 +102,9 @@ async def lifespan(app: FastAPI):
         logging.info("Clean shutdown completed.")
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan,title="Read2Me API",
+    description="API for text-to-speech conversion and more",
+    version="1.0.0")
 
 # Update this line to use an absolute path
 output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
@@ -107,11 +120,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 @app.post("/v1/url/full")
 async def url_audio_full(request: URLRequest):
+    
     logging.info(f"Received URL: {request.url}")
+    logging.info(f"URL type: {type(request.url)}, TTS Engine type: {type(request.tts_engine)}")
+
+    # Validate URL
+    parsed_url = urlparse(request.url)
+    if not all([parsed_url.scheme, parsed_url.netloc]) or parsed_url.scheme not in ['http', 'https']:
+        logging.error(f"Invalid URL received: {request.url}")
+        raise HTTPException(status_code=400, detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.")
+
     await add_task("url", request.url, request.tts_engine)
     return {"message": "URL added to the READ2ME task list"}
 
