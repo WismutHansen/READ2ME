@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+from newspaper import languages
 import requests
 from bs4 import BeautifulSoup
 import trafilatura
@@ -12,7 +13,7 @@ from urllib.parse import urlparse, unquote
 import tempfile
 import fitz
 from readabilipy import simple_json_from_html_string
-from database.crud import create_text
+from database.crud import create_article, create_text
 from llm.LLM_calls import tldr
 
 
@@ -285,7 +286,9 @@ async def extract_text(url):
             response = requests.head(url, allow_redirects=True)
             resolved_url = response.url
             content_type = response.headers.get("Content-Type", "").lower()
+            logging.info("Using extract_text")
             logging.info(f"Resolved URL {resolved_url}")
+
         except requests.RequestException as e:
             logging.error(f"Error resolving url: {e}")
             return None, None
@@ -374,7 +377,7 @@ async def extract_text(url):
             "url": url,
             "title": title,
             "date_published": date_str,
-            "language": language,
+            "language": languages,
             "plain_text": result,
             "markdown_text": article_content,
             "tl_dr": tl_dr,
