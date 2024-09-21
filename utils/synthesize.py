@@ -59,12 +59,12 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     duration = get_mp3_duration(mp3_file)
 
     article_data = {
-        "url": url,
-        "title": title,
-        "plain_text": text,
-        "audio_file": mp3_file,
-        "markdown_file": md_file,
-        "vtt_file": vtt_file,
+        "url": str(url),
+        "title": str(title),
+        "plain_text": str(text),
+        "audio_file": str(mp3_file),
+        "markdown_file": str(md_file),
+        "vtt_file": str(vtt_file),
     }
     try:
         create_article(article_data)
