@@ -16,16 +16,28 @@ def create_connection():
 def create_article(article_data: dict, author_names: list = None):
     conn = create_connection()
     cursor = conn.cursor()
+    
+    # Ensure `date_published` is properly formatted or set to None
+    date_published = article_data.get("date_published")
+    if date_published:
+        try:
+            date_published = datetime.strptime(date_published, "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            date_published = None  # Invalid format, set to None
+    else:
+        date_published = None
+    
+    # Insert article into the database
     cursor.execute(
         """
         INSERT INTO articles (id, url, title, date_published, date_added, language, plain_text, markdown_text, tl_dr, audio_file, markdown_file, vtt_file)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,
+        """,
         (
             generate_hash(article_data["url"]),
             article_data["url"],
             article_data["title"],
-            article_data.get("date_published"),
+            date_published,  # Use the properly formatted or None value
             article_data.get("date_added", datetime.today().strftime("%Y-%m-%d")),
             article_data.get("language"),
             article_data.get("plain_text"),
@@ -39,12 +51,13 @@ def create_article(article_data: dict, author_names: list = None):
 
     article_id = generate_hash(article_data["url"])
 
+    # Handle author association
     if author_names:
         for author_name in author_names:
             cursor.execute(
                 """
                 SELECT id FROM authors WHERE name = ?
-            """,
+                """,
                 (author_name,),
             )
             author = cursor.fetchone()
@@ -54,7 +67,7 @@ def create_article(article_data: dict, author_names: list = None):
                 cursor.execute(
                     """
                     INSERT INTO authors (name) VALUES (?)
-                """,
+                    """,
                     (author_name,),
                 )
                 author_id = cursor.lastrowid
@@ -63,7 +76,7 @@ def create_article(article_data: dict, author_names: list = None):
                 """
                 INSERT INTO article_author (article_id, author_id)
                 VALUES (?, ?)
-            """,
+                """,
                 (article_id, author_id),
             )
 
@@ -133,7 +146,7 @@ def create_text(text_data: dict):
 def generate_hash(value: str) -> str:
     hash_object = hashlib.sha256(value.encode())
     hash_digest = hash_object.digest()
-    return base64.urlsafe_b64encode(hash_digest)[:6].decode("utf-8")
+    return str(base64.urlsafe_b64encode(hash_digest)[:6].decode("utf-8"))
 
 
 def article_exists(article_id):
