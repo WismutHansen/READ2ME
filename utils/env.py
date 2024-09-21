@@ -31,6 +31,8 @@ def setup_env():
         print("Creating sources.json")
         with open(sources_file_path, "w") as f:
             pass  # This creates an empty sources.txt file
+    
+    check_output_dir()
 
     logging.info("Setup complete, following values will be used:")
     logging.info("Output folder: "+os.path.abspath(output_dir))
@@ -40,6 +42,27 @@ def setup_env():
 
     return output_dir, task_file, img_pth, sources_file_path
 
+def check_output_dir():
+    """
+    Checks if the OUTPUT_FOLDER specified in .env exists.
+    Creates it if not.
+
+    Returns:
+        str: The path to the OUTPUT_FOLDER.
+    """
+    load_dotenv()
+
+    output_folder = os.getenv('OUTPUT_DIR')
+
+    # Check if the output folder exists
+    if not os.path.exists(output_folder):
+        print(f"Output folder '{output_folder}' does not exist. Creating it...")
+        try:
+            os.makedirs(output_folder, exist_ok=True)
+        except OSError as e:
+            raise ValueError(f"Failed to create OUTPUT_FOLDER: {e}")
+
+    return output_folder
 
 def print_env_contents():
     env_path = '.env'
