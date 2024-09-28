@@ -39,8 +39,9 @@ Output/
 utils/Models/
 
 # Model folder in utils/styletts2/Models
-utils/styletts2/Models/
-
+/utils/styletts2/Models/
+/utils/styletts2/Utils/ASR/*.pth
+/utils/styletts2/Utils/ASR/epoch_00080.pth
 # RVC models
 utils/rvc/Models/*.pth
 utils/rvc/Models/*.index
