@@ -1,6 +1,11 @@
 import os
 import logging
-from .common_utils import get_output_files, add_mp3_tags, convert_wav_to_mp3, write_markdown_file
+from .common_utils import (
+    get_output_files,
+    add_mp3_tags,
+    convert_wav_to_mp3,
+    write_markdown_file,
+)
 from .text_extraction import extract_text
 import torch
 import numpy as np
@@ -8,8 +13,8 @@ from scipy.io.wavfile import write
 from txtsplit import txtsplit
 from tqdm import tqdm
 from .styletts2.ljspeechimportable import inference
-from rvc_python.infer import infer_file
 import glob
+from .voiceconv import voice2voice
 
 
 async def extract_text_from_url(url: str):
@@ -24,7 +29,9 @@ async def extract_text_from_url(url: str):
     return text, title
 
 
-async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, img_pth: str):
+async def text_to_speech_with_styletts2(
+    text: str, title: str, output_dir: str, img_pth: str
+):
     base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
     write_markdown_file(md_file, text, title)
 
@@ -58,38 +65,38 @@ async def text_to_speech_with_styletts2(text: str, title: str, output_dir: str, 
     full_audio = np.concatenate(audios)
     write(wav_output, sr, full_audio)
 
-    # Check if there is a checkpoint with .pth ending in .utils/rvc/Models
-    checkpoint_path = "./utils/rvc/Models/Male_1.pth"
-    if os.path.isfile(checkpoint_path):
-        # Using RVC to change the voice:
-        
-        backend = "cpu"
-        if torch.cuda.is_available():
-            backend = "cuda:0"
+    #    # Check if there is a checkpoint with .pth ending in .utils/rvc/Models
+    #    checkpoint_path = "./utils/rvc/Models/Male_1.pth"
+    #    if os.path.isfile(checkpoint_path):
+    #        # Using RVC to change the voice:
+    #
+    #        backend = "cpu"
+    #        if torch.cuda.is_available():
+    #            backend = "cuda:0"
+    #
+    #        infer_file(
+    #            input_path=wav_output,
+    #            model_path=checkpoint_path,
+    #            index_path="./utils/rvc/Models/Male_1.index",  # Optional: specify path to index file if available
+    #            device=backend, # Use cpu or cuda
+    #            f0method="rmvpe",  # Choose between 'harvest', 'crepe', 'rmvpe', 'pm'
+    #            f0up_key=-9,  # Transpose setting
+    #            opt_path=f"{base_file_name}_rvc.wav", # Output file path
+    #            index_rate=0.5,
+    #            filter_radius=3,
+    #            resample_sr=0,  # Set to desired sample rate or 0 for no resampling.
+    #            rms_mix_rate=0.25,
+    #            protect=0.33,
+    #            version="v2"
+    #        )
+    #
+    #        rvc_file = f"{base_file_name}_rvc.wav"
+    #        convert_wav_to_mp3(rvc_file, mp3_file)
+    #
+    #    else:
+    #        convert_wav_to_mp3(wav_output, mp3_file)
 
-        infer_file(
-            input_path=wav_output,
-            model_path=checkpoint_path,
-            index_path="./utils/rvc/Models/Male_1.index",  # Optional: specify path to index file if available
-            device=backend, # Use cpu or cuda 
-            f0method="rmvpe",  # Choose between 'harvest', 'crepe', 'rmvpe', 'pm'
-            f0up_key=-9,  # Transpose setting
-            opt_path=f"{base_file_name}_rvc.wav", # Output file path
-            index_rate=0.5,
-            filter_radius=3,
-            resample_sr=0,  # Set to desired sample rate or 0 for no resampling.
-            rms_mix_rate=0.25,
-            protect=0.33,
-            version="v2"
-        )
-    
-        rvc_file = f"{base_file_name}_rvc.wav"
-        convert_wav_to_mp3(rvc_file, mp3_file)
-
-    else:
-        convert_wav_to_mp3(wav_output, mp3_file)
-
-
+    convert_wav_to_mp3(wav_output, mp3_file)
 
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
 
