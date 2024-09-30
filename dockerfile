@@ -10,11 +10,12 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r requirements_stts2.txt
+RUN python3 -m utils.instalpipertts
 
 # Install ffmpeg for edge_tts and cifs-utils for mounting SMB shares
 RUN apt-get update && \
-    apt-get install -y ffmpeg cifs-utils espeak-ng && \
-    apt-get clean
+  apt-get install -y ffmpeg cifs-utils espeak-ng && \
+  apt-get clean
 
 # Install fonts for PIL
 RUN apt-get install -y fonts-dejavu-core
