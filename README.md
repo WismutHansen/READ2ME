@@ -4,9 +4,9 @@
 
 ## Overview
 
-Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content and PDF types, extracting meaningful text and generating audio files.
+Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS or optionally with the local TTS models StyleTTS2 or Piper TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content and urls pointing to PDF, extracting meaningful text and generating audio files. You can install the provided Chromium Extension in any Chromium-based browser (e.g. Microsoft Edge) to send current urls or any text to the sever, add sources and keywords for automatic fetching.
 
-This is a first alpha version but I plan to extend it to support other content types (e.g., PDF) in the future and provide more robust support for languages other than English.
+This is a currently a beta version but I plan to extend it to support other content types (e.g., epub) in the future and provide more robust support for languages other than English. Currently, when using the default Azure Edge TTS, it already supports [other languages](https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/speech-service/includes/language-support/multilingual-voices.md) and tries to autodetect it from the text but quality might vary depending on the language.
 
 ## Features
 
@@ -37,8 +37,15 @@ This is a first alpha version but I plan to extend it to support other content t
 2. **Create and activate a virtual environment:**
 
    ```sh
-   python -m venv venv
-   source venv/bin/activate   # On Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+   ```
+
+   or if you like to use uv for package management:
+
+   ```sh
+   uv venv
+   source .venv/bin/activate # On Windows: .venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
@@ -46,11 +53,26 @@ This is a first alpha version but I plan to extend it to support other content t
    ```sh
    pip install -r requirements.txt
    ```
+
    if you want to use the local styleTTS2 text-to-speech model, please also install the additional dependencies:
+
    ```sh
    pip install -r requirements_stts2.txt
    ```
-   **Note:** StlyTTS2 also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
+
+   Install playwright
+
+   ```sh
+   playwright install
+   ```
+
+  if you want to use piper, run the piperinstal file:
+
+  ```sh
+  python3 -m utils.instalpipertts
+  ```
+
+   **Note:** [ffmpeg](https://www.ffmpeg.org/) is required when using either StyleTTS2 or PiperTTS for converting wav files into mp3. StyleTTS also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
 
 4. **Set up environment variables:**
 
@@ -61,18 +83,20 @@ This is a first alpha version but I plan to extend it to support other content t
    SOURCES_FILE=sources.json # File containing sources to retrieve articles from twice a day
    IMG_PATH=front.jpg # Path to image file to use as cover
    ```
+
 ### Docker Installation
 
    **Build the Docker image**
+
    ```sh
    docker build -t read2me .
    ```
 
-
 ## Usage
 
-1. 
-   ### Native
+1.
+
+### Native
 
    **Prepare the environment variables file (.env):**
 
@@ -83,23 +107,22 @@ This is a first alpha version but I plan to extend it to support other content t
    ```sh
    uvicorn main:app --host 0.0.0.0 --port 7777
    ```
+
    **or, if you're connected to a Linux server e.g. via ssh and want to keep the app running after closing your session**
 
    ```sh
    nohup uvicorn main:app --host 0.0.0.0 --port 7777 &
    ```
+
    this will write all commandline output into a file called `nohup.out` in your current working directory.
-   
-   ### Docker
 
-
+### Docker
 
    **Run the Docker container (with a volume mount if you want to access the Output Folder from outside the container):**
 
    ```sh
    docker run -p 7777:7777 -v /path/to/local/output/dir:/app/Output read2me
    ```
-
 
 2. **Add URLs for processing:**
 
@@ -119,6 +142,7 @@ This is a first alpha version but I plan to extend it to support other content t
      -d '{"url": "https://example.com/article"}'
      -d '{"tts-engine": "edge"}'
    ```
+
    The repository also contains a working Chromium Extension that you can install in any Chromium-based browser (e.g. Google Chrome) when the developer settings are enabled.
 
 3. **Processing URLs:**
@@ -228,13 +252,18 @@ StyleTTS2 Pre-Trained Models: Before using these pre-trained models, you agree t
 
 ## Roadmap
 
-- [ ] language detection and voice selection based on detected language.
-- [ ] Add support for handling of pdf files
+- [x] language detection and voice selection based on detected language (currently only works for edge-tts).
+- [x] Add support for handling of pdf files
 - [x] Add support for local text-to-speech (TTS) engine like StyleTTS2.
-- [ ] Add support for LLM-based text processing like summarization with local LLMs through Ollama or the OpenAI API
+- [x] Add support for LLM-based text processing like summarization with local LLMs through Ollama or the OpenAI API
 - [ ] Add support for automatic image captioning using local vision models or the OpenAI API
 
+## Acknowledgements
 
+I would like to thank the following repositories and authors for their inspiration and code:
 
-
-
+- [stylyetts2](https://github.com/yl4579/StyleTTS2) - One of the best open source TTS engines, and really fast if using NVIDIA/CUDA
+- [piperTTS](https://github.com/rhasspy/piper) - Another good local TTS engine that also works on low spec systems
+- [AlwaysReddy](https://github.com/ILikeAI/AlwaysReddy) - Thanks to these guys, I got piper TTS working in my project
+- [rvc-python](https://pypi.org/project/rvc-python/) - For improving generated speech
+- [edge-tts](https://github.com/rany2/edge-tts/tree/master) - Best free online TTS engine

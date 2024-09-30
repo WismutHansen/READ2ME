@@ -198,6 +198,11 @@ def inference(text, noise, diffusion_steps=5, embedding_scale=1):
 
     tokens = textclenaer(ps)
     tokens.insert(0, 0)
+
+    # Truncate tokens to the maximum sequence length allowed by the model
+    max_seq_length = 512
+    tokens = tokens[:max_seq_length]
+
     tokens = torch.LongTensor(tokens).to(device).unsqueeze(0)
 
     with torch.no_grad():

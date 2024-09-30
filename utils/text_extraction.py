@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+from newspaper import languages
 import requests
 from bs4 import BeautifulSoup
 import trafilatura
@@ -12,6 +13,8 @@ from urllib.parse import urlparse, unquote
 import tempfile
 import fitz
 from readabilipy import simple_json_from_html_string
+from database.crud import create_article, create_text
+from llm.LLM_calls import tldr
 
 
 # Format in this format: January 1st 2024
@@ -131,9 +134,6 @@ def clean_wikipedia_content(content):
     cleaned_content = re.sub(r"^\s*=\s*", "", cleaned_content, flags=re.MULTILINE)
 
     return cleaned_content
-
-
-import re
 
 
 def clean_pdf_text(text):
@@ -285,12 +285,15 @@ async def extract_text(url):
         try:
             response = requests.head(url, allow_redirects=True)
             resolved_url = response.url
+            content_type = response.headers.get("Content-Type", "").lower()
+            logging.info("Using extract_text")
             logging.info(f"Resolved URL {resolved_url}")
+
         except requests.RequestException as e:
             logging.error(f"Error resolving url: {e}")
             return None, None
-        
-        if url.lower().endswith(".pdf"):
+
+        if url.lower().endswith(".pdf") or content_type == "application/pdf":
             logging.info(f"Extracting text from PDF: {resolved_url}")
             return extract_text_from_pdf(resolved_url)
 
@@ -369,31 +372,52 @@ async def extract_text(url):
         if result:
             cleaned_text = clean_text(result)
             article_content += cleaned_text
+        tl_dr = tldr(article_content)
+        article_data = {
+            "url": url,
+            "title": title,
+            "date_published": date_str,
+            "language": languages,
+            "plain_text": result,
+            "markdown_text": article_content,
+            "tl_dr": tl_dr,
+        }
+        try:
+            create_article(article_data, authors)
+        except Exception as e:
+            logging.error(f"Couldn't add article data to database: {e}")
+
         return article_content, title
+
     except Exception as e:
         logging.error(f"Error extracting text from HTML: {e}")
         return None, None
-    
+
+
 def readability(url):
     response = requests.head(url, allow_redirects=True)
     resolved_url = response.url
     downloaded = trafilatura.fetch_url(resolved_url)
     article = simple_json_from_html_string(downloaded, use_readability=True)
-    
-    title = article.get('title', 'No Title')
-    byline = article.get('byline')
-    content = article.get('plain_text', [])
+
+    title = article.get("title", "No Title")
+    byline = article.get("byline")
+    content = article.get("plain_text", [])
 
     markdown = f"# {title}\n\n"
     if byline:
         markdown += f"**Written by:** {byline}\n\n"
     markdown += f"**From:** {url}\n\n"
-    
-    # Extract text from each dictionary item in content
-    markdown += "\n".join([item.get('text', '') if isinstance(item, dict) else str(item) for item in content])
-    
-    return markdown
 
+    # Extract text from each dictionary item in content
+    markdown += "\n".join(
+        [
+            item.get("text", "") if isinstance(item, dict) else str(item)
+            for item in content
+        ]
+    )
+
+    return markdown
 
 
 if __name__ == "__main__":
@@ -406,4 +430,3 @@ if __name__ == "__main__":
     # content = readability(url)
     # print(f"\n--------------\n")
     # print(content)
-
