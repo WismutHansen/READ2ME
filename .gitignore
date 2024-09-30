@@ -10,6 +10,7 @@ test.mp3
 
 # python virtual environment folder
 .venv/               
+.vscode/
 
 # process log file
 process_log.txt*
