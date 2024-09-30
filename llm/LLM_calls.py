@@ -34,14 +34,14 @@ def generate_title(text):
 
 def tldr(text):
     try:
-        chunks = split_text(text, max_words=1500)
+        chunks = split_text(text, max_words=64000)
         summaries = []
 
         logging.debug(f"Number of chunks: {len(chunks)}")
 
         for i, chunk in enumerate(chunks):
             logging.debug(f"Processing chunk {i + 1}/{len(chunks)} with {len(chunk.split())} words")
-            prompt = f"{chunk}\n--------\nReturn a concise summary for the above text, without referencing the text or mentioning 'in the text' or similar phrases. Keep the tone and perspective of the original text. Do not say 'the author' or similar."
+            prompt = f"{chunk}\n--------\nReturn a concise summary for the above text, without referencing the text or mentioning 'in the text' or similar phrases. Keep the tone and perspective of the original text."
             
             llm_engine = os.getenv('LLM_ENGINE')
             logging.debug(f"LLM_ENGINE: {llm_engine}")

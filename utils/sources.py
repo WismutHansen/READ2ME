@@ -96,6 +96,7 @@ async def process_source(source, global_patterns):
     source_url = source["url"]
     source_keywords = source.get("keywords", [])
     download_all = "*" in source_keywords
+#    filter_quality = "%" in source_keywords # if the % character is used, all articles should first be rated by th score_text function 
     source_patterns = compile_patterns([k for k in source_keywords if k and k != "*"])
 
     if source.get("is_rss", False):

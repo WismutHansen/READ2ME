@@ -1,7 +1,7 @@
 
 # Ignore the test script
 test.py
-
+test.mp3
 # Ignore the.env file in the root directory
 .env
 
@@ -12,14 +12,19 @@ test.py
 .venv/               
 
 # process log file
-process_log*.txt
+process_log.txt*
+process_log.txt
 
 output.txt
+overview.txt
 
 # task file
 tasks.json
 sources.json
 history.json
+
+# database file
+database/read2me.db
 
 # keywords file
 keywords.txt
@@ -32,6 +37,7 @@ Output/
 
 # Ignore everything in the piper_tts directory
 /utils/piper_tts/*
+/utils/whisper/*
 # But don't ignore the voices folder
 !/utils/piper_tts/voices/
 
@@ -43,8 +49,8 @@ utils/Models/
 /utils/styletts2/Utils/ASR/*.pth
 /utils/styletts2/Utils/ASR/epoch_00080.pth
 # RVC models
-utils/rvc/Models/*.pth
-utils/rvc/Models/*.index
+/utils/rvc/Models/**/*.pth
+/utils/rvc/Models/**/*.index
 
 # Wheels folder
 Wheels/
@@ -56,3 +62,6 @@ urls.txt
 __pycache__/
 utils/__pycache__
 llm/__pycache__
+
+github
+github.pub
