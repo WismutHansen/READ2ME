@@ -2,3 +2,6 @@
 *.onnx filter=lfs diff=lfs merge=lfs -text
 utils/rvc/Models/Female_1/Female_1.index filter=lfs diff=lfs merge=lfs -text
 utils/rvc/Models/Male_1/Male_1.index filter=lfs diff=lfs merge=lfs -text
+utils/rvc/Models/Female_1/Female_1.pth filter=lfs diff=lfs merge=lfs -text
+utils/rvc/Models/Female_1/Male_1.pth filter=lfs diff=lfs merge=lfs -text
+utils/rvc/Models/Female_1/Male_1.index filter=lfs diff=lfs merge=lfs -text
