@@ -1,16 +1,16 @@
 import logging
-from fastapi import FastAPI, Request, UploadFile, HTTPException, File, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 from utils.env import setup_env
 from utils.history_handler import add_to_history
 from utils.logging_utils import setup_logging
 from utils.task_file_handler import add_task
 from utils.task_processor import start_task_processor
 from utils.source_manager import update_sources, read_sources
-from urllib.parse import unquote, urlparse
+from urllib.parse import urlparse
 from contextlib import asynccontextmanager
 from threading import Event
 import asyncio
@@ -18,15 +18,16 @@ from datetime import datetime, time, timedelta
 from tzlocal import get_localzone
 from logging.handlers import TimedRotatingFileHandler
 from typing import List, Optional
-import sys
 import os
 import re
-
+from dotenv import load_dotenv
 
 from utils.version_check import check_package_versions
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Check package versions
 check_package_versions()
@@ -38,6 +39,32 @@ output_dir, urls_file, img_pth, sources_file = setup_env()
 
 # Background thread stop event
 stop_event = Event()
+
+
+def check_output_dir():
+    """
+    Checks if the OUTPUT_FOLDER specified in .env exists.
+    Creates it if not.
+
+    Returns:
+        str: The path to the OUTPUT_FOLDER.
+    """
+    load_dotenv()
+
+    output_folder = os.getenv("OUTPUT_FOLDER")
+
+    if not output_folder:
+        raise ValueError("OUTPUT_FOLDER is not set in the environment variables.")
+
+    # Check if the output folder exists
+    if not os.path.exists(output_folder):
+        print(f"Output folder '{output_folder}' does not exist. Creating it...")
+        try:
+            os.makedirs(output_folder, exist_ok=True)
+        except OSError as e:
+            raise ValueError(f"Failed to create OUTPUT_FOLDER: {e}")
+
+    return output_folder
 
 
 def setup_logging(log_file_path):
@@ -73,9 +100,11 @@ class TextRequest(BaseModel):
     text: str
     tts_engine: str = "edge"  # Default to edge-tts
 
+
 class Source(BaseModel):
     url: str
     keywords: List[str]
+
 
 class SourceUpdate(BaseModel):
     global_keywords: Optional[List[str]] = None
@@ -102,9 +131,12 @@ async def lifespan(app: FastAPI):
         logging.info("Clean shutdown completed.")
 
 
-app = FastAPI(lifespan=lifespan,title="Read2Me API",
+app = FastAPI(
+    lifespan=lifespan,
+    title="Read2Me API",
     description="API for text-to-speech conversion and more",
-    version="1.0.0")
+    version="1.0.0",
+)
 
 # Update this line to use an absolute path
 output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
@@ -114,23 +146,33 @@ app.mount("/static", StaticFiles(directory=output_dir), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Update with the frontend URL if different from the standard
+    allow_origins=[
+        "http://localhost:3000"
+    ],  # Update with the frontend URL if different from the standard
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.post("/v1/url/full")
 async def url_audio_full(request: URLRequest):
-    
     logging.info(f"Received URL: {request.url}")
-    logging.info(f"URL type: {type(request.url)}, TTS Engine type: {type(request.tts_engine)}")
+    logging.info(
+        f"URL type: {type(request.url)}, TTS Engine type: {type(request.tts_engine)}"
+    )
 
     # Validate URL
     parsed_url = urlparse(request.url)
-    if not all([parsed_url.scheme, parsed_url.netloc]) or parsed_url.scheme not in ['http', 'https']:
+    if not all([parsed_url.scheme, parsed_url.netloc]) or parsed_url.scheme not in [
+        "http",
+        "https",
+    ]:
         logging.error(f"Invalid URL received: {request.url}")
-        raise HTTPException(status_code=400, detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
+        )
 
     await add_task("url", request.url, request.tts_engine)
     return {"message": "URL added to the READ2ME task list"}
@@ -166,20 +208,30 @@ async def fetch_sources(request: Request):
     logging.info(f"Received manual article fetch request")
     return {"message": "Checking for new articles in sources"}
 
+
 @app.post("/v1/sources/add")
 async def api_update_sources(update: SourceUpdate):
     try:
-        sources = [{"url": source.url, "keywords": source.keywords} for source in update.sources] if update.sources else None
+        sources = (
+            [
+                {"url": source.url, "keywords": source.keywords}
+                for source in update.sources
+            ]
+            if update.sources
+            else None
+        )
         updated_data = update_sources(update.global_keywords, sources)
         return {"message": "Sources updated successfully", "data": updated_data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/v1/sources/get")
 async def api_get_sources():
     return read_sources()
 
-# New endpoint to force re-process a URL in case of e.g. a change in the source  
+
+# New endpoint to force re-process a URL in case of e.g. a change in the source
 @app.post("/v1/url/reprocess")
 async def url_audio_reprocess(request: URLRequest):
     logging.info(f"Reprocessing URL: {request.url}")
@@ -187,36 +239,44 @@ async def url_audio_reprocess(request: URLRequest):
     await add_task("url", request.url, request.tts_engine)
     return {"message": "URL reprocessing added to the READ2ME task list"}
 
+
 @app.get("/v1/audio-files")
 async def get_audio_files(request: Request, page: int = 1, limit: int = 20):
     audio_files = []
     total_files = 0
-    
+
     for root, dirs, files in os.walk(output_dir):
         for file in files:
             if file.endswith(".mp3"):
                 total_files += 1
                 if (page - 1) * limit <= len(audio_files) < page * limit:
-                    relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                    relative_path = os.path.relpath(
+                        os.path.join(root, file), output_dir
+                    )
                     audio_url = f"/v1/audio/{relative_path}"
-                    audio_files.append({
-                        "audio_file": audio_url,
-                        "title": os.path.splitext(file)[0].replace("_", " ")
-                    })
-                
+                    audio_files.append(
+                        {
+                            "audio_file": audio_url,
+                            "title": os.path.splitext(file)[0].replace("_", " "),
+                        }
+                    )
+
                 if len(audio_files) >= limit:
                     break
-        
+
         if len(audio_files) >= limit:
             break
 
-    return JSONResponse(content={
-        "audio_files": audio_files,
-        "total_files": total_files,
-        "page": page,
-        "limit": limit,
-        "total_pages": (total_files + limit - 1) // limit
-    })
+    return JSONResponse(
+        content={
+            "audio_files": audio_files,
+            "total_files": total_files,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_files + limit - 1) // limit,
+        }
+    )
+
 
 @app.get("/v1/audio/{file_path:path}")
 async def get_audio(file_path: str):
@@ -224,6 +284,7 @@ async def get_audio(file_path: str):
     if not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="Audio file not found")
     return FileResponse(full_path, media_type="audio/mpeg")
+
 
 @app.get("/v1/audio-file/{file_name}")
 async def get_audio_file(file_name: str):
@@ -235,58 +296,69 @@ async def get_audio_file(file_name: str):
         text_content = file.read()
     return JSONResponse(content={"text": text_content})
 
+
 @app.get("/v1/audio-file/{title}")
 async def get_audio_file_text(title: str):
     # Assuming the text files are stored in the Output directory with the same name as the title
     text_file_path = os.path.join("", f"{title}.md")
-    
+
     if not os.path.isfile(text_file_path):
         raise HTTPException(status_code=404, detail="Text file not found")
-    
+
     with open(text_file_path, "r") as file:
         text = file.read()
-    
+
     return {"text": text}
+
 
 @app.get("/v1/audio-file/{file_path:path}")
 async def get_audio_file_text(file_path: str):
     # Normalize the file path to use the correct directory separator
     file_path = os.path.normpath(file_path)
-    
+
     # Construct the full path to the text file
     output_dir = os.getenv("OUTPUT_DIR", "Output")
     text_file_path = os.path.join(output_dir, f"{file_path}.md")
-    
+
     if not os.path.isfile(text_file_path):
-        raise HTTPException(status_code=404, detail=f"Text file not found: {text_file_path}")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Text file not found: {text_file_path}"
+        )
+
     try:
         with open(text_file_path, "r", encoding="utf-8") as file:
             text = file.read()
-        return JSONResponse(content={
-            "text": text, 
-            "title": os.path.basename(file_path),
-            "audio_file": f"{file_path}.mp3"
-        })
+        return JSONResponse(
+            content={
+                "text": text,
+                "title": os.path.basename(file_path),
+                "audio_file": f"{file_path}.mp3",
+            }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
 
 # Endpoint for fetching the VTT file
 @app.get("/v1/vtt-file/{file_path:path}")
 async def get_vtt_file(file_path: str):
     # Normalize the file path to use the correct directory separator
     file_path = os.path.normpath(file_path)
-    
+
     # Construct the full path to the VTT file
     output_dir = os.getenv("OUTPUT_DIR", "Output")
     vtt_file_path = os.path.join(output_dir, f"{file_path}.vtt")
-    
+
     if not os.path.isfile(vtt_file_path):
-        raise HTTPException(status_code=404, detail=f"VTT file not found: {vtt_file_path}")
-    
+        raise HTTPException(
+            status_code=404, detail=f"VTT file not found: {vtt_file_path}"
+        )
+
     return FileResponse(vtt_file_path, media_type="text/vtt")
 
+
 clients = []
+
 
 @app.websocket("/ws/playback")
 async def websocket_endpoint(websocket: WebSocket):
@@ -300,77 +372,94 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         clients.remove(websocket)
 
+
 def generate_article_id(date_folder, mp3_filename):
     # Extract the first three digits from the MP3 filename
-    digits = re.findall(r'\d+', mp3_filename)
+    digits = re.findall(r"\d+", mp3_filename)
     if digits:
         return f"{date_folder}_{digits[0][:3]}"
     return f"{date_folder}_000"  # Fallback if no digits found
+
 
 @app.get("/v1/articles")
 async def get_articles(request: Request, page: int = 1, limit: int = 20):
     articles = []
     total_articles = 0
-    
+
     for root, dirs, files in os.walk(output_dir, topdown=False):
         date_folder = os.path.basename(root)
         if not date_folder.isdigit() or len(date_folder) != 8:
             continue  # Skip if not a date folder
-        
+
         for file in files:
             if file.endswith(".mp3"):
                 total_articles += 1
                 if (page - 1) * limit <= len(articles) < page * limit:
                     article_id = generate_article_id(date_folder, file)
-                    relative_path = os.path.relpath(os.path.join(root, file), output_dir)
+                    relative_path = os.path.relpath(
+                        os.path.join(root, file), output_dir
+                    )
                     audio_url = f"/v1/audio/{relative_path}"
-                    articles.append({
-                        "id": article_id,
-                        "date": date_folder,
-                        "audio_file": audio_url,
-                        "title": os.path.splitext(file)[0].replace("_", " ")
-                    })
-                
+                    articles.append(
+                        {
+                            "id": article_id,
+                            "date": date_folder,
+                            "audio_file": audio_url,
+                            "title": os.path.splitext(file)[0].replace("_", " "),
+                        }
+                    )
+
                 if len(articles) >= limit:
                     break
-        
+
         if len(articles) >= limit:
             break
 
-    return JSONResponse(content={
-        "articles": articles,
-        "total_articles": total_articles,
-        "page": page,
-        "limit": limit,
-        "total_pages": (total_articles + limit - 1) // limit
-    })
+    return JSONResponse(
+        content={
+            "articles": articles,
+            "total_articles": total_articles,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_articles + limit - 1) // limit,
+        }
+    )
+
 
 @app.get("/v1/article/{article_id}")
 async def get_article(article_id: str):
     date_folder, file_prefix = article_id.split("_")
-    
+
     for root, dirs, files in os.walk(os.path.join(output_dir, date_folder)):
         for file in files:
-            if file.endswith(".mp3") and generate_article_id(date_folder, file) == article_id:
+            if (
+                file.endswith(".mp3")
+                and generate_article_id(date_folder, file) == article_id
+            ):
                 relative_path = os.path.relpath(os.path.join(root, file), output_dir)
                 audio_url = f"/v1/audio/{relative_path}"
                 text_file_path = os.path.join(root, f"{os.path.splitext(file)[0]}.md")
-                
+
                 if not os.path.isfile(text_file_path):
-                    raise HTTPException(status_code=404, detail="Article text not found")
-                
+                    raise HTTPException(
+                        status_code=404, detail="Article text not found"
+                    )
+
                 with open(text_file_path, "r", encoding="utf-8") as text_file:
                     content = text_file.read()
-                
-                return JSONResponse(content={
-                    "id": article_id,
-                    "date": date_folder,
-                    "audio_file": audio_url,
-                    "title": os.path.splitext(file)[0].replace("_", " "),
-                    "content": content
-                })
-    
+
+                return JSONResponse(
+                    content={
+                        "id": article_id,
+                        "date": date_folder,
+                        "audio_file": audio_url,
+                        "title": os.path.splitext(file)[0].replace("_", " "),
+                        "content": content,
+                    }
+                )
+
     raise HTTPException(status_code=404, detail="Article not found")
+
 
 async def schedule_fetch_articles():
     from utils.sources import fetch_articles
