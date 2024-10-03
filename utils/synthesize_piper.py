@@ -54,7 +54,6 @@ async def url_with_piper(url: str, output_dir, img_pth):
 
 
 async def read_text_piper(text: str, output_dir, img_pth):
-    title = generate_title(text)
 
     if not text:
         logging.error(f"No text provided")

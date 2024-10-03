@@ -31,7 +31,7 @@ def voice2voice(
         rvc = RVCInference(device=backend)
         rvc.set_models_dir(model_dir)
         rvc.load_model(model_name)
-        rvc.set_params(f0method="rmvpe", f0up_key=9, index_path=index_path)
+        rvc.set_params(f0method="rmvpe", f0up_key=0, index_path=index_path)
         rvc.infer_file(input_path=input_file_path, output_path=rvc_file)
 
         mp3 = convert_wav_to_mp3(wav_file=rvc_file, mp3_file=output_file)
@@ -54,5 +54,5 @@ def main(file: str, output_dir: str, model: str):
 if __name__ == "__main__":
     file = "test.mp3"
     output_dir = "test"
-    model = "Male_1"
+    model = "Female_1"
     main(file, output_dir, model)
