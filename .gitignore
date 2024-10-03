@@ -2,6 +2,7 @@
 # Ignore the test script
 test.py
 test.mp3
+edge_voices.txt
 # Ignore the.env file in the root directory
 .env
 

@@ -229,7 +229,7 @@ def inference(text, noise, diffusion_steps=5, embedding_scale=1):
         x, _ = model.predictor.lstm(d)
         duration = model.predictor.duration_proj(x)
         duration = (
-            torch.sigmoid(duration).sum(axis=-1) / 1.4
+            torch.sigmoid(duration).sum(axis=-1) / 1.3
         )  # adjust speed by dividing through a number e.g. 1.25 = 25& faster
         pred_dur = torch.round(duration.squeeze()).clamp(min=1)
 
