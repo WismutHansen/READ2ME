@@ -377,7 +377,7 @@ async def extract_text(url):
             "url": url,
             "title": title,
             "date_published": date_str,
-            "language": languages,
+#            "language": languages,
             "plain_text": result,
             "markdown_text": article_content,
             "tl_dr": tl_dr,
@@ -427,6 +427,3 @@ if __name__ == "__main__":
         print(article_content)
     else:
         print("Failed to extract text.")
-    # content = readability(url)
-    # print(f"\n--------------\n")
-    # print(content)
