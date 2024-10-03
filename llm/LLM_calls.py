@@ -5,6 +5,7 @@ from utils.common_utils import shorten_text, split_text
 from dotenv import load_dotenv
 from .Local_Ollama import ask_Ollama
 from .Local_OpenAI import ask_LLM
+from .Prompts import pod
 
 # Configure logging
 logging.basicConfig(
@@ -66,7 +67,7 @@ def tldr(text):
 
 
 def podcast(text: str) -> str:
-    prompt = f"{text}\n--------\nCreate the transcipt of a discussion between Mary and Joe about the above text in the style of an entertaining podcast. Mark each speaker turn with Mary: and Joe:. Don't include additional sound descriptions like [lauging] etc."
+    prompt = f"{text} + {pod}"
     script = llm_call(prompt)
     return script
 
