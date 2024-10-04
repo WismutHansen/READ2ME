@@ -100,4 +100,3 @@ if __name__ == "__main__":
         logging.error(f"Failed to read file: {e}")
         print(f"Failed to read file: {e}")
         sys.exit(1)
-
