@@ -50,8 +50,8 @@ utils/Models/
 /utils/styletts2/Utils/ASR/epoch_00080.pth
 /utils/styletts2/Utils/ASR/epoch_00080.pth
 # RVC models
-/utils/rvc/Models/**/*.pth
-/utils/rvc/Models/**/*.index
+/utils/rvc/Models/Female_1/*
+/utils/rvc/Models/Male_1/*
 
 # Wheels folder
 Wheels/

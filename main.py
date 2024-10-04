@@ -24,11 +24,6 @@ from dotenv import load_dotenv
 
 from utils.version_check import check_package_versions
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
 # Check package versions
 check_package_versions()
 
