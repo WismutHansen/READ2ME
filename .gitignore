@@ -52,7 +52,9 @@ utils/Models/
 # RVC models
 /utils/rvc/Models/Female_1/*
 /utils/rvc/Models/Male_1/*
-
+# Podcast Output
+/utils/podcast/*.mp3
+/utils/podcast/*.wav
 # Wheels folder
 Wheels/
 

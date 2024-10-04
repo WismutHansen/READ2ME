@@ -1,24 +1,39 @@
 import os
 import random
 from pydub import AudioSegment
+import asyncio
+from edge_tts import VoicesManager
+from ..synthesize import tts
+from ..common_utils import get_output_files, add_mp3_tags
+from ..env import setup_env
+from llm.LLM_calls import generate_title
+
+# Get the current directory of the script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+output_dir, task_file, img_pth, sources_file = setup_env()
+
 
 def parse_transcript(transcript):
     """
     Parses the transcript into a list of (speaker, text) tuples.
     """
     speaker_turns = []
-    lines = transcript.strip().split('\n')
+    lines = transcript.strip().split("\n")
     for line in lines:
-        if ':' in line:
-            speaker, text = line.split(':', 1)
+        if ":" in line:
+            speaker, text = line.split(":", 1)
             speaker = speaker.strip()
             text = text.strip()
             speaker_turns.append((speaker, text))
     return speaker_turns
 
-def create_podcast_audio(transcript: str, tts_engine: str, voice_1: str = None, voice_2: str = None):
+
+async def create_podcast_audio(
+    transcript: str, voice_1: str = None, voice_2: str = None
+):
     """
-    Creates the podcast audio from the transcript.
+    Creates the podcast audio from the transcript using the edge_tts library.
     """
     # Parse the transcript
     speaker_turns = parse_transcript(transcript)
@@ -26,98 +41,131 @@ def create_podcast_audio(transcript: str, tts_engine: str, voice_1: str = None, 
     # Identify speakers and assign voices and numbering
     speakers = {}
     speaker_voices = {}
-    file_counter = 1
 
-    # Assign odd and even numbers and voices to speakers
+    # Get available voices if not provided
+    if not voice_1 or not voice_2:
+        voices = await VoicesManager.create()
+        multilingual_voices = [
+            voice_info
+            for voice_info in voices.voices
+            if "MultilingualNeural" in voice_info["Name"]
+            and "en-US" in voice_info["Name"]
+        ]
+        if not multilingual_voices:
+            raise ValueError("No MultilingualNeural voices found")
+
+    # Assign voices to speakers
     for speaker, _ in speaker_turns:
         if speaker not in speakers:
-            if len(speakers) == 0:
-                speakers[speaker] = 1  # Speaker 1: odd numbers
-                speaker_voices[speaker] = 'voice1'  # Replace with actual voice identifiers
-            else:
-                speakers[speaker] = 2  # Speaker 2: even numbers
-                speaker_voices[speaker] = 'voice2'
+            speakers[speaker] = len(speakers) + 1  # Assign speaker number
 
-    # Process each speaker turn
-    audio_segments = []
-    segment_number = 1
+            # Assign voices if not provided
+            if len(speakers) == 1:
+                speaker_voices[speaker] = (
+                    voice_1 if voice_1 else random.choice(multilingual_voices)["Name"]
+                )
+                speaker_1_name = speaker  # Save for later
+            elif len(speakers) == 2:
+                speaker_voices[speaker] = (
+                    voice_2 if voice_2 else random.choice(multilingual_voices)["Name"]
+                )
+                speaker_2_name = speaker  # Save for later
 
+    # Initialize variables to keep track of timing
+    current_time = 0  # in milliseconds
+    speaker_timing = {speaker: [] for speaker in speakers}
+
+    # Process each speaker turn and record timing
     for speaker, text in speaker_turns:
         voice = speaker_voices[speaker]
-        # Determine the filename
-        if speakers[speaker] == 1:
-            # Speaker 1: odd numbers
-            filename = f"{segment_number * 2 - 1}.mp3"
-        else:
-            # Speaker 2: even numbers
-            filename = f"{segment_number * 2}.mp3"
+        segment_index = len(speaker_timing[speaker]) + 1
+        filename = os.path.join(current_dir, f"{speaker}_segment_{segment_index}.mp3")
 
         # Generate the audio file using the TTS function
-        tts(text, voice, filename)  # Assuming tts saves audio to filename
+        await tts(text, voice, filename)
 
         # Load the audio segment
-        audio = AudioSegment.from_file(filename)
+        try:
+            audio = AudioSegment.from_file(filename)
+        except Exception as e:
+            print(f"Error loading audio file {filename}: {e}")
+            continue
 
-        # Pan the audio
-        if speakers[speaker] == 1:
-            # Speaker 1, pan slightly to the left
-            audio = audio.pan(-0.3)
-        else:
-            # Speaker 2, pan slightly to the right
-            audio = audio.pan(0.3)
+        # Record the timing for this segment
+        speaker_timing[speaker].append((current_time, audio))
 
-        # Add the audio segment to the list
-        audio_segments.append(audio)
-        segment_number += 1
+        # Update current time
+        current_time += len(audio)
 
-    # Combine the audio segments with random overlaps
-    combined_audio = AudioSegment.silent(duration=0)
-    current_position = 0  # in milliseconds
+    # Determine the total duration of the podcast
+    total_duration = max(
+        [
+            start_time + len(audio)
+            for timings in speaker_timing.values()
+            for (start_time, audio) in timings
+        ]
+    )
 
-    for audio in audio_segments:
-        # Determine overlap in milliseconds (-200 ms to 500 ms)
-        overlap = random.randint(-200, 500)
+    # Create empty AudioSegment for each speaker
+    speaker_tracks = {}
+    for speaker in speakers:
+        speaker_tracks[speaker] = AudioSegment.silent(duration=total_duration)
 
-        if overlap < 0:
-            # Overlap with the previous segment
-            start_time = current_position + overlap
-            if start_time < 0:
-                # Pad the beginning with silence if necessary
-                combined_audio = AudioSegment.silent(duration=-start_time).append(combined_audio)
-                start_time = 0
-                current_position = 0
-            combined_audio = combined_audio.overlay(audio, position=start_time)
-            current_position = max(current_position, start_time + len(audio))
-        else:
-            # Gap between segments
-            current_position += overlap
-            combined_audio = combined_audio.overlay(audio, position=current_position)
-            current_position += len(audio)
+    # Place each audio segment in the correct position on its speaker's track
+    for speaker, timings in speaker_timing.items():
+        for start_time, audio in timings:
+            # Overlay the audio segment at the correct time
+            speaker_tracks[speaker] = speaker_tracks[speaker].overlay(
+                audio, position=start_time
+            )
 
-    # Add 1 second of padding at the end
-    combined_audio += AudioSegment.silent(duration=1000)
+    # Pan each track
+    speaker_tracks[speaker_1_name] = speaker_tracks[speaker_1_name].pan(
+        -0.2
+    )  # Slightly left
+    speaker_tracks[speaker_2_name] = speaker_tracks[speaker_2_name].pan(
+        0.2
+    )  # Slightly right
 
-    # Export the final audio
-    combined_audio.export("podcast.mp3", format="mp3")
-    print("Podcast audio has been generated as 'podcast.mp3'.")
+    # Mix the two tracks
+    combined_audio = speaker_tracks[speaker_1_name].overlay(
+        speaker_tracks[speaker_2_name]
+    )
 
-# Mock TTS function (replace this with your actual TTS implementation)
-def tts(text, voice, filename):
-    """
-    Mock TTS function that generates silent audio proportional to the text length.
-    Replace this function with your actual TTS implementation.
-    """
-    # For demonstration, create silence proportional to text length
-    duration = len(text) * 50  # 50 ms per character (adjust as needed)
-    audio = AudioSegment.silent(duration=duration)
-    audio.export(filename, format="mp3")
+    # Export the final audio to the podcast directory
+    podcast_number = 1
+    while os.path.exists(os.path.join(current_dir, f"podcast_{podcast_number}.mp3")):
+        podcast_number += 1
+    title = f"podcast_{podcast_number}"
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
+    # output_file = os.path.join(current_dir, f"podcast_{podcast_number}.mp3")
+
+    combined_audio.export(mp3_file, format="mp3")
+
+    add_mp3_tags(mp3_file, title, img_pth, output_dir)
+
+    # Delete individual audio segments
+    for speaker, timings in speaker_timing.items():
+        for start_time, audio in timings:
+            segment_index = timings.index((start_time, audio)) + 1
+            filename = os.path.join(
+                current_dir, f"{speaker}_segment_{segment_index}.mp3"
+            )
+            if os.path.exists(filename):
+                os.remove(filename)
+    print(f"Podcast audio has been generated as '{mp3_file}'.")
+
 
 # Example usage
 if __name__ == "__main__":
+    import asyncio
+
     transcript = """
     Alex: Hey, did you hear about the new Python release?
-    Taylor: Oh, um, no, I haven't. What's new in it?
-    Alex: Well, they added some, you know, really cool features like pattern matching.
+    Taylor: Oh, no, I haven't. What's new in it?
+    Alex: Well, they added some really cool features like pattern matching.
     Taylor: That's awesome! I was waiting for that feature.
     """
-    create_podcast_audio(transcript)
+
+    # Running the asyncio function
+    asyncio.run(create_podcast_audio(transcript))
