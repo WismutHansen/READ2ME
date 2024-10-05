@@ -90,6 +90,7 @@ def process_tasks(stop_event):
                         # Generate the podcast script
                         try:
                             script = podcast(text)
+                            logging.info("Generating podcast script form seed text")
                             if not script or len(script.strip()) == 0:
                                 logging.error(
                                     f"Podcast script generation failed for text from URL: {content}"
@@ -104,6 +105,7 @@ def process_tasks(stop_event):
                         # Create the podcast audio
                         try:
                             await create_podcast_audio(script)
+                            logging.info("Generating podcast audio")
                         except Exception as e:
                             logging.error(
                                 f"Error creating podcast audio for URL {content}: {e}"

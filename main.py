@@ -80,6 +80,18 @@ def setup_logging(log_file_path):
 try:
     log_file_path = os.path.abspath("process_log.txt")
     setup_logging(log_file_path)
+    logging.info("""
+      
+      ██████╗ ███████╗ █████╗ ██████╗ ██████╗ ███╗   ███╗███████╗
+      ██╔══██╗██╔════╝██╔══██╗██╔══██╗╚════██╗████╗ ████║██╔════╝
+      ██████╔╝█████╗  ███████║██║  ██║ █████╔╝██╔████╔██║█████╗  
+      ██╔══██╗██╔══╝  ██╔══██║██║  ██║██╔═══╝ ██║╚██╔╝██║██╔══╝  
+      ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
+      ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
+    
+      READ2ME Version 0.1.1 - Ain't knowbody gonna read that!
+
+    """)
     logging.info(f"Logging setup completed. Log file path: {log_file_path}")
 except Exception as e:
     print(f"Error setting up logging: {e}")
