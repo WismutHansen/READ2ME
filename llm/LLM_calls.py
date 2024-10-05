@@ -1,11 +1,11 @@
 import sys
 import os
 import logging
-from utils.common_utils import shorten_text, split_text
+from utils.common_utils import shorten_text, split_text, write_markdown_file
 from dotenv import load_dotenv
 from .Local_Ollama import ask_Ollama
 from .Local_OpenAI import ask_LLM
-from .Prompts import pod
+from .Prompts import pod, title_prompt
 
 # Configure logging
 logging.basicConfig(
@@ -32,7 +32,7 @@ def llm_call(prompt: str) -> str:
 def generate_title(text):
     try:
         short_text = shorten_text(text)
-        prompt = f"{short_text}\n--------\nReturn a concise, 3-5 word phrase as the title for the above text, strictly adhering to the 3-5 word limit and avoiding the use of the word 'title'"
+        prompt = f"{short_text} +{title_prompt}"
 
         title = llm_call(prompt)
         return title
@@ -69,6 +69,7 @@ def tldr(text):
 def podcast(text: str) -> str:
     prompt = f"{text} + {pod}"
     script = llm_call(prompt)
+    write_markdown_file("podcast.md", script)
     return script
 
 

@@ -3,7 +3,9 @@
 test.py
 test.mp3
 edge_voices.txt
+podcast.md
 # Ignore the.env file in the root directory
+
 .env
 
 # Ommit the DS_Store folder automatically created by macOS
@@ -65,6 +67,8 @@ urls.txt
 __pycache__/
 utils/__pycache__
 llm/__pycache__
+/*/__pycache__/
+/*/*/__pycache__/
 
 github
 github.pub

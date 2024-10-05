@@ -8,6 +8,7 @@ from llm.LLM_calls import generate_title
 from .common_utils import get_mp3_duration
 from database.crud import create_article
 
+
 # Extracted TTS function
 async def tts(text, voice, filename, vtt_file=None):
     """
@@ -32,6 +33,7 @@ async def tts(text, voice, filename, vtt_file=None):
     if vtt_file and submaker:
         with open(vtt_file, "w", encoding="utf-8") as file:
             file.write(submaker.generate_subs())
+
 
 async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     try:
@@ -65,23 +67,10 @@ async def synthesize_text_to_speech(url: str, output_dir, img_pth):
     await tts(text, voice_name, mp3_file, vtt_file)
 
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
-    duration = get_mp3_duration(mp3_file)
-
-    article_data = {
-        "url": str(url),
-        "title": str(title),
-        "plain_text": str(text),
-        "audio_file": str(mp3_file),
-        "markdown_file": str(md_file),
-        "vtt_file": str(vtt_file),
-    }
-    try:
-        create_article(article_data)
-    except Exception as e:
-        logging.error(f"Could not write to database: {e}")
 
     logging.info(f"Successfully processed URL {url}")
     return base_file_name, mp3_file, md_file, vtt_file
+
 
 async def read_text(text: str, output_dir, img_pth):
     title = generate_title(text)
@@ -113,6 +102,7 @@ async def read_text(text: str, output_dir, img_pth):
     add_mp3_tags(mp3_file, "READ2ME", img_pth, output_dir)
     logging.info("Successfully processed text")
     return base_file_name, mp3_file, md_file, vtt_file
+
 
 if __name__ == "__main__":
     import os

@@ -1,10 +1,11 @@
 import os
+import re
 import random
 from pydub import AudioSegment
 import asyncio
 from edge_tts import VoicesManager
 from ..synthesize import tts
-from ..common_utils import get_output_files, add_mp3_tags
+from ..common_utils import get_output_files, add_mp3_tags, write_markdown_file
 from ..env import setup_env
 from llm.LLM_calls import generate_title
 
@@ -35,7 +36,10 @@ async def create_podcast_audio(
     """
     Creates the podcast audio from the transcript using the edge_tts library.
     """
-    # Parse the transcript
+    # Remove any speaker notes in (*) that the LLM might put into the script
+    transcript = re.sub(r"\([^)]*\)", "", transcript)
+
+    # Parse the transcript into a list of speaker, text
     speaker_turns = parse_transcript(transcript)
 
     # Identify speakers and assign voices and numbering
@@ -136,10 +140,17 @@ async def create_podcast_audio(
     podcast_number = 1
     while os.path.exists(os.path.join(current_dir, f"podcast_{podcast_number}.mp3")):
         podcast_number += 1
-    title = f"podcast_{podcast_number}"
-    base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
+
+    # Generate a title, replace spaces with underscores and remove special characters
+    title = generate_title(transcript)
+    title = title.replace(" ", "_")
+    clean_title = re.sub(r"[^A-Za-z0-9 ]", "", title)
+
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, clean_title)
     # output_file = os.path.join(current_dir, f"podcast_{podcast_number}.mp3")
 
+    vtt_file = f"{base_file_name}.vtt"  # New VTT file path
+    write_markdown_file(md_file, transcript)
     combined_audio.export(mp3_file, format="mp3")
 
     add_mp3_tags(mp3_file, title, img_pth, output_dir)
