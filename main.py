@@ -21,13 +21,7 @@ from typing import List, Optional
 import os
 import re
 from dotenv import load_dotenv
-
 from utils.version_check import check_package_versions
-
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
 # Check package versions
 check_package_versions()
@@ -86,6 +80,18 @@ def setup_logging(log_file_path):
 try:
     log_file_path = os.path.abspath("process_log.txt")
     setup_logging(log_file_path)
+    logging.info("""
+      
+      ██████╗ ███████╗ █████╗ ██████╗ ██████╗ ███╗   ███╗███████╗
+      ██╔══██╗██╔════╝██╔══██╗██╔══██╗╚════██╗████╗ ████║██╔════╝
+      ██████╔╝█████╗  ███████║██║  ██║ █████╔╝██╔████╔██║█████╗  
+      ██╔══██╗██╔══╝  ██╔══██║██║  ██║██╔═══╝ ██║╚██╔╝██║██╔══╝  
+      ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
+      ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
+    
+      READ2ME Version 0.1.1 - Ain't knowbody gonna read that!
+
+    """)
     logging.info(f"Logging setup completed. Log file path: {log_file_path}")
 except Exception as e:
     print(f"Error setting up logging: {e}")
@@ -175,6 +181,50 @@ async def url_audio_full(request: URLRequest):
         )
 
     await add_task("url", request.url, request.tts_engine)
+    return {"message": "URL added to the READ2ME task list"}
+
+
+@app.post("/v1/url/podcast")
+async def url_podcast(request: URLRequest):
+    logging.info(f"Received URL: {request.url}")
+    logging.info(
+        f"URL type: {type(request.url)}, TTS Engine type: {type(request.tts_engine)}"
+    )
+
+    # Validate URL
+    parsed_url = urlparse(request.url)
+    if not all([parsed_url.scheme, parsed_url.netloc]) or parsed_url.scheme not in [
+        "http",
+        "https",
+    ]:
+        logging.error(f"Invalid URL received: {request.url}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
+        )
+    await add_task("podcast", request.url, request.tts_engine)
+    return {"message": "URL added to the READ2ME task list"}
+
+
+@app.post("/v1/url/story")
+async def url_story(request: URLRequest):
+    logging.info(f"Received URL: {request.url}")
+    logging.info(
+        f"URL type: {type(request.url)}, TTS Engine type: {type(request.tts_engine)}"
+    )
+
+    # Validate URL
+    parsed_url = urlparse(request.url)
+    if not all([parsed_url.scheme, parsed_url.netloc]) or parsed_url.scheme not in [
+        "http",
+        "https",
+    ]:
+        logging.error(f"Invalid URL received: {request.url}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
+        )
+    await add_task("story", request.url, request.tts_engine)
     return {"message": "URL added to the READ2ME task list"}
 
 

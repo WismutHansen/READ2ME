@@ -20,6 +20,7 @@ np.random.seed(0)
 import nltk
 
 nltk.download("punkt")
+nltk.download("punkt_tab")
 
 # load packages
 import time

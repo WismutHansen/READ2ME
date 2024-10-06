@@ -20,18 +20,3 @@ def construct_article_data(
 
     return article_data
 
-
-"""
-            generate_hash(article_data["url"]),
-            article_data["url"],
-            article_data["title"],
-            article_data.get("date_published"),
-            article_data.get("date_added", datetime.today().strftime("%Y-%m-%d")),
-            article_data.get("language"),
-            article_data.get("plain_text"),
-            article_data.get("markdown_text"),
-            article_data.get("tl_dr"),
-            article_data.get("audio_file"),
-            article_data.get("markdown_file"),
-            article_data.get("vtt_file"),
- """
