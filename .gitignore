@@ -2,7 +2,10 @@
 # Ignore the test script
 test.py
 test.mp3
+edge_voices.txt
+podcast.md
 # Ignore the.env file in the root directory
+
 .env
 
 # Ommit the DS_Store folder automatically created by macOS
@@ -49,10 +52,13 @@ utils/Models/
 /utils/styletts2/Models/
 /utils/styletts2/Utils/ASR/*.pth
 /utils/styletts2/Utils/ASR/epoch_00080.pth
+/utils/styletts2/Utils/ASR/epoch_00080.pth
 # RVC models
-/utils/rvc/Models/**/*.pth
-/utils/rvc/Models/**/*.index
-
+/utils/rvc/Models/Female_1/*
+/utils/rvc/Models/Male_1/*
+# Podcast Output
+/utils/podcast/*.mp3
+/utils/podcast/*.wav
 # Wheels folder
 Wheels/
 
@@ -63,6 +69,8 @@ urls.txt
 __pycache__/
 utils/__pycache__
 llm/__pycache__
+/*/__pycache__/
+/*/*/__pycache__/
 
 github
 github.pub
