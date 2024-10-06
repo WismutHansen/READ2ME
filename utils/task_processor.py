@@ -7,7 +7,7 @@ from utils.env import setup_env
 from utils.history_handler import add_to_history, check_history
 from utils.text_extraction import extract_text
 from utils.podcast.castify import create_podcast_audio
-from llm.LLM_calls import podcast
+from llm.LLM_calls import podcast, story
 
 output_dir, task_file, img_pth, sources_file = setup_env()
 
@@ -112,6 +112,45 @@ def process_tasks(stop_event):
                             )
                             continue
 
+                    elif task_type == "story":
+                        # Extract the text from the URL
+                        try:
+                            text, title = await extract_text(content)
+                            if not text or len(text.strip()) == 0:
+                                logging.error(
+                                    f"Text extraction failed for URL: {content}"
+                                )
+                                continue
+                        except Exception as e:
+                            logging.error(
+                                f"Error extracting text from URL {content}: {e}"
+                            )
+                            continue
+
+                        # Generate the podcast script
+                        try:
+                            script = story(text, "Spanish")
+                            logging.info("Generating story text from seed text")
+                            if not script or len(script.strip()) == 0:
+                                logging.error(
+                                    f"Podcast story generation failed for text from URL: {content}"
+                                )
+                                continue
+                        except Exception as e:
+                            logging.error(
+                                f"Error generating story text for URL {content}: {e}"
+                            )
+                            continue
+
+                        # Create the podcast audio
+                        try:
+                            await read_text(script, output_dir, img_pth)
+                            logging.info("Generating story audio")
+                        except Exception as e:
+                            logging.error(
+                                f"Error creating story audio for URL {content}: {e}"
+                            )
+                            continue
                     else:
                         logging.error(f"Unknown task type: {task_type}")
 
