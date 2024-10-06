@@ -73,7 +73,7 @@ def podcast(text: str) -> str:
     return script
 
 
-def story(text: str, language: str):
+def story(text: str, language: str = "en-US"):
     prompt = f"{text} + {story_mode} + In {language}"
     script = llm_call(prompt)
     write_markdown_file("story.md", script)
