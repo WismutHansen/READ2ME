@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import edge_tts
 from edge_tts import VoicesManager
 
 
