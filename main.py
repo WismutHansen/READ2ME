@@ -206,6 +206,28 @@ async def url_podcast(request: URLRequest):
     return {"message": "URL added to the READ2ME task list"}
 
 
+@app.post("/v1/url/story")
+async def url_story(request: URLRequest):
+    logging.info(f"Received URL: {request.url}")
+    logging.info(
+        f"URL type: {type(request.url)}, TTS Engine type: {type(request.tts_engine)}"
+    )
+
+    # Validate URL
+    parsed_url = urlparse(request.url)
+    if not all([parsed_url.scheme, parsed_url.netloc]) or parsed_url.scheme not in [
+        "http",
+        "https",
+    ]:
+        logging.error(f"Invalid URL received: {request.url}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
+        )
+    await add_task("story", request.url, request.tts_engine)
+    return {"message": "URL added to the READ2ME task list"}
+
+
 @app.post("/v1/url/summary")
 async def url_audio_summary(request: URLRequest):
     return {"message": "Endpoint not yet implemented"}

@@ -10,3 +10,6 @@ No names are used in the dialogue.
 title_prompt = """\n--------\n
 Create a 3-word title for the above text. Output only the 3-word title and nothing else!
 """
+story_mode = """\n--------\n
+turn the above text into an exciting story for children!
+"""
