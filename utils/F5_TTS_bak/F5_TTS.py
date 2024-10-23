@@ -16,8 +16,8 @@ from vocos import Vocos
 from pydub import AudioSegment
 from cached_path import cached_path
 from transformers import pipeline
-from model import CFM, DiT
-from model.utils import (
+from utils.F5_TTS.model import CFM, DiT
+from utils.F5_TTS.model.utils import (
     get_tokenizer,
     load_checkpoint,
     convert_char_to_pinyin,
@@ -197,14 +197,14 @@ def chunk_text(text, max_chars=200):
 
 
 def infer_batch(
-    abs_voice_path,
+    ref_audio,
     transcript,
     gen_text_batches,
     cross_fade_duration=0.15,
 ):
     ema_model = load_model("F5-TTS", "F5TTS_Base", DiT, F5TTS_model_cfg, 1200000)
 
-    audio, sr = abs_voice_path
+    audio, sr = ref_audio
     if audio.shape[0] > 1:
         audio = torch.mean(audio, dim=0, keepdim=True)
 
@@ -477,7 +477,7 @@ def save_to_mp3(output: tuple, output_path: str):
 # ---------------------------------------------------------------------------------------------#
 
 if __name__ == "__main__":
-    voice_path = "./abs_voice_path/"
+    voice_path = "utils/F5_TTS/ref_audio/"
     text = input("Please enter some text: ")
     voices = get_available_voices(voice_path)
     voice_file = pick_random_voice(voices)
