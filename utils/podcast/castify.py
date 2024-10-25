@@ -4,7 +4,7 @@ import random
 from pydub import AudioSegment
 import asyncio
 from edge_tts import VoicesManager
-from utils.F5_TTS.F5_TTS import infer, get_available_voices, pick_random_voice
+from utils.F5_TTS.F5 import infer, get_available_voices, pick_random_voice
 from utils.synthesize import tts
 from utils.common_utils import get_output_files, add_mp3_tags, write_markdown_file
 from utils.env import setup_env
