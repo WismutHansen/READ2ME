@@ -90,7 +90,7 @@ class F5TTSEngine(TTSEngine):
             audio_path = os.path.join(self.voice_dir, voice_id)
             self.logger.info(f"Generating audio using voice: {audio_path}")
 
-            wave, sr, _ = infer(
+            (wave, sr), _ = infer(
                 audio_path, text, text, model="F5-TTS", remove_silence=False
             )
 
