@@ -11,7 +11,6 @@ from utils.env import setup_env
 from llm.LLM_calls import generate_title
 import logging
 import numpy as np
-import io
 import tempfile
 
 # Get the current directory of the script
@@ -301,7 +300,7 @@ async def create_podcast_audio_f5(
     """
     # Get the path to the voice folder relative to F5_TTS.py
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    voice_dir = os.path.join(script_dir, "..", "F5_TTS", "ref_audio")
+    voice_dir = os.path.join(script_dir, "..", "voices")
     voice_dir = os.path.abspath(voice_dir)  # Convert to absolute path
 
     # Remove everything up until the first occurrence of the word "speaker1"
@@ -314,7 +313,7 @@ async def create_podcast_audio_f5(
 
     # Parse the transcript into a list of speaker, text
     speaker_turns = parse_transcript(transcript)
-
+    print(speaker_turns)
     # Identify speakers and assign voices and numbering
     speakers = {}
     speaker_voices = {}
@@ -372,7 +371,7 @@ async def create_podcast_audio_f5(
                 AudioSegment(
                     data=audio_np_int16.tobytes(),
                     sample_width=2,  # 16-bit audio
-                    frame_rate=24000,  # 24000 Hz
+                    frame_rate=16000,  # 24000 Hz
                     channels=1,  # Assuming mono audio; set to 2 for stereo if needed
                 ).export(temp_wav_path, format="wav")
                 logging.info(
@@ -432,11 +431,6 @@ async def create_podcast_audio_f5(
         speaker_tracks[speaker_2_name]
     )
 
-    # Export the final audio to the podcast directory
-    podcast_number = 1
-    while os.path.exists(os.path.join(current_dir, f"podcast_{podcast_number}.mp3")):
-        podcast_number += 1
-
     # Generate a title, replace spaces with underscores and remove special characters
     title = generate_title(transcript)
     title_ = title.replace(" ", "_")
@@ -460,10 +454,10 @@ if __name__ == "__main__":
     import asyncio
 
     transcript = """
-    Alex: Hey, did you hear about the new Python release?
-    Taylor: Oh, no, I haven't. What's new in it?
-    Alex: Well, they added some really cool features like pattern matching.
-    Taylor: That's awesome! I was waiting for that feature.
+    speaker1: Hey, did you hear about the new Python release?
+    speaker2: Oh, no, I haven't. What's new in it?
+    speaker1: Well, they added some really cool features like pattern matching.
+    speaker2: That's awesome! I was waiting for that feature.
     """
 
     # Running the asyncio function
