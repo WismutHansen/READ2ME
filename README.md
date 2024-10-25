@@ -257,6 +257,7 @@ StyleTTS2 Pre-Trained Models: Before using these pre-trained models, you agree t
 - [x] Add support for local text-to-speech (TTS) engine like StyleTTS2.
 - [x] Add support for LLM-based text processing like summarization with local LLMs through Ollama or the OpenAI API
 - [ ] Add support for automatic image captioning using local vision models or the OpenAI API
+- [ ] Add support for F5-TTS
 
 ## Acknowledgements
 
