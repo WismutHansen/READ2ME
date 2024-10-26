@@ -25,7 +25,7 @@ This is a currently a beta version but I plan to extend it to support other cont
 
 ## Installation
 
-### Native Python Installation
+### Python Installation
 
 1. **Clone the repository:**
 
@@ -96,15 +96,10 @@ This is a currently a beta version but I plan to extend it to support other cont
    ```
 
    You can use either Ollama or any OpenAI compatible API for title and podcast script generation (summary function also coming soon)
-   ```
 
 ## Usage
 
-1.
-
-### Native
-
-   **Prepare the environment variables file (.env):**
+ 1. **Prepare the environment variables file (.env):**
 
    copy and rename `.env.example` to `.env`. Edit the content of this file as you wish, specifying the output directory, task file and image path to use for the mp3 file cover as well as the sources and keywords file.
 
