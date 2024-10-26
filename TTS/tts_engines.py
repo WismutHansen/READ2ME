@@ -4,13 +4,20 @@ import random
 import tempfile
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
-
+from llm.LLM_calls import generate_title
+from utils.common_utils import (
+    get_output_files,
+    add_mp3_tags,
+    write_markdown_file,
+)
 import numpy as np
 from edge_tts import VoicesManager, Communicate
 from pydub import AudioSegment
 
 from TTS.F5_TTS.F5 import get_available_voices as f5_get_voices
 from TTS.F5_TTS.F5 import infer, load_transcript
+
+logger = logging.getLogger(__name__)
 
 
 class TTSEngine(ABC):
@@ -58,6 +65,24 @@ class TTSEngine(ABC):
 
         # Pick a random voice from the remaining choices
         return random.choice(voices_to_choose_from)
+
+    async def export_audio(
+        self, audio: AudioSegment, text: str, title: Optional[str] = None
+    ) -> str:
+        """Export podcast audio and metadata"""
+        try:
+            # Implementation of file naming, export, and metadata addition
+            if not title:
+                title = generate_title(text)
+            _, mp3_file_name, md_file_name = await get_output_files("Output", title)
+            audio.export(mp3_file_name, format="mp3")
+            add_mp3_tags(mp3_file_name, title, "front.jpg", "Output")
+            write_markdown_file(md_file_name, text)
+            logger.info(f"Exported podcast to {mp3_file_name}")
+            return mp3_file_name
+        except Exception as e:
+            logger.error(f"Error exporting audio: {e}")
+            raise
 
 
 class EdgeTTSEngine(TTSEngine):

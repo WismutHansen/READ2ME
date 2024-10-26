@@ -5,14 +5,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from pydub import AudioSegment
-from llm.LLM_calls import generate_title
-from utils.common_utils import (
-    get_date_subfolder,
-    get_output_files,
-    add_mp3_tags,
-    write_markdown_file,
-    convert_wav_to_mp3,
-)
 from .tts_engines import TTSEngine
 
 
@@ -38,29 +30,66 @@ class PodcastGenerator:
         self.logger = logging.getLogger(__name__)
 
     def parse_transcript(self, transcript: str) -> List[Tuple[str, str]]:
-        """Parse transcript into list of (speaker, text) tuples"""
+        """
+        Parse transcript into list of (speaker, text) tuples.
+        Handles various speaker label formats and removes parenthetical notes.
 
+        Handles formats like:
+        - Speaker1: Text (laughs) more text
+        - Speaker 1: Text (pauses) more text
+        - speaker1: Text (clears throat) more text
+
+        Args:
+            transcript (str): Raw transcript text
+
+        Returns:
+            List[Tuple[str, str]]: List of (speaker, text) tuples
+
+        Raises:
+            ValueError: If no valid speaker turns are found
+        """
         # Clean and normalize the transcript
         transcript = transcript.strip()
 
+        # More flexible regex pattern that handles variations
+        pattern = r"\s*(?:speaker\s*[12]|SPEAKER\s*[12]|Speaker\s*[12]):\s*"
+
         # Split the transcript by speaker tags
-        speaker_blocks = re.split(
-            r"\s*(speaker[12]):\s*", transcript, flags=re.IGNORECASE
-        )
+        speaker_blocks = re.split(pattern, transcript, flags=re.IGNORECASE)
 
         # Remove any empty strings and strip whitespace
         speaker_blocks = [block.strip() for block in speaker_blocks if block.strip()]
 
+        # Function to clean text blocks
+        def clean_text(text: str) -> str:
+            # Remove parenthetical notes
+            text = re.sub(r"\s*\([^)]+\)\s*", " ", text)
+            # Clean up any resulting double spaces
+            text = re.sub(r"\s+", " ", text)
+            return text.strip()
+
         # Group the blocks into (speaker, text) pairs
         speaker_turns = []
-        for i in range(0, len(speaker_blocks), 2):
-            if i + 1 >= len(speaker_blocks):
-                break
-            speaker = speaker_blocks[i].lower()
-            text = speaker_blocks[i + 1]
-            speaker_turns.append((speaker, text))
+        speaker_number = 1  # Keep track of alternating speakers
+
+        # Handle the case where the first block might be speaker text without a speaker label
+        if speaker_blocks and not re.match(pattern, transcript, flags=re.IGNORECASE):
+            cleaned_text = clean_text(speaker_blocks[0])
+            if cleaned_text:  # Only add if there's text after cleaning
+                speaker_turns.append((f"speaker{speaker_number}", cleaned_text))
+            speaker_number = 2
+            speaker_blocks = speaker_blocks[1:]
+
+        # Process the remaining blocks
+        for text in speaker_blocks:
+            cleaned_text = clean_text(text)
+            if cleaned_text:  # Only add if there's text after cleaning
+                speaker_turns.append((f"speaker{speaker_number}", cleaned_text))
+                # Toggle between speaker1 and speaker2
+                speaker_number = 1 if speaker_number == 2 else 2
 
         if not speaker_turns:
+            self.logger.error("No valid speaker turns found in transcript")
             raise ValueError("No valid speaker turns found in transcript")
 
         self.logger.info(f"Parsed {len(speaker_turns)} speaker turns")
@@ -153,7 +182,7 @@ class PodcastGenerator:
             final_audio = self._mix_tracks(speakers, speaker_timing, total_duration)
 
             # Export and return path
-            return await self._export_podcast(final_audio, transcript)
+            return await self.tts_engine.export_audio(final_audio, transcript)
 
         except Exception as e:
             self.logger.error(f"Error creating podcast: {e}")
@@ -185,18 +214,3 @@ class PodcastGenerator:
             final_audio = final_audio.overlay(track)
 
         return final_audio
-
-    async def _export_podcast(self, audio: AudioSegment, transcript: str) -> str:
-        """Export podcast audio and metadata"""
-        try:
-            # Implementation of file naming, export, and metadata addition
-            title = generate_title(transcript)
-            _, mp3_file_name, md_file_name = await get_output_files("Output", title)
-            audio.export(mp3_file_name, format="mp3")
-            add_mp3_tags(mp3_file_name, title, "front.jpg", "Output")
-            write_markdown_file(md_file_name, transcript)
-            self.logger.info(f"Exported podcast to {mp3_file_name}")
-            return mp3_file_name
-        except Exception as e:
-            self.logger.error(f"Error exporting podcast: {e}")
-            raise
