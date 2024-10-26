@@ -9,9 +9,9 @@ import torchaudio
 from cached_path import cached_path
 from pydub import AudioSegment
 
-from utils.F5_TTS.model import DiT, UNetT
-from utils.F5_TTS.model.utils import save_spectrogram
-from utils.F5_TTS.model.utils_infer import (
+from TTS.F5_TTS.model import DiT, UNetT
+from TTS.F5_TTS.model.utils import save_spectrogram
+from TTS.F5_TTS.model.utils_infer import (
     load_vocoder,
     load_model,
     preprocess_ref_audio_text,

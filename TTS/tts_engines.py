@@ -9,8 +9,8 @@ import numpy as np
 from edge_tts import VoicesManager, Communicate
 from pydub import AudioSegment
 
-from utils.F5_TTS.F5 import get_available_voices as f5_get_voices
-from utils.F5_TTS.F5 import infer, load_transcript
+from TTS.F5_TTS.F5 import get_available_voices as f5_get_voices
+from TTS.F5_TTS.F5 import infer, load_transcript
 
 
 class TTSEngine(ABC):
