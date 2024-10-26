@@ -102,7 +102,9 @@ def list_str_to_idx(
     vocab_char_map: dict[str, int],  # {char: idx}
     padding_value=-1,
 ) -> int["b nt"]:  # noqa: F722
-    list_idx_tensors = [torch.tensor([vocab_char_map.get(c, 0) for c in t]) for t in text]  # pinyin or char style
+    list_idx_tensors = [
+        torch.tensor([vocab_char_map.get(c, 0) for c in t]) for t in text
+    ]  # pinyin or char style
     text = pad_sequence(list_idx_tensors, padding_value=padding_value, batch_first=True)
     return text
 
@@ -121,12 +123,18 @@ def get_tokenizer(dataset_name, tokenizer: str = "pinyin"):
                 - if use "byte", set to 256 (unicode byte range)
     """
     if tokenizer in ["pinyin", "char"]:
-        with open(f"utils/F5_TTS/data/{dataset_name}_{tokenizer}/vocab.txt", "r", encoding="utf-8") as f:
+        with open(
+            f"TTS/F5_TTS/data/{dataset_name}_{tokenizer}/vocab.txt",
+            "r",
+            encoding="utf-8",
+        ) as f:
             vocab_char_map = {}
             for i, char in enumerate(f):
                 vocab_char_map[char[:-1]] = i
         vocab_size = len(vocab_char_map)
-        assert vocab_char_map[" "] == 0, "make sure space is of idx 0 in vocab.txt, cuz 0 is used for unknown char"
+        assert (
+            vocab_char_map[" "] == 0
+        ), "make sure space is of idx 0 in vocab.txt, cuz 0 is used for unknown char"
 
     elif tokenizer == "byte":
         vocab_char_map = None
@@ -160,7 +168,9 @@ def convert_char_to_pinyin(text_list, polyphone=True):
                 if char_list and seg_byte_len > 1 and char_list[-1] not in " :'\"":
                     char_list.append(" ")
                 char_list.extend(seg)
-            elif polyphone and seg_byte_len == 3 * len(seg):  # if pure chinese characters
+            elif polyphone and seg_byte_len == 3 * len(
+                seg
+            ):  # if pure chinese characters
                 seg = lazy_pinyin(seg, style=Style.TONE3, tone_sandhi=True)
                 for c in seg:
                     if c not in "。，、；：？！《》【】—…":
@@ -173,7 +183,9 @@ def convert_char_to_pinyin(text_list, polyphone=True):
                     else:
                         if c not in "。，、；：？！《》【】—…":
                             char_list.append(" ")
-                            char_list.extend(lazy_pinyin(c, style=Style.TONE3, tone_sandhi=True))
+                            char_list.extend(
+                                lazy_pinyin(c, style=Style.TONE3, tone_sandhi=True)
+                            )
                         else:  # if is zh punc
                             char_list.append(c)
         final_text_list.append(char_list)
@@ -219,11 +231,15 @@ def get_librispeech_test_clean_metainfo(metalst, librispeech_test_clean_path):
 
         # ref_txt = ref_txt[0] + ref_txt[1:].lower() + '.'  # if use librispeech test-clean (no-pc)
         ref_spk_id, ref_chaptr_id, _ = ref_utt.split("-")
-        ref_wav = os.path.join(librispeech_test_clean_path, ref_spk_id, ref_chaptr_id, ref_utt + ".flac")
+        ref_wav = os.path.join(
+            librispeech_test_clean_path, ref_spk_id, ref_chaptr_id, ref_utt + ".flac"
+        )
 
         # gen_txt = gen_txt[0] + gen_txt[1:].lower() + '.'  # if use librispeech test-clean (no-pc)
         gen_spk_id, gen_chaptr_id, _ = gen_utt.split("-")
-        gen_wav = os.path.join(librispeech_test_clean_path, gen_spk_id, gen_chaptr_id, gen_utt + ".flac")
+        gen_wav = os.path.join(
+            librispeech_test_clean_path, gen_spk_id, gen_chaptr_id, gen_utt + ".flac"
+        )
 
         metainfo.append((gen_utt, ref_txt, ref_wav, " " + gen_txt, gen_wav))
 
@@ -271,16 +287,22 @@ def get_inference_prompt(
     )
 
     mel_spectrogram = MelSpec(
-        target_sample_rate=target_sample_rate, n_mel_channels=n_mel_channels, hop_length=hop_length
+        target_sample_rate=target_sample_rate,
+        n_mel_channels=n_mel_channels,
+        hop_length=hop_length,
     )
 
-    for utt, prompt_text, prompt_wav, gt_text, gt_wav in tqdm(metainfo, desc="Processing prompts..."):
+    for utt, prompt_text, prompt_wav, gt_text, gt_wav in tqdm(
+        metainfo, desc="Processing prompts..."
+    ):
         # Audio
         ref_audio, ref_sr = torchaudio.load(prompt_wav)
         ref_rms = torch.sqrt(torch.mean(torch.square(ref_audio)))
         if ref_rms < target_rms:
             ref_audio = ref_audio * target_rms / ref_rms
-        assert ref_audio.shape[-1] > 5000, f"Empty prompt wav: {prompt_wav}, or torchaudio backend issue."
+        assert (
+            ref_audio.shape[-1] > 5000
+        ), f"Empty prompt wav: {prompt_wav}, or torchaudio backend issue."
         if ref_sr != target_sample_rate:
             resampler = torchaudio.transforms.Resample(ref_sr, target_sample_rate)
             ref_audio = resampler(ref_audio)
@@ -308,7 +330,9 @@ def get_inference_prompt(
         else:
             ref_text_len = len(prompt_text.encode("utf-8"))
             gen_text_len = len(gt_text.encode("utf-8"))
-            total_mel_len = ref_mel_len + int(ref_mel_len / ref_text_len * gen_text_len / speed)
+            total_mel_len = ref_mel_len + int(
+                ref_mel_len / ref_text_len * gen_text_len / speed
+            )
 
         # to mel spectrogram
         ref_mel = mel_spectrogram(ref_audio)
@@ -319,7 +343,9 @@ def get_inference_prompt(
         assert (
             min_tokens <= total_mel_len <= max_tokens
         ), f"Audio {utt} has duration {total_mel_len*hop_length//target_sample_rate}s out of range [{min_secs}, {max_secs}]."
-        bucket_i = math.floor((total_mel_len - min_tokens) / (max_tokens - min_tokens + 1) * num_buckets)
+        bucket_i = math.floor(
+            (total_mel_len - min_tokens) / (max_tokens - min_tokens + 1) * num_buckets
+        )
 
         utts[bucket_i].append(utt)
         ref_rms_list[bucket_i].append(ref_rms)
@@ -411,7 +437,9 @@ def get_seed_tts_test(metalst, gen_wav_dir, gpus):
 # get librispeech test-clean cross sentence test
 
 
-def get_librispeech_test(metalst, gen_wav_dir, gpus, librispeech_test_clean_path, eval_ground_truth=False):
+def get_librispeech_test(
+    metalst, gen_wav_dir, gpus, librispeech_test_clean_path, eval_ground_truth=False
+):
     f = open(metalst)
     lines = f.readlines()
     f.close()
@@ -422,14 +450,21 @@ def get_librispeech_test(metalst, gen_wav_dir, gpus, librispeech_test_clean_path
 
         if eval_ground_truth:
             gen_spk_id, gen_chaptr_id, _ = gen_utt.split("-")
-            gen_wav = os.path.join(librispeech_test_clean_path, gen_spk_id, gen_chaptr_id, gen_utt + ".flac")
+            gen_wav = os.path.join(
+                librispeech_test_clean_path,
+                gen_spk_id,
+                gen_chaptr_id,
+                gen_utt + ".flac",
+            )
         else:
             if not os.path.exists(os.path.join(gen_wav_dir, gen_utt + ".wav")):
                 raise FileNotFoundError(f"Generated wav not found: {gen_utt}")
             gen_wav = os.path.join(gen_wav_dir, gen_utt + ".wav")
 
         ref_spk_id, ref_chaptr_id, _ = ref_utt.split("-")
-        ref_wav = os.path.join(librispeech_test_clean_path, ref_spk_id, ref_chaptr_id, ref_utt + ".flac")
+        ref_wav = os.path.join(
+            librispeech_test_clean_path, ref_spk_id, ref_chaptr_id, ref_utt + ".flac"
+        )
 
         test_set_.append((gen_wav, ref_wav, gen_txt))
 
@@ -542,7 +577,9 @@ def run_sim(args):
     device = f"cuda:{rank}"
 
     model = ECAPA_TDNN_SMALL(feat_dim=1024, feat_type="wavlm_large", config_path=None)
-    state_dict = torch.load(ckpt_dir, weights_only=True, map_location=lambda storage, loc: storage)
+    state_dict = torch.load(
+        ckpt_dir, weights_only=True, map_location=lambda storage, loc: storage
+    )
     model.load_state_dict(state_dict["model"], strict=False)
 
     use_gpu = True if torch.cuda.is_available() else False
