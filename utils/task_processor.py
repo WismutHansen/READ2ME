@@ -49,6 +49,18 @@ def process_tasks(stop_event):
                             from utils.synthesize_piper import url_with_piper
 
                             await url_with_piper(content, output_dir, img_pth)
+                        elif tts_engine == "F5":
+                            text, title = await extract_text(content)
+                            try:
+                                f5_tts = F5TTSEngine("utils/voices/")
+                                voices = await f5_tts.get_available_voices()
+                                voice = await f5_tts.pick_random_voice(voices)
+                                audio, _ = await f5_tts.generate_audio(text, voice)
+                                await f5_tts.export_audio(audio, text, title)
+                            except Exception as e:
+                                logging.error(
+                                    f"Error creating audio for URL {content}: {e}"
+                                )
                         else:
                             await synthesize_edge_tts(content, output_dir, img_pth)
                         await add_to_history(
@@ -65,6 +77,17 @@ def process_tasks(stop_event):
                             await text_to_speech_with_styletts2(
                                 content, "Text", output_dir, img_pth
                             )
+                        elif tts_engine == "F5":
+                            try:
+                                f5_tts = F5TTSEngine("utils/voices/")
+                                voices = await f5_tts.get_available_voices()
+                                voice = await f5_tts.pick_random_voice(voices)
+                                audio, _ = await f5_tts.generate_audio(content, voice)
+                                await f5_tts.export_audio(audio, content)
+                            except Exception as e:
+                                logging.error(
+                                    f"Error creating audio for URL {content}: {e}"
+                                )
                         elif tts_engine == "piper":
                             from utils.synthesize_piper import read_text_piper
 
