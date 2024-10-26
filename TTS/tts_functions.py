@@ -5,7 +5,14 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from pydub import AudioSegment
-
+from llm.LLM_calls import generate_title
+from utils.common_utils import (
+    get_date_subfolder,
+    get_output_files,
+    add_mp3_tags,
+    write_markdown_file,
+    convert_wav_to_mp3,
+)
 from .tts_engines import TTSEngine
 
 
@@ -32,18 +39,26 @@ class PodcastGenerator:
 
     def parse_transcript(self, transcript: str) -> List[Tuple[str, str]]:
         """Parse transcript into list of (speaker, text) tuples"""
-        # Clean transcript
-        transcript = re.sub(
-            r".*?(speaker1)", r"\1", transcript, flags=re.DOTALL | re.IGNORECASE
-        )
-        transcript = re.sub(r"\([^)]*\)", "", transcript)
 
+        # Clean and normalize the transcript
+        transcript = transcript.strip()
+
+        # Split the transcript by speaker tags
+        speaker_blocks = re.split(
+            r"\s*(speaker[12]):\s*", transcript, flags=re.IGNORECASE
+        )
+
+        # Remove any empty strings and strip whitespace
+        speaker_blocks = [block.strip() for block in speaker_blocks if block.strip()]
+
+        # Group the blocks into (speaker, text) pairs
         speaker_turns = []
-        lines = transcript.strip().split("\n")
-        for line in lines:
-            if ":" in line:
-                speaker, text = line.split(":", 1)
-                speaker_turns.append((speaker.strip(), text.strip()))
+        for i in range(0, len(speaker_blocks), 2):
+            if i + 1 >= len(speaker_blocks):
+                break
+            speaker = speaker_blocks[i].lower()
+            text = speaker_blocks[i + 1]
+            speaker_turns.append((speaker, text))
 
         if not speaker_turns:
             raise ValueError("No valid speaker turns found in transcript")
@@ -68,12 +83,11 @@ class PodcastGenerator:
                 raise ValueError("No voices available from TTS engine")
 
             if not voice_1:
-                voice_1 = available_voices[0]
+                voice_1 = await self.tts_engine.pick_random_voice(available_voices)
+                # voice_1 = available_voices[0]
             if not voice_2:
-                voice_2 = (
-                    available_voices[1]
-                    if len(available_voices) > 1
-                    else available_voices[0]
+                voice_2 = await self.tts_engine.pick_random_voice(
+                    available_voices, voice_1
                 )
 
         except Exception as e:
@@ -101,7 +115,7 @@ class PodcastGenerator:
         try:
             speaker_turns = self.parse_transcript(transcript)
             speakers = await self.assign_voices(speaker_turns, voice_1, voice_2)
-
+            self.logger.info(speakers)
             # Track timing and audio segments
             current_time = 0
             speaker_timing: Dict[str, List[SpeakerTiming]] = {s: [] for s in speakers}
@@ -139,7 +153,7 @@ class PodcastGenerator:
             final_audio = self._mix_tracks(speakers, speaker_timing, total_duration)
 
             # Export and return path
-            return self._export_podcast(final_audio, transcript)
+            return await self._export_podcast(final_audio, transcript)
 
         except Exception as e:
             self.logger.error(f"Error creating podcast: {e}")
@@ -172,15 +186,17 @@ class PodcastGenerator:
 
         return final_audio
 
-    def _export_podcast(self, audio: AudioSegment, transcript: str) -> str:
+    async def _export_podcast(self, audio: AudioSegment, transcript: str) -> str:
         """Export podcast audio and metadata"""
         try:
             # Implementation of file naming, export, and metadata addition
-            output_path = os.path.join(self.current_dir, "output", "podcast.mp3")
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            audio.export(output_path, format="mp3")
-            self.logger.info(f"Exported podcast to {output_path}")
-            return output_path
+            title = generate_title(transcript)
+            _, mp3_file_name, md_file_name = await get_output_files("Output", title)
+            audio.export(mp3_file_name, format="mp3")
+            add_mp3_tags(mp3_file_name, title, "front.jpg", "Output")
+            write_markdown_file(md_file_name, transcript)
+            self.logger.info(f"Exported podcast to {mp3_file_name}")
+            return mp3_file_name
         except Exception as e:
             self.logger.error(f"Error exporting podcast: {e}")
             raise

@@ -22,7 +22,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 toml_path = os.path.join(script_dir, "inference_cli.toml")
 
 parser = argparse.ArgumentParser(
-    prog="python3 inference_cli.py",
+    prog="python3 inference-cli.py",
     description="Commandline interface for E2/F5 TTS with Advanced Batch Processing.",
     epilog="Specify  options above  to override  one or more settings from config.",
 )
@@ -170,4 +170,4 @@ def main_process(ref_audio, ref_text, text_gen, model_obj, remove_silence):
             print(f.name)
 
 
-# main_process(ref_audio, ref_text, gen_text, ema_model, remove_silence)
+main_process(ref_audio, ref_text, gen_text, ema_model, remove_silence)

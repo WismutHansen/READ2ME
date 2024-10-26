@@ -23,7 +23,7 @@ from pypinyin import lazy_pinyin, Style
 from utils.F5_TTS.model.ecapa_tdnn import ECAPA_TDNN_SMALL
 from utils.F5_TTS.model.modules import MelSpec
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
+
 # seed everything
 
 
@@ -121,8 +121,7 @@ def get_tokenizer(dataset_name, tokenizer: str = "pinyin"):
                 - if use "byte", set to 256 (unicode byte range)
     """
     if tokenizer in ["pinyin", "char"]:
-        parent_dir = os.path.dirname(script_dir)
-        with open(f"{parent_dir}/data/{dataset_name}_{tokenizer}/vocab.txt", "r", encoding="utf-8") as f:
+        with open(f"utils/F5_TTS/data/{dataset_name}_{tokenizer}/vocab.txt", "r", encoding="utf-8") as f:
             vocab_char_map = {}
             for i, char in enumerate(f):
                 vocab_char_map[char[:-1]] = i

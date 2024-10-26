@@ -115,13 +115,11 @@ def load_model_on_demand(model_name):
 
 
 def infer(ref_audio_orig, ref_text, gen_text, model, remove_silence, cross_fade_duration=0.15, speed=1):
-    # Preprocess reference audio and text
     ref_audio, ref_text = preprocess_ref_audio_text(ref_audio_orig, ref_text)
 
     # Load the required model
     ema_model = load_model_on_demand(model)
 
-    # Perform inference
     final_wave, final_sample_rate, combined_spectrogram = infer_process(
         ref_audio,
         ref_text,
@@ -131,7 +129,7 @@ def infer(ref_audio_orig, ref_text, gen_text, model, remove_silence, cross_fade_
         speed=speed,
     )
 
-    # Remove silence if required
+    # Remove silence
     if remove_silence:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
             sf.write(f.name, final_wave, final_sample_rate)
