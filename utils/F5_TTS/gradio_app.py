@@ -27,11 +27,11 @@ def gpu_decorator(func):
         return func
 
 
-from model import DiT, UNetT
-from model.utils import (
+from utils.F5_TTS.model import DiT, UNetT
+from utils.F5_TTS.model.utils import (
     save_spectrogram,
 )
-from model.utils_infer import (
+from utils.F5_TTS.model.utils_infer import (
     load_vocoder,
     load_model,
     preprocess_ref_audio_text,
@@ -131,13 +131,8 @@ def generate_podcast(
         pause = AudioSegment.silent(duration=500)  # 500ms pause
         generated_audio_segments.append(pause)
 
-        # Concatenate all audio segments
-        if generated_audio_segments:
-            final_podcast = generated_audio_segments[0]
-            for segment in generated_audio_segments[1:]:
-                final_podcast += segment
-        else:
-            raise ValueError("No audio segments were generated.")
+    # Concatenate all audio segments
+    final_podcast = sum(generated_audio_segments)
 
     # Export the final podcast
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
