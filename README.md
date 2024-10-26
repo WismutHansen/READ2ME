@@ -4,7 +4,7 @@
 
 ## Overview
 
-Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS or optionally with the local TTS models StyleTTS2 or Piper TTS, and tags the resulting MP3 files with metadata. The application supports both HTML content and urls pointing to PDF, extracting meaningful text and generating audio files. You can install the provided Chromium Extension in any Chromium-based browser (e.g. Microsoft Edge) to send current urls or any text to the sever, add sources and keywords for automatic fetching.
+Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS or with the local TTS models F5-TTS, StyleTTS2 or Piper TTS, and tags the resulting MP3 files with metadata. You can either turn the full text into audio or have an LLM convert the seed text into a podcast. Currently Ollama and any OpenAI compatible API is supported. You can install the provided Chromium Extension in any Chromium-based browser (e.g. Chrome or Microsoft Edge) to send current urls or any text to the sever, add sources and keywords for automatic fetching.
 
 This is a currently a beta version but I plan to extend it to support other content types (e.g., epub) in the future and provide more robust support for languages other than English. Currently, when using the default Azure Edge TTS, it already supports [other languages](https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/speech-service/includes/language-support/multilingual-voices.md) and tries to autodetect it from the text but quality might vary depending on the language.
 
@@ -16,12 +16,12 @@ This is a currently a beta version but I plan to extend it to support other cont
 - Adds a cover image with the current date to the MP3 files.
 - For urls from wikipedia, uses the wikipedia python library to extract article content
 - Automatic retrieval of new articles from specified sources at defined intervals (currently hard coded to twice a day at 5AM and 5PM local time). Sources and keywords can be specified via text files.
+- Turn any seed text (url or manually entered text) into a podcast (currently works with edge-tts and F5)
 
 ## Requirements
 
 - Python 3.7 or higher
-- Dependencies listed in `requirements.txt`
-- If you want to use the local styleTTS2 text-to-speech model, please also install `requirements_stts2.txt`
+- Dependencies listed in `requirements.txt` for edge-tts, separate requirements for F5 and StyleTTS2.
 
 ## Installation
 
@@ -54,6 +54,12 @@ This is a currently a beta version but I plan to extend it to support other cont
    pip install -r requirements.txt
    ```
 
+   if you want to use the local F5-TTS model, please also install the additional dependencies:
+
+   ```sh
+   pip install -r requirements_F5.txt
+   ```
+
    if you want to use the local styleTTS2 text-to-speech model, please also install the additional dependencies:
 
    ```sh
@@ -82,14 +88,14 @@ This is a currently a beta version but I plan to extend it to support other cont
    OUTPUT_DIR=Output # Directory to store output files
    SOURCES_FILE=sources.json # File containing sources to retrieve articles from twice a day
    IMG_PATH=front.jpg # Path to image file to use as cover
+   OLLAMA_BASE_URL=http://localhost:11434    # Standard Port for Ollama
+   OPENAI_BASE_URL=http://localhost:11434/v1 # Example for Ollama Open AI compatible endpoint
+   OPENAI_API_KEY=skxxxxxx                   # Your OpenAI API Key in case of using the official OpenAI API
+   MODEL_NAME=llama3.2:latest
+   LLM_ENGINE=Ollama #Valid Options: Ollama, OpenAI
    ```
 
-### Docker Installation
-
-   **Build the Docker image**
-
-   ```sh
-   docker build -t read2me .
+   You can use either Ollama or any OpenAI compatible API for title and podcast script generation (summary function also coming soon)
    ```
 
 ## Usage
@@ -115,14 +121,6 @@ This is a currently a beta version but I plan to extend it to support other cont
    ```
 
    this will write all commandline output into a file called `nohup.out` in your current working directory.
-
-### Docker
-
-   **Run the Docker container (with a volume mount if you want to access the Output Folder from outside the container):**
-
-   ```sh
-   docker run -p 7777:7777 -v /path/to/local/output/dir:/app/Output read2me
-   ```
 
 2. **Add URLs for processing:**
 
@@ -197,6 +195,10 @@ Location of both files is configurable in .env file.
   }
   ```
 
+- **POST /v1/url/podcast**
+- **POST /v1/text/full**
+- **POST /v1/text/podcast**
+
 ## File Structure
 
 - **main.py**: The main FastAPI application file.
@@ -246,7 +248,7 @@ Location of both files is configurable in .env file.
 
 ## License
 
-This project is licensed under the Apache License Version 2.0, January 2004, except for the styletts2 code, which is licensed under the MIT License. The styletts2 pre-trained models are under their own license.
+This project is licensed under the Apache License Version 2.0, January 2004, except for the styletts2 code, which is licensed under the MIT License. The F5-TTS abd styletts2 pre-trained models are under their own license.
 
 StyleTTS2 Pre-Trained Models: Before using these pre-trained models, you agree to inform the listeners that the speech samples are synthesized by the pre-trained models, unless you have the permission to use the voice you synthesize. That is, you agree to only use voices whose speakers grant the permission to have their voice cloned, either directly or by license before making synthesized voices public, or you have to publicly announce that these voices are synthesized if you do not have the permission to use these voices.
 
@@ -255,15 +257,16 @@ StyleTTS2 Pre-Trained Models: Before using these pre-trained models, you agree t
 - [x] language detection and voice selection based on detected language (currently only works for edge-tts).
 - [x] Add support for handling of pdf files
 - [x] Add support for local text-to-speech (TTS) engine like StyleTTS2.
-- [x] Add support for LLM-based text processing like summarization with local LLMs through Ollama or the OpenAI API
+- [x] Add support for LLM-based text processing like podcast transcript with local LLMs through Ollama or the OpenAI API
+- [x] Add support for F5-TTS
 - [ ] Add support for automatic image captioning using local vision models or the OpenAI API
-- [ ] Add support for F5-TTS
 
 ## Acknowledgements
 
 I would like to thank the following repositories and authors for their inspiration and code:
 
-- [stylyetts2](https://github.com/yl4579/StyleTTS2) - One of the best open source TTS engines, and really fast if using NVIDIA/CUDA
+- [F5-TTS](https://github.com/PasiKoodaa/F5-TTS.git) - Currently the best open weights TTS model!
+- [stylyetts2](https://github.com/yl4579/StyleTTS2) - A great open source TTS engine, and really fast if using NVIDIA/CUDA
 - [piperTTS](https://github.com/rhasspy/piper) - Another good local TTS engine that also works on low spec systems
 - [AlwaysReddy](https://github.com/ILikeAI/AlwaysReddy) - Thanks to these guys, I got piper TTS working in my project
 - [rvc-python](https://pypi.org/project/rvc-python/) - For improving generated speech
