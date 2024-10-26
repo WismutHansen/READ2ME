@@ -14,10 +14,13 @@ import numpy as np
 from edge_tts import VoicesManager, Communicate
 from pydub import AudioSegment
 
+from utils.env import setup_env
 from TTS.F5_TTS.F5 import get_available_voices as f5_get_voices
 from TTS.F5_TTS.F5 import infer, load_transcript
 
 logger = logging.getLogger(__name__)
+
+output_dir, task_file, img_pth, sources_file = setup_env()
 
 
 class TTSEngine(ABC):
@@ -74,9 +77,9 @@ class TTSEngine(ABC):
             # Implementation of file naming, export, and metadata addition
             if not title:
                 title = generate_title(text)
-            _, mp3_file_name, md_file_name = await get_output_files("Output", title)
+            _, mp3_file_name, md_file_name = await get_output_files(output_dir, title)
             audio.export(mp3_file_name, format="mp3")
-            add_mp3_tags(mp3_file_name, title, "front.jpg", "Output")
+            add_mp3_tags(mp3_file_name, title, "front.jpg", output_dir)
             write_markdown_file(md_file_name, text)
             logger.info(f"Exported podcast to {mp3_file_name}")
             return mp3_file_name
