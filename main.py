@@ -523,7 +523,11 @@ async def schedule_fetch_articles():
 
     while not stop_event.is_set():
         now = datetime.now(local_tz)
-        target_times = [time(6, 0), time(17, 0)]  # 6:00 AM and 5:00 PM
+        target_times = [
+            time(5, 0),
+            time(12, 0),
+            time(19, 0),
+        ]  # 6:00 AM, 12:00 PM and 7:00 PM
 
         for target_time in target_times:
             if now.time() <= target_time:
