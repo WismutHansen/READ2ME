@@ -79,7 +79,7 @@ class TTSEngine(ABC):
                 title = generate_title(text)
             _, mp3_file_name, md_file_name = await get_output_files(output_dir, title)
             audio.export(mp3_file_name, format="mp3")
-            add_mp3_tags(mp3_file_name, title, "front.jpg", output_dir)
+            add_mp3_tags(mp3_file_name, title, img_pth, output_dir)
             write_markdown_file(md_file_name, text)
             logger.info(f"Exported podcast to {mp3_file_name}")
             return mp3_file_name
