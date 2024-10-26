@@ -10,8 +10,16 @@ from .rssfeed import find_rss_feed, get_articles_from_feed
 
 MAX_ARTICLES_PER_SOURCE = 10
 
+
 def compile_patterns(keywords):
-    return [re.compile(r"\b" + re.escape(keyword).replace("\\ ", "\\s+") + r"\b", re.IGNORECASE) for keyword in keywords if keyword != "*"]
+    return [
+        re.compile(
+            r"\b" + re.escape(keyword).replace("\\ ", "\\s+") + r"\b", re.IGNORECASE
+        )
+        for keyword in keywords
+        if keyword != "*"
+    ]
+
 
 async def fetch_articles():
     sources_file = "sources.json"
@@ -30,15 +38,9 @@ async def fetch_articles():
         sample_data = {
             "global_keywords": ["example", "test"],
             "sources": [
-                {
-                    "url": "https://example.com",
-                    "keywords": ["specific", "example"]
-                },
-                {
-                    "url": "https://all-articles-example.com",
-                    "keywords": ["*"]
-                }
-            ]
+                {"url": "https://example.com", "keywords": ["specific", "example"]},
+                {"url": "https://all-articles-example.com", "keywords": ["*"]},
+            ],
         }
         try:
             async with aiofiles.open(file_path, "w") as file:
@@ -68,6 +70,7 @@ async def fetch_articles():
 
     logging.info("Completed processing all sources and articles.")
 
+
 async def process_article(article_url, global_patterns, source_patterns, download_all):
     try:
         if download_all:
@@ -76,12 +79,18 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
             return True
 
         # Extract the headline from the URL
-        headline = article_url.split('/')[-1].replace('-', ' ').lower()
-        all_patterns = global_patterns if not source_patterns else (global_patterns + source_patterns)
-        
+        headline = article_url.split("/")[-1].replace("-", " ").lower()
+        all_patterns = (
+            global_patterns
+            if not source_patterns
+            else (global_patterns + source_patterns)
+        )
+
         for pattern in all_patterns:
             if pattern.search(headline):
-                logging.info(f"Keyword '{pattern.pattern}' found in headline: {article_url}")
+                logging.info(
+                    f"Keyword '{pattern.pattern}' found in headline: {article_url}"
+                )
                 await add_task("url", article_url, "edge_tts")
                 return True
 
@@ -92,11 +101,12 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
         logging.error(f"Failed to process article {article_url}: {e}")
         return False
 
+
 async def process_source(source, global_patterns):
     source_url = source["url"]
     source_keywords = source.get("keywords", [])
     download_all = "*" in source_keywords
-#    filter_quality = "%" in source_keywords # if the % character is used, all articles should first be rated by th score_text function 
+    #    filter_quality = "%" in source_keywords # if the % character is used, all articles should first be rated by th score_text function
     source_patterns = compile_patterns([k for k in source_keywords if k and k != "*"])
 
     if source.get("is_rss", False):
@@ -117,7 +127,11 @@ async def process_source(source, global_patterns):
     for article_url in articles:
         if download_all and articles_processed >= MAX_ARTICLES_PER_SOURCE:
             break
-        task = asyncio.create_task(process_article_with_timeout(article_url, global_patterns, source_patterns, download_all))
+        task = asyncio.create_task(
+            process_article_with_timeout(
+                article_url, global_patterns, source_patterns, download_all
+            )
+        )
         tasks.append(task)
         if download_all:
             articles_processed += 1
@@ -126,16 +140,22 @@ async def process_source(source, global_patterns):
     articles_added = sum(results)
     logging.info(f"Added {articles_added} articles from {source_url}")
 
-async def process_article_with_timeout(article_url, global_patterns, source_patterns, download_all):
+
+async def process_article_with_timeout(
+    article_url, global_patterns, source_patterns, download_all
+):
     try:
         return await asyncio.wait_for(
-            process_article(article_url, global_patterns, source_patterns, download_all),
-            timeout=30  # Adjust this value as needed
+            process_article(
+                article_url, global_patterns, source_patterns, download_all
+            ),
+            timeout=30,  # Adjust this value as needed
         )
     except asyncio.TimeoutError:
         logging.warning(f"Processing timed out for article: {article_url}")
         return False
-    
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     asyncio.run(fetch_articles())
