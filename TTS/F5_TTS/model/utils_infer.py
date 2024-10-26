@@ -12,8 +12,8 @@ from pydub import AudioSegment, silence
 from transformers import pipeline
 from vocos import Vocos
 
-from utils.F5_TTS.model import CFM
-from utils.F5_TTS.model.utils import (
+from TTS.F5_TTS.model import CFM
+from TTS.F5_TTS.model.utils import (
     load_checkpoint,
     get_tokenizer,
     convert_char_to_pinyin,
