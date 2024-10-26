@@ -4,11 +4,14 @@ import random
 from pydub import AudioSegment
 import asyncio
 from edge_tts import VoicesManager
-from ..synthesize import tts
-from ..common_utils import get_output_files, add_mp3_tags, write_markdown_file
-from ..env import setup_env
+from TTS.F5_TTS.F5 import infer, get_available_voices, pick_random_voice
+from utils.synthesize import tts
+from utils.common_utils import get_output_files, add_mp3_tags, write_markdown_file
+from utils.env import setup_env
 from llm.LLM_calls import generate_title
 import logging
+import numpy as np
+import tempfile
 
 # Get the current directory of the script
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -289,16 +292,173 @@ def adjust_timestamp(timestamp, offset):
     return f"{new_hours:02}:{new_minutes:02}:{new_seconds:02}.{new_milliseconds:03}"
 
 
+async def create_podcast_audio_f5(
+    transcript: str, voice_1: str = None, voice_2: str = None
+):
+    """
+    Creates the podcast audio from the transcript using the F5-TTS model.
+    """
+    # Get the path to the voice folder relative to F5_TTS.py
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    voice_dir = os.path.join(script_dir, "..", "voices")
+    voice_dir = os.path.abspath(voice_dir)  # Convert to absolute path
+
+    # Remove everything up until the first occurrence of the word "speaker1"
+    transcript = re.sub(
+        r".*?(speaker1)", r"\1", transcript, flags=re.DOTALL | re.IGNORECASE
+    )
+
+    # Remove any speaker notes in (*) that the LLM might put into the script
+    transcript = re.sub(r"\([^)]*\)", "", transcript)
+
+    # Parse the transcript into a list of speaker, text
+    speaker_turns = parse_transcript(transcript)
+    print(speaker_turns)
+    # Identify speakers and assign voices and numbering
+    speakers = {}
+    speaker_voices = {}
+
+    # If voices are not provided, pick two random different voices from the ref_audio folder
+    if not voice_1 or not voice_2:
+        available_voices = get_available_voices(voice_dir)
+
+        if not available_voices:
+            logging.error("No available voices found in ref_audio")
+            raise ValueError("No available voices found in ref_audio")
+
+        voice_1 = pick_random_voice(available_voices)
+        voice_2 = pick_random_voice(available_voices, previous_voice=voice_1)
+        logging.info(f"Picked voices: {voice_1} for Speaker 1, {voice_2} for Speaker 2")
+
+    # Assign voices to speakers
+    for speaker, _ in speaker_turns:
+        if speaker not in speakers:
+            speakers[speaker] = len(speakers) + 1  # Assign speaker number
+
+            if len(speakers) == 1:
+                speaker_voices[speaker] = voice_1
+                speaker_1_name = speaker  # Save for later
+            elif len(speakers) == 2:
+                speaker_voices[speaker] = voice_2
+                speaker_2_name = speaker  # Save for later
+
+    # Initialize variables to keep track of timing
+    current_time = 0  # in milliseconds
+    speaker_timing = {speaker: [] for speaker in speakers}
+
+    # Process each speaker turn and record timing
+    for speaker, text in speaker_turns:
+        voice = speaker_voices[speaker]
+        logging.info(f"Generating audio for {speaker} using {voice}")
+
+        try:
+            # Infer audio for the current speaker using F5-TTS
+            audio_path = os.path.join(voice_dir, voice)
+            print(f"using voice:{audio_path}")
+            audio_np = infer(audio_path, transcript, text)
+
+            if audio_np is None:
+                logging.error(f"Failed to generate audio for {speaker}")
+                continue
+
+            # Write NumPy array to a temporary WAV file
+            with tempfile.NamedTemporaryFile(
+                suffix=".wav", delete=False
+            ) as temp_wav_file:
+                temp_wav_path = temp_wav_file.name
+                # Convert the NumPy array to a 16-bit PCM WAV file
+                audio_np_int16 = (audio_np * 32767).astype(np.int16)
+                AudioSegment(
+                    data=audio_np_int16.tobytes(),
+                    sample_width=2,  # 16-bit audio
+                    frame_rate=16000,  # 24000 Hz
+                    channels=1,  # Assuming mono audio; set to 2 for stereo if needed
+                ).export(temp_wav_path, format="wav")
+                logging.info(
+                    f"Saved temporary WAV file for {speaker} at {temp_wav_path}"
+                )
+
+            # Load the audio segment back from the WAV file
+            audio_segment = AudioSegment.from_wav(temp_wav_path)
+            logging.info(
+                f"Generated audio for {speaker} (length: {len(audio_segment)} ms)"
+            )
+
+        except Exception as e:
+            logging.error(f"Error creating TTS for {speaker}: {e}")
+            continue
+
+        # Record the timing for this segment
+        speaker_timing[speaker].append((current_time, audio_segment))
+        current_time += len(audio_segment)  # Use the length of the audio segment
+
+    # Optionally, clean up the temporary file after processing
+    os.remove(temp_wav_path)
+    logging.info(f"Deleted temporary WAV file: {temp_wav_path}")
+
+    # Determine the total duration of the podcast
+    total_duration = max(
+        [
+            start_time + len(audio)
+            for timings in speaker_timing.values()
+            for start_time, audio in timings
+        ]
+    )
+
+    # Create empty AudioSegment for each speaker
+    speaker_tracks = {}
+    for speaker in speakers:
+        speaker_tracks[speaker] = AudioSegment.silent(duration=total_duration)
+
+    # Place each audio segment in the correct position on its speaker's track
+    for speaker, timings in speaker_timing.items():
+        for start_time, audio in timings:
+            # Overlay the audio segment at the correct time
+            speaker_tracks[speaker] = speaker_tracks[speaker].overlay(
+                audio, position=start_time
+            )
+
+    # Pan each track
+    speaker_tracks[speaker_1_name] = speaker_tracks[speaker_1_name].pan(
+        -0.2
+    )  # Slightly left
+    speaker_tracks[speaker_2_name] = speaker_tracks[speaker_2_name].pan(
+        0.2
+    )  # Slightly right
+
+    # Mix the two tracks
+    combined_audio = speaker_tracks[speaker_1_name].overlay(
+        speaker_tracks[speaker_2_name]
+    )
+
+    # Generate a title, replace spaces with underscores and remove special characters
+    title = generate_title(transcript)
+    title_ = title.replace(" ", "_")
+    clean_title = re.sub(r"[^A-Za-z0-9 ]", "", title_)
+
+    base_file_name, mp3_file, md_file = await get_output_files(output_dir, clean_title)
+
+    # Generate a title, replace spaces with underscores and remove special characters
+    write_markdown_file(md_file, f"{title} + \n\n + {transcript}")
+
+    # Export the final audio to the podcast directory
+    combined_audio.export(mp3_file, format="mp3")
+
+    add_mp3_tags(mp3_file, title, img_pth, output_dir)
+
+    logging.info(f"Podcast audio has been generated as '{mp3_file}'.")
+
+
 # Example usage
 if __name__ == "__main__":
     import asyncio
 
     transcript = """
-    Alex: Hey, did you hear about the new Python release?
-    Taylor: Oh, no, I haven't. What's new in it?
-    Alex: Well, they added some really cool features like pattern matching.
-    Taylor: That's awesome! I was waiting for that feature.
+    speaker1: Hey, did you hear about the new Python release?
+    speaker2: Oh, no, I haven't. What's new in it?
+    speaker1: Well, they added some really cool features like pattern matching.
+    speaker2: That's awesome! I was waiting for that feature.
     """
 
     # Running the asyncio function
-    asyncio.run(create_podcast_audio(transcript))
+    asyncio.run(create_podcast_audio_f5(transcript))
