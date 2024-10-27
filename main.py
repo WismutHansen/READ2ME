@@ -89,7 +89,7 @@ try:
       ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
       ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
     
-      READ2ME Version 0.1.1 - Ain't knowbody gonna read that!
+      READ2ME Version 0.1.2 - You' gonna read that?
 
     """)
     logging.info(f"Logging setup completed. Log file path: {log_file_path}")
@@ -141,11 +141,11 @@ app = FastAPI(
     lifespan=lifespan,
     title="Read2Me API",
     description="API for text-to-speech conversion and more",
-    version="1.0.0",
+    version="0.1.2",
 )
 
 # Update this line to use an absolute path
-output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+# output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
 
 # Mount the static files with the correct directory
 app.mount("/static", StaticFiles(directory=output_dir), name="static")
@@ -153,7 +153,8 @@ app.mount("/static", StaticFiles(directory=output_dir), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:3001",
     ],  # Update with the frontend URL if different from the standard
     allow_credentials=True,
     allow_methods=["*"],
