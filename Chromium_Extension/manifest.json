@@ -15,7 +15,8 @@
     "default_icon": "thumb.png"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "icons": {
     "16": "thumb_16.png",
@@ -23,5 +24,8 @@
     "48": "thumb_48.png",
     "128": "thumb_128.png"
   },
-  "options_page": "settings.html"
+  "options_page": "settings.html",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }
