@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   const actionSelect = document.getElementById('actionSelect');
   const urlSection = document.getElementById('urlSection');
   const textSection = document.getElementById('textSection');
@@ -7,11 +7,18 @@ document.addEventListener('DOMContentLoaded', function() {
   const urlInput = document.getElementById('urlInput');
   const sourceUrlInput = document.getElementById('sourceUrl');
   const serverDropdown = document.getElementById('serverSelect');
-  serverDropdown.id = 'serverSelect';
-  document.body.insertBefore(serverDropdown, document.getElementById('settingsLink'));
+
+  // Ensure serverDropdown exists before manipulating
+  if (serverDropdown) {
+    serverDropdown.id = 'serverSelect';
+    const settingsLink = document.getElementById('settingsLink');
+    if (settingsLink) {
+      document.body.insertBefore(serverDropdown, settingsLink);
+    }
+  }
 
   // Load servers from storage
-  chrome.storage.sync.get(['servers', 'defaultServer'], function(data) {
+  chrome.storage.sync.get(['servers', 'defaultServer'], function (data) {
     const servers = data.servers || ['http://127.0.0.1:7777'];
     const defaultServer = data.defaultServer || 'http://127.0.0.1:7777';
     servers.forEach(server => {
@@ -21,12 +28,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (server === defaultServer) {
         option.selected = true;
       }
-      serverDropdown.appendChild(option);
+      serverDropdown?.appendChild(option);
     });
   });
 
   // Fetch current tab URL and prefill the inputs
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (tabs[0] && tabs[0].url) {
       urlInput.value = tabs[0].url;
       // Prefill the source URL with the root of the current website
@@ -35,10 +42,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  actionSelect.addEventListener('change', function() {
+  actionSelect.addEventListener('change', function () {
     [urlSection, textSection, sourcesSection].forEach(section => section.classList.add('hidden'));
 
-    switch(this.value) {
+    switch (this.value) {
       case 'url':
         urlSection.classList.remove('hidden');
         break;
@@ -56,18 +63,28 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.style.height = 'auto';
   }
 
-  document.getElementById('addUrlButton').addEventListener('click', function() {
+  document.getElementById('addUrlButton').addEventListener('click', function () {
+    const urlInput = document.getElementById('urlInput');
+    if (!urlInput) {
+      console.error('urlInput element not found');
+      return;
+    }
+
     const url = urlInput.value;
-    const type = document.getElementById('urlTypeSelect').value;
-    const ttsEngine = document.getElementById('urlTtsEngine').value;
-    const serverUrl = serverDropdown.value;
+    const typeSelect = document.getElementById('urlTypeSelect');
+    const ttsEngineSelect = document.getElementById('urlTtsEngine');
+    const serverUrl = serverDropdown?.value;
+
+    const type = typeSelect?.value || 'defaultType';
+    const ttsEngine = ttsEngineSelect?.value || 'defaultEngine';
+
     if (url) {
       chrome.runtime.sendMessage({
         action: `addUrl${type.charAt(0).toUpperCase() + type.slice(1)}`,
         url: url,
         ttsEngine: ttsEngine,
         serverUrl: serverUrl
-      }, function(response) {
+      }, function (response) {
         resultDiv.textContent = response.message;
       });
     } else {
@@ -76,18 +93,18 @@ document.addEventListener('DOMContentLoaded', function() {
     adjustPopupHeight();
   });
 
-  document.getElementById('addTextButton').addEventListener('click', function() {
-    const text = document.getElementById('textInput').value;
-    const type = document.getElementById('textTypeSelect').value;
-    const ttsEngine = document.getElementById('textTtsEngine').value;
-    const serverUrl = serverDropdown.value;
+  document.getElementById('addTextButton').addEventListener('click', function () {
+    const text = document.getElementById('textInput')?.value;
+    const type = document.getElementById('textTypeSelect')?.value;
+    const ttsEngine = document.getElementById('textTtsEngine')?.value;
+    const serverUrl = serverDropdown?.value;
     if (text) {
       chrome.runtime.sendMessage({
         action: `addText${type.charAt(0).toUpperCase() + type.slice(1)}`,
         text: text,
         ttsEngine: ttsEngine,
         serverUrl: serverUrl
-      }, function(response) {
+      }, function (response) {
         resultDiv.textContent = response.message;
       });
     } else {
@@ -96,16 +113,16 @@ document.addEventListener('DOMContentLoaded', function() {
     adjustPopupHeight();
   });
 
-  document.getElementById('addSourceButton').addEventListener('click', function() {
+  document.getElementById('addSourceButton').addEventListener('click', function () {
     const url = sourceUrlInput.value;
-    const keywords = document.getElementById('sourceKeywords').value.split(',').map(k => k.trim());
-    const serverUrl = serverDropdown.value;
+    const keywords = document.getElementById('sourceKeywords')?.value.split(',').map(k => k.trim());
+    const serverUrl = serverDropdown?.value;
     if (url && keywords.length > 0) {
       chrome.runtime.sendMessage({
         action: 'addSource',
         sourceData: { url, keywords },
         serverUrl: serverUrl
-      }, function(response) {
+      }, function (response) {
         resultDiv.textContent = response.message;
       });
     } else {
@@ -114,17 +131,17 @@ document.addEventListener('DOMContentLoaded', function() {
     adjustPopupHeight();
   });
 
-  document.getElementById('fetchSourcesButton').addEventListener('click', function() {
-    const serverUrl = serverDropdown.value;
-    chrome.runtime.sendMessage({action: 'fetchSources', serverUrl: serverUrl}, function(response) {
+  document.getElementById('fetchSourcesButton').addEventListener('click', function () {
+    const serverUrl = serverDropdown?.value;
+    chrome.runtime.sendMessage({ action: 'fetchSources', serverUrl: serverUrl }, function (response) {
       resultDiv.textContent = response.message;
     });
     adjustPopupHeight();
   });
 
-  document.getElementById('getSourcesButton').addEventListener('click', function() {
-    const serverUrl = serverDropdown.value;
-    chrome.runtime.sendMessage({action: 'getSources', serverUrl: serverUrl}, function(response) {
+  document.getElementById('getSourcesButton').addEventListener('click', function () {
+    const serverUrl = serverDropdown?.value;
+    chrome.runtime.sendMessage({ action: 'getSources', serverUrl: serverUrl }, function (response) {
       try {
         const data = JSON.parse(response.message);
         let displayText = "Global Keywords: " + (data.global_keywords ? data.global_keywords.join(", ") : "None") + "\n\nSources:\n";
