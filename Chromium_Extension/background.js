@@ -8,17 +8,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         'Content-Type': 'application/json',
       },
     };
-
     if (method !== 'GET' && body !== null) {
       options.body = JSON.stringify(body);
     }
 
     try {
       const response = await fetch(`${baseUrl}${endpoint}`, options);
+
+      // Handle non-200 responses
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       sendResponse({ message: data.message || JSON.stringify(data) });
     } catch (error) {
-      sendResponse({ message: `Error: ${error}` });
+      // Provide specific error message for connection refused
+      if (error.message.includes('Failed to fetch') ||
+        error.message.includes('NetworkError') ||
+        error.message.includes('Network Error')) {
+        sendResponse({
+          error: true,
+          message: 'Backend not responding, is the server running? Please check if the backend service is started.'
+        });
+      } else {
+        sendResponse({
+          error: true,
+          message: `Error: ${error.message}`
+        });
+      }
     }
   }
 
@@ -50,7 +68,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       break;
     default:
-      sendResponse({ message: 'Unknown action' });
+      sendResponse({
+        error: true,
+        message: 'Unknown action'
+      });
   }
   return true;  // Indicates that the response is sent asynchronously
 });
