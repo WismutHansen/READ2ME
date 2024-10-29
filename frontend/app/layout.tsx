@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "READ2ME",
   description: "Ain't nobody got time to read",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -19,10 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider 
-        attribute="class" 
-        defaultTheme="dark" 
-        enableSystem={false}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
         >
           {children}
         </ThemeProvider>

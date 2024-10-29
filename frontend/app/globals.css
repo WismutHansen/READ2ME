@@ -58,7 +58,13 @@
     --chart-5: 340 75% 55%;
   }
 }
+.markdown-content {
+  color: #333; /* Light mode color */
+}
 
+.dark .markdown-content {
+  color: #e5e7eb; /* Dark mode color */
+}
 @layer base {
   * {
     @apply border-border;
