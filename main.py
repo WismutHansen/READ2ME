@@ -512,6 +512,11 @@ async def get_article(article_id: str):
     raise HTTPException(status_code=404, detail="Article not found")
 
 
+@app.get("/v1/server/status")
+async def get_status():
+    return {"message": "Endpoint not yet implemented"}
+
+
 async def schedule_fetch_articles():
     from utils.sources import fetch_articles
 

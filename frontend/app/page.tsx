@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import ArticleList from '@/components/ArticleList';
 import BottomBar from '@/components/BottomBar';
@@ -11,8 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Cog } from "lucide-react";
 import SourceManager from '@/components/SourceManager';
 import ArticleAdder from '@/components/ArticleAdder';
+import SettingsManager from '@/components/SettingsManager';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import type { ArticleListRef } from '@/components/ArticleList';
 
 interface Article {
   id: string;
@@ -23,41 +28,60 @@ interface Article {
 
 export default function Home() {
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
   const [articleAdderOpen, setArticleAdderOpen] = useState(false);
+  const { toast } = useToast();
+  const articleListRef = useRef<ArticleListRef>(null);
 
   const handleSelectArticle = (article: Article) => {
-    console.log('Setting current article:', article);
     setCurrentArticle(article);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await articleListRef.current?.refresh();
+      toast({
+        title: "Articles refreshed",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to refresh articles",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
     <main className="container mx-auto px-4 py-8 mb-24">
       <div className="flex justify-between items-center mb-8">
         <div className="h-8 relative">
-        <a 
-          href="https://github.com/WismutHansen/READ2ME" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="h-8 relative"
-        >
-          <Image
-            src="/Black.svg"
-            alt="READ2ME Logo"
-            className="block dark:hidden"
-            width={60}
-            height={16}
-            priority
-          />
-          <Image
-            src="/White.svg"
-            alt="READ2ME Logo"
-            className="hidden dark:block"
-            width={60}
-            height={16}
-            priority
-          /> 
-        </a>
+          <a
+            href="https://github.com/WismutHansen/READ2ME"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-8 relative"
+          >
+            <Image
+              src="/Black.svg"
+              alt="READ2ME Logo"
+              className="block dark:hidden"
+              width={60}
+              height={16}
+              priority
+            />
+            <Image
+              src="/White.svg"
+              alt="READ2ME Logo"
+              className="hidden dark:block"
+              width={60}
+              height={16}
+              priority
+            />
+          </a>
         </div>
         <div className="flex items-center gap-4">
           <Button
@@ -72,6 +96,7 @@ export default function Home() {
           >
             Add Content
           </Button>
+          <SettingsManager variant="outline" />
           <ModeToggle />
         </div>
       </div>
@@ -94,9 +119,33 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      <div className="space-y-8">
-        <ArticleList onSelectArticle={handleSelectArticle} />
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl">READ2ME Audio Library</h2>
+        <Button
+          onClick={handleRefresh}
+          variant="outline"
+          size="sm"
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Refreshing
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </>
+          )}
+        </Button>
       </div>
+
+      <ArticleList
+        ref={articleListRef}
+        onSelectArticle={handleSelectArticle}
+      />
+
       <BottomBar currentArticle={currentArticle} />
     </main>
   );

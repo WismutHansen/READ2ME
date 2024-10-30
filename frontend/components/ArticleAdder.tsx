@@ -3,18 +3,30 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
+const STORAGE_KEYS = {
+  SERVER_URL: 'serverUrl',
+  TTS_ENGINE: 'ttsEngine',
+};
+
 export default function ArticleAdder() {
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
 
+  const getSettings = () => {
+    const serverUrl = localStorage.getItem(STORAGE_KEYS.SERVER_URL) || 'http://localhost:7777';
+    const ttsEngine = localStorage.getItem(STORAGE_KEYS.TTS_ENGINE) || 'edge';
+    return { serverUrl, ttsEngine };
+  };
+
   const handleAddUrl = async () => {
+    const { serverUrl, ttsEngine } = getSettings();
     try {
-      const response = await fetch('http://localhost:7777/v1/url/full', {
+      const response = await fetch(`${serverUrl}/v1/url/full`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url, tts_engine: 'edge' }),
+        body: JSON.stringify({ url, tts_engine: ttsEngine }),
       });
       if (!response.ok) throw new Error('Failed to add URL');
       setUrl('');
@@ -26,13 +38,14 @@ export default function ArticleAdder() {
   };
 
   const handleAddText = async () => {
+    const { serverUrl, ttsEngine } = getSettings();
     try {
-      const response = await fetch('http://localhost:7777/v1/text/full', {
+      const response = await fetch(`${serverUrl}/v1/text/full`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text, tts_engine: 'edge' }),
+        body: JSON.stringify({ text, tts_engine: ttsEngine }),
       });
       if (!response.ok) throw new Error('Failed to add text');
       setText('');
