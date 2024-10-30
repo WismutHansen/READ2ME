@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
+import getSettings from "@/lib/settings";
 
 interface Article {
   id: string;
@@ -15,37 +16,45 @@ interface Article {
 }
 
 interface ArticleListProps {
-  onSelectArticle: (article: Article) => void;
+  onSelectArticle?: (article: Article) => void;
 }
 
-export default function ArticleList({ onSelectArticle }: ArticleListProps) {
+export interface ArticleListRef {
+  refresh: () => Promise<void>;
+}
+
+const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArticle }, ref) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    fetchArticles();
-  }, []);
-
-  const fetchArticles = async () => {
+  const fetchArticles = async (pageNum: number) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:7777/v1/articles");
+      const { serverUrl } = getSettings();
+      const LIMIT = 20;
+      const response = await fetch(`${serverUrl}/v1/articles?page=${pageNum}&limit=${LIMIT}`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch articles');
       }
+
       const data = await response.json();
-      if (data.articles.length === 0) {
-        setHasMore(false);
-      } else {
-        setArticles(prevArticles => [...prevArticles, ...data.articles]);
-        setPage(prevPage => prevPage + 1);
-      }
+
+      const newArticles = data.articles || [];
+
+      setArticles(prevArticles => {
+        // Replace previous articles only if pageNum is 1, otherwise append
+        return pageNum === 1 ? newArticles : [...prevArticles, ...newArticles];
+      });
+
+      // Set hasMore based on whether more articles exist
+      setHasMore(newArticles.length === LIMIT);
+
     } catch (error) {
       console.error('Error fetching articles:', error);
       setError('Failed to load articles. Please try again.');
@@ -54,20 +63,28 @@ export default function ArticleList({ onSelectArticle }: ArticleListProps) {
     }
   };
 
+  // Ensure articles are fetched correctly on page change
+  useEffect(() => {
+    fetchArticles(page);
+  }, [page]);
+
+  const loadMore = () => {
+    if (hasMore && !isLoading) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
+
   const handleSelectArticle = (article: Article) => {
-    // Stop any currently playing audio
     if (audioRef.current) {
       audioRef.current.pause();
     }
-    
-    // Create and play new audio
+
     audioRef.current = new Audio(article.audio_file);
     audioRef.current.play().catch(error => {
       console.error('Error playing audio:', error);
     });
 
-    // Call the onSelectArticle prop to update the parent component
-    onSelectArticle(article);
+    onSelectArticle?.(article);
   };
 
   if (error) {
@@ -75,48 +92,60 @@ export default function ArticleList({ onSelectArticle }: ArticleListProps) {
   }
 
   return (
-    <div>
-      {articles.length === 0 && !isLoading ? (
-        <div>No articles found.</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {articles.map((article) => (
-            <div key={article.id} className="border rounded-md overflow-hidden shadow-md cursor-pointer" onClick={() => handleSelectArticle(article)}>
-              <div className="relative h-40">
-                <Image
-                  src={article.image_url || '/placeholder-image.jpg'}
-                  alt={article.title}
-                  layout="fill"
-                  objectFit="cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-lg font-semibold line-clamp-2">{article.title}</h3>
-                <div className="mt-2 flex items-center">
-                  {article.source_logo_url ? (
+    <>
+      {/* Articles list */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {articles.map((article) => (
+          <div
+            key={article.id}
+            className="border rounded-lg overflow-hidden shadow-sm cursor-pointer hover:bg-accent"
+            onClick={() => handleSelectArticle(article)}
+          >
+            {/* Article image */}
+            <div className="relative aspect-square">
+              <Image
+                src={article.image_url || '/placeholder-image.jpg'}
+                alt={article.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            </div>
+            {/* Article details */}
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                {article.source_logo_url && (
+                  <div className="relative w-4 h-4">
                     <Image
                       src={article.source_logo_url}
                       alt={article.source_name}
-                      width={20}
-                      height={20}
-                      className="mr-2"
+                      fill
+                      className="object-contain"
+                      sizes="16px"
                     />
-                  ) : (
-                    <span className="mr-2 font-bold">{article.source_name}</span>
-                  )}
-                  <span className="text-sm text-gray-500">{article.date}</span>
-                </div>
+                  </div>
+                )}
+                <span className="text-sm text-muted-foreground">{article.source_name}</span>
               </div>
+              <h3 className="font-medium line-clamp-2">{article.title}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{article.date}</p>
             </div>
-          ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Load More button */}
+      {hasMore && (
+        <div className="mt-8 flex justify-center">
+          <Button onClick={loadMore} variant="outline" disabled={isLoading}>
+            {isLoading ? 'Loading...' : 'Load More Articles'}
+          </Button>
         </div>
       )}
-      {isLoading && <div>Loading...</div>}
-      {hasMore && (
-        <Button onClick={fetchArticles} className="mt-4" disabled={isLoading}>
-          {isLoading ? 'Loading...' : 'Load More'}
-        </Button>
-      )}
-    </div>
+    </>
   );
-}
+});
+
+ArticleList.displayName = 'ArticleList';
+
+export default ArticleList;
