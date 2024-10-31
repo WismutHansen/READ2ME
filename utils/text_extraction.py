@@ -1,19 +1,22 @@
-from datetime import datetime
-import logging
-from newspaper import languages
-import requests
-from bs4 import BeautifulSoup
-import trafilatura
-import tldextract
-import re
 import asyncio
-from playwright.async_api import async_playwright
-import wikipedia
-from urllib.parse import urlparse, unquote
+import logging
+import re
 import tempfile
+from datetime import datetime
+from urllib.parse import urlparse
+
 import fitz
+import requests
+import tldextract
+import trafilatura
+import wikipedia
+from bs4 import BeautifulSoup, Tag
+from langdetect import LangDetectException, detect
+from playwright.async_api import async_playwright
 from readabilipy import simple_json_from_html_string
-from database.crud import create_article, create_text
+
+from database.crud import create_article
+from database.dbhelper import construct_article_data
 from llm.LLM_calls import tldr
 
 
@@ -29,10 +32,10 @@ def get_formatted_date():
     return f"{month} {day}{suffix}, {year}"
 
 
-# Function to check if word count is less than 100
+# Function to check if word count is less than 200
 def check_word_count(text):
     words = re.findall(r"\b\w+\b", text)
-    return len(words) < 100
+    return len(words) < 200
 
 
 # Function to check for paywall or robot disclaimer
@@ -42,7 +45,8 @@ def is_paywall_or_robot_text(text):
         "To continue, please click the box below",
         "Please enable cookies on your web browser",
         "For inquiries related to this message",
-        "If you are a robot" "robot.txt",
+        "If you are a robot",
+        "robot.txt",
     ]
     for phrase in paywall_phrases:
         if phrase in text:
@@ -338,9 +342,10 @@ async def extract_text(url):
         #     return None, None
 
         soup = BeautifulSoup(downloaded, "html.parser")
-        title = soup.find("title").text if soup.find("title") else ""
+        title_tag = soup.find("title")
+        title = title_tag.text if title_tag else ""
         date_tag = soup.find("meta", attrs={"property": "article:published_time"})
-        timestamp = date_tag["content"] if date_tag else ""
+        timestamp = date_tag.get("content", "") if isinstance(date_tag, Tag) else ""
         article_content = f"{title}.\n\n" if title else ""
         article_content += f"From {main_domain}.\n\n"
         authors = []
@@ -359,29 +364,38 @@ async def extract_text(url):
         ]
         date_str = ""
         if timestamp:
-            for date_format in date_formats:
-                try:
-                    date = datetime.strptime(timestamp, date_format)
-                    date_str = date.strftime("%B %d, %Y")
+            # If timestamp is a list, iterate over each item; otherwise, wrap it in a list for uniform processing.
+            timestamps = [timestamp] if isinstance(timestamp, str) else timestamp
+            for ts in timestamps:
+                for date_format in date_formats:
+                    try:
+                        date = datetime.strptime(ts, date_format)
+                        date_str = date.strftime("%B %d, %Y")
+                        break
+                    except ValueError:
+                        continue
+                if date_str:
                     break
-                except ValueError:
-                    continue
         if date_str:
             article_content += f"Published on: {date_str}.\n\n"
 
+        # Initialize language variable
+        language = "Unknown"
+
         if result:
             cleaned_text = clean_text(result)
+            # Detect language of the content
+            try:
+                language = detect(cleaned_text)
+            except LangDetectException:
+                language = "Unknown"
+            logging.info(f"Detected language: {language}")
             article_content += cleaned_text
+
         tl_dr = tldr(article_content)
-        article_data = {
-            "url": url,
-            "title": title,
-            "date_published": date_str,
-#            "language": languages,
-            "plain_text": result,
-            "markdown_text": article_content,
-            "tl_dr": tl_dr,
-        }
+        article_data = construct_article_data(
+            url, title, date_str, language, result, article_content, tl_dr
+        )
         try:
             create_article(article_data, authors)
         except Exception as e:
@@ -409,13 +423,14 @@ def readability(url):
         markdown += f"**Written by:** {byline}\n\n"
     markdown += f"**From:** {url}\n\n"
 
-    # Extract text from each dictionary item in content
-    markdown += "\n".join(
-        [
-            item.get("text", "") if isinstance(item, dict) else str(item)
-            for item in content
-        ]
-    )
+    # Check if content is iterable and then process it
+    if isinstance(content, list):
+        markdown += "\n".join(
+            [
+                item.get("text", "") if isinstance(item, dict) else str(item)
+                for item in content
+            ]
+        )
 
     return markdown
 
