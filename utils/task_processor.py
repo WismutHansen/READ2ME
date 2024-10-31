@@ -1,15 +1,19 @@
 import asyncio
 import logging
-from threading import Thread, Event
-from utils.task_file_handler import get_tasks, clear_tasks
-from utils.synthesize import synthesize_text_to_speech as synthesize_edge_tts, read_text
-from utils.env import setup_env
-from utils.history_handler import add_to_history, check_history
-from utils.text_extraction import extract_text
-from utils.podcast.castify import create_podcast_audio
+from threading import Event, Thread
+
+from database.crud import create_podcast_db_entry
+from database.dbhelper import construct_text_data, construct_article_data
 from llm.LLM_calls import podcast, story
 from TTS.tts_engines import EdgeTTSEngine, F5TTSEngine
 from TTS.tts_functions import PodcastGenerator
+from utils.env import setup_env
+from utils.history_handler import add_to_history, check_history
+from utils.podcast.castify import create_podcast_audio
+from utils.synthesize import read_text
+from utils.synthesize import synthesize_text_to_speech as synthesize_edge_tts
+from utils.task_file_handler import clear_tasks, get_tasks
+from utils.text_extraction import extract_text
 
 output_dir, task_file, img_pth, sources_file = setup_env()
 
@@ -133,7 +137,9 @@ def process_tasks(stop_event):
                             try:
                                 edge_tts = EdgeTTSEngine()
                                 podcast_gen = PodcastGenerator(edge_tts)
-                                await podcast_gen.create_podcast_audio(script)
+                                audio_file = await podcast_gen.create_podcast_audio(
+                                    script
+                                )
                                 logging.info("Generating podcast audio")
                             except Exception as e:
                                 logging.error(
@@ -144,7 +150,9 @@ def process_tasks(stop_event):
                             try:
                                 f5_tts = F5TTSEngine("utils/voices/")
                                 podcast_gen = PodcastGenerator(f5_tts)
-                                await podcast_gen.create_podcast_audio(script)
+                                audio_file = await podcast_gen.create_podcast_audio(
+                                    script
+                                )
                             except Exception as e:
                                 logging.error(
                                     f"Error creating podcast audio for URL {content}: {e}"

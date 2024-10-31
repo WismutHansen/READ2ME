@@ -1,26 +1,29 @@
+import asyncio
 import logging
-from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
+import os
+import re
+from contextlib import asynccontextmanager
+from datetime import datetime, time, timedelta
+from logging.handlers import TimedRotatingFileHandler
+from threading import Event
+from typing import List, Optional
+from urllib.parse import urlparse
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from tzlocal import get_localzone
+
+from database.crud import fetch_available_media, AvailableMedia
 from utils.env import setup_env
 from utils.history_handler import add_to_history
 from utils.logging_utils import setup_logging
+from utils.source_manager import read_sources, update_sources
 from utils.task_file_handler import add_task
 from utils.task_processor import start_task_processor
-from utils.source_manager import update_sources, read_sources
-from urllib.parse import urlparse
-from contextlib import asynccontextmanager
-from threading import Event
-import asyncio
-from datetime import datetime, time, timedelta
-from tzlocal import get_localzone
-from logging.handlers import TimedRotatingFileHandler
-from typing import List, Optional
-import os
-import re
-from dotenv import load_dotenv
 from utils.version_check import check_package_versions
 
 # Check package versions
@@ -510,6 +513,16 @@ async def get_article(article_id: str):
                 )
 
     raise HTTPException(status_code=404, detail="Article not found")
+
+
+@app.get("/v1/available-media", response_model=List[AvailableMedia])
+async def get_available_media():
+    media = fetch_available_media()
+    if not media:
+        raise HTTPException(
+            status_code=404, detail="No available media with audio found."
+        )
+    return media
 
 
 @app.get("/v1/server/status")
