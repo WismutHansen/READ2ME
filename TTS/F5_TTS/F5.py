@@ -23,7 +23,9 @@ from TTS.F5_TTS.model.utils_infer import (
 vocos = load_vocoder()
 
 # Define model configurations
-F5TTS_model_cfg = dict(dim=1024, depth=22, heads=16, ff_mult=2, text_dim=512, conv_layers=4)
+F5TTS_model_cfg = dict(
+    dim=1024, depth=22, heads=16, ff_mult=2, text_dim=512, conv_layers=4
+)
 E2TTS_model_cfg = dict(dim=1024, depth=24, heads=16, ff_mult=4)
 
 # Define global variables for caching models
@@ -52,7 +54,9 @@ def get_available_voices(directory: str) -> list:
 
     # Find common base filenames (without extensions) that have both audio and .txt files
     for audio_file in audio_files:
-        base_name = os.path.splitext(audio_file)[0]  # Extract the filename without extension
+        base_name = os.path.splitext(audio_file)[
+            0
+        ]  # Extract the filename without extension
         transcript_file = base_name + ".txt"
         if transcript_file in transcript_files:
             available_voices.append(audio_file)  # Append the full audio filename
@@ -76,7 +80,9 @@ def pick_random_voice(available_voices: list, previous_voice: str = None) -> str
 
     if previous_voice and previous_voice in available_voices:
         # Filter out the previous voice from the available choices
-        voices_to_choose_from = [voice for voice in available_voices if voice != previous_voice]
+        voices_to_choose_from = [
+            voice for voice in available_voices if voice != previous_voice
+        ]
     else:
         voices_to_choose_from = available_voices
 
@@ -105,16 +111,28 @@ def load_model_on_demand(model_name):
     """Load the model only when it's needed."""
     if model_name == "F5-TTS" and not loaded_models["F5-TTS"]:
         loaded_models["F5-TTS"] = load_model(
-            DiT, F5TTS_model_cfg, str(cached_path("hf://SWivid/F5-TTS/F5TTS_Base/model_1200000.safetensors"))
+            DiT,
+            F5TTS_model_cfg,
+            str(cached_path("hf://SWivid/F5-TTS/F5TTS_Base/model_1200000.safetensors")),
         )
     elif model_name == "E2-TTS" and not loaded_models["E2-TTS"]:
         loaded_models["E2-TTS"] = load_model(
-            UNetT, E2TTS_model_cfg, str(cached_path("hf://SWivid/E2-TTS/E2TTS_Base/model_1200000.safetensors"))
+            UNetT,
+            E2TTS_model_cfg,
+            str(cached_path("hf://SWivid/E2-TTS/E2TTS_Base/model_1200000.safetensors")),
         )
     return loaded_models[model_name]
 
 
-def infer(ref_audio_orig, ref_text, gen_text, model, remove_silence, cross_fade_duration=0.15, speed=1):
+def infer(
+    ref_audio_orig,
+    ref_text,
+    gen_text,
+    model,
+    remove_silence,
+    cross_fade_duration=0.15,
+    speed=1,
+):
     ref_audio, ref_text = preprocess_ref_audio_text(ref_audio_orig, ref_text)
 
     # Load the required model
@@ -145,7 +163,9 @@ def infer(ref_audio_orig, ref_text, gen_text, model, remove_silence, cross_fade_
     return (final_sample_rate, final_wave), spectrogram_path
 
 
-def generate_podcast(script, ref_audio1, ref_text1, ref_audio2, ref_text2, model, remove_silence):
+def generate_podcast(
+    script, ref_audio1, ref_text1, ref_audio2, ref_text2, model, remove_silence
+):
     """
     Generate a podcast from a script with two speakers.
 
@@ -221,7 +241,9 @@ def generate_podcast(script, ref_audio1, ref_text1, ref_audio2, ref_text2, model
 
     # Check if we have any generated segments
     if not generated_audio_segments:
-        raise ValueError("No audio segments were generated. Please check the input script and speakers.")
+        raise ValueError(
+            "No audio segments were generated. Please check the input script and speakers."
+        )
 
     # Combine all segments
     final_podcast = generated_audio_segments[0]
@@ -279,7 +301,9 @@ def test_podcast_generation():
 
     # Select voices
     voice_1 = voices[0]  # Use first voice for testing
-    voice_2 = voices[1] if len(voices) > 1 else voices[0]  # Use second voice or first if only one available
+    voice_2 = (
+        voices[1] if len(voices) > 1 else voices[0]
+    )  # Use second voice or first if only one available
 
     # Load reference texts
     ref_text_1 = load_transcript(voice_1, voice_path)
@@ -292,7 +316,13 @@ def test_podcast_generation():
     # Generate podcast
     try:
         podcast_path = generate_podcast(
-            test_script, abs_voice_path_1, ref_text_1, abs_voice_path_2, ref_text_2, model, False
+            test_script,
+            abs_voice_path_1,
+            ref_text_1,
+            abs_voice_path_2,
+            ref_text_2,
+            model,
+            False,
         )
         print(f"Test successful! Podcast generated at: {podcast_path}")
         return True

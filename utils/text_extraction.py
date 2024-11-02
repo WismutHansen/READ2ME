@@ -11,13 +11,14 @@ import tldextract
 import trafilatura
 import wikipedia
 from bs4 import BeautifulSoup, Tag
-from langdetect import LangDetectException, detect
+from langdetect import LangDetectException, detect, language
 from playwright.async_api import async_playwright
 from readabilipy import simple_json_from_html_string
 
-from database.crud import create_article
-from database.dbhelper import construct_article_data
+from database.crud import ArticleData, create_article
+from database.state import get_current_article, set_current_article, _current_article
 from llm.LLM_calls import tldr
+from docling.document_converter import DocumentConverter
 
 
 # Format in this format: January 1st 2024
@@ -264,17 +265,48 @@ def extract_text_from_pdf(url):
         # Extract the title from the PDF metadata if available
         title = document.metadata.get("title", "No Title Available")
 
-        # Initialize an empty string to store the main text
-        main_text = ""
+        converter = DocumentConverter()
+        result = converter.convert(pdf_path)
+        text = result.document.export_to_markdown()
+        markdown = result.document.export_to_text()
+        tl_dr = tldr(text)
+        # Initialize language variable
+        language = "Unknown"
 
-        # Loop through each page and extract text
-        for page in document:
-            main_text += page.get_text()
+        try:
+            language = detect(text)
+        except LangDetectException:
+            language = "Unknown"
+        logging.info(f"Detected language: {language}")
+        ## Initialize an empty string to store the main text
+        # main_text = ""
+
+        ## Loop through each page and extract text
+        # for page in document:
+        #    main_text += page.get_text()
 
         document.close()  # Close the document to free resources
-
-        logging.info(f"Extracted text from PDF: {len(main_text)} characters")
-        return main_text, title
+        # Set the article in the global state
+        new_article = ArticleData(
+            url=url,
+            title=title,
+            language=language,
+            text=text,
+            markdown=markdown,
+            tl_dr=tl_dr,
+        )
+        try:
+            set_current_article(new_article)
+            # Retrieve the article and check if it's not None before passing to create_article
+            current_article = get_current_article()
+            if current_article is not None:
+                create_article(current_article)
+            else:
+                print("Error: current_article is None.")
+        except Exception as e:
+            logging.error(f"Couldn't add article data to database: {e}")
+        logging.info(f"Extracted text from PDF: {len(text)} characters")
+        return text, title
 
     except Exception as e:
         logging.error(f"Error processing PDF: {e}")
@@ -393,11 +425,23 @@ async def extract_text(url):
             article_content += cleaned_text
 
         tl_dr = tldr(article_content)
-        article_data = construct_article_data(
-            url, title, date_str, language, result, article_content, tl_dr
-        )
         try:
-            create_article(article_data, authors)
+            # Set the article in the global state
+            new_article = ArticleData(
+                url=url,
+                title=title,
+                date_published=date_str,
+                language=language,
+                text=article_content,
+                tl_dr=tl_dr,
+            )
+            set_current_article(new_article)
+            # Retrieve the article and check if it's not None before passing to create_article
+            current_article = get_current_article()
+            if current_article is not None:
+                create_article(current_article)
+            else:
+                print("Error: current_article is None.")
         except Exception as e:
             logging.error(f"Couldn't add article data to database: {e}")
 

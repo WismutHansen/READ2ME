@@ -3,7 +3,7 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
-
+from database.state import get_current_podcast
 from pydub import AudioSegment
 from .tts_engines import TTSEngine
 
@@ -214,3 +214,9 @@ class PodcastGenerator:
             final_audio = final_audio.overlay(track)
 
         return final_audio
+
+    def _add_podcast_data_db(
+        self,
+    ):
+        # if podcast_article:
+        pass

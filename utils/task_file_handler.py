@@ -3,14 +3,19 @@ import aiofiles
 import logging
 import json
 from utils.env import setup_env
+from typing import Union
 
 output_dir, task_file, img_pth, sources_file = setup_env()
 
-async def add_task(task_type, content, tts_engine):
+
+async def add_task(
+    task_type: str, content: str, tts_engine: str, task: Union[str, dict, None] = None
+):
     task = {
         "type": task_type,
         "content": content,
-        "tts_engine": tts_engine
+        "tts_engine": tts_engine,
+        "task": task if isinstance(task, str) else None,
     }
     task_json = json.dumps(task)
     logging.info(f"Adding task: {task_json}")
@@ -21,6 +26,7 @@ async def add_task(task_type, content, tts_engine):
     except IOError as e:
         logging.error(f"Error adding task to {task_file}: {e}")
         raise
+
 
 async def get_tasks():
     if not os.path.exists(task_file):
@@ -47,6 +53,7 @@ async def get_tasks():
         logging.error(f"Error reading tasks from {task_file}: {e}")
         raise
 
+
 async def clear_tasks():
     try:
         async with aiofiles.open(task_file, "w") as file:
@@ -55,6 +62,7 @@ async def clear_tasks():
     except IOError as e:
         logging.error(f"Error clearing tasks from {task_file}: {e}")
         raise
+
 
 async def remove_task(task_to_remove):
     try:
@@ -70,11 +78,14 @@ async def remove_task(task_to_remove):
         logging.error(f"Error removing task from {task_file}: {e}")
         raise
 
+
 async def get_task_count():
     tasks = await get_tasks()
     return len(tasks)
+
 
 # Initialize logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+

@@ -1,3 +1,4 @@
+import shutil
 import logging
 import os
 import random
@@ -11,7 +12,7 @@ from utils.common_utils import (
     write_markdown_file,
 )
 import numpy as np
-from edge_tts import VoicesManager, Communicate
+from edge_tts import VoicesManager, Communicate, SubMaker
 from pydub import AudioSegment
 
 from utils.env import setup_env
@@ -70,18 +71,27 @@ class TTSEngine(ABC):
         return random.choice(voices_to_choose_from)
 
     async def export_audio(
-        self, audio: AudioSegment, text: str, title: Optional[str] = None
+        self,
+        audio: AudioSegment,
+        text: str,
+        title: Optional[str] = None,
+        vtt_temp_file: Optional[str] = None,
     ) -> str:
         """Export podcast audio and metadata"""
         try:
             # Implementation of file naming, export, and metadata addition
             if not title:
                 title = generate_title(text)
-            _, mp3_file_name, md_file_name = await get_output_files(output_dir, title)
+            base_file_name, mp3_file_name, md_file_name = await get_output_files(
+                output_dir, title
+            )
             audio.export(mp3_file_name, format="mp3")
             add_mp3_tags(mp3_file_name, title, img_pth, output_dir)
             write_markdown_file(md_file_name, text)
             logger.info(f"Exported podcast to {mp3_file_name}")
+            if vtt_temp_file:
+                vtt_file = base_file_name + ".vtt"
+                shutil.move(vtt_temp_file, vtt_file)
             return mp3_file_name
         except Exception as e:
             logger.error(f"Error exporting audio: {e}")
@@ -105,15 +115,18 @@ class EdgeTTSEngine(TTSEngine):
             with tempfile.NamedTemporaryFile(suffix=".vtt") as temp_vtt:
                 # Create communicate object
                 communicate = Communicate(text, voice_id)
-
+                submaker = SubMaker()
                 # Generate audio and save to temp file
                 async for chunk in communicate.stream():
                     if chunk["type"] == "audio":
                         temp_audio.write(chunk["data"])
                     elif chunk["type"] == "WordBoundary":
                         # Handle SSML timing data if needed
-                        with open(temp_vtt.name, "a", encoding="utf-8") as f:
-                            f.write(f"{chunk['offset']}: {chunk['text']}\n")
+                        submaker.create_sub(
+                            (chunk["offset"], chunk["duration"]), chunk["text"]
+                        )
+                        with open(temp_vtt.name, "w", encoding="utf-8") as f:
+                            f.write(submaker.generate_subs())
 
                 temp_audio.flush()
                 audio = AudioSegment.from_file(temp_audio.name)

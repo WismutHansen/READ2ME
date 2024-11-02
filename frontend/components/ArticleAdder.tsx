@@ -18,63 +18,75 @@ export default function ArticleAdder() {
     return { serverUrl, ttsEngine };
   };
 
-  const handleAddUrl = async () => {
+  const handleAddUrl = async (endpoint: string) => {
     const { serverUrl, ttsEngine } = getSettings();
     try {
-      const response = await fetch(`${serverUrl}/v1/url/full`, {
+      const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ url, tts_engine: ttsEngine }),
       });
-      if (!response.ok) throw new Error('Failed to add URL');
+      if (!response.ok) throw new Error(`Failed to add URL to ${endpoint}`);
       setUrl('');
       alert('URL added successfully');
     } catch (error) {
-      console.error('Error adding URL:', error);
-      alert('Failed to add URL');
+      console.error(`Error adding URL to ${endpoint}:`, error);
+      alert(`Failed to add URL to ${endpoint}`);
     }
   };
 
-  const handleAddText = async () => {
+  const handleAddText = async (endpoint: string) => {
     const { serverUrl, ttsEngine } = getSettings();
     try {
-      const response = await fetch(`${serverUrl}/v1/text/full`, {
+      const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ text, tts_engine: ttsEngine }),
       });
-      if (!response.ok) throw new Error('Failed to add text');
+      if (!response.ok) throw new Error(`Failed to add text to ${endpoint}`);
       setText('');
       alert('Text added successfully');
     } catch (error) {
-      console.error('Error adding text:', error);
-      alert('Failed to add text');
+      console.error(`Error adding text to ${endpoint}:`, error);
+      alert(`Failed to add text to ${endpoint}`);
     }
   };
 
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Add Single Article</h2>
-      <div className="flex space-x-2">
+      
+      {/* URL inputs */}
+      <div className="space-y-2">
         <Input
           type="text"
           placeholder="Article URL"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
         />
-        <Button onClick={handleAddUrl}>Add URL</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => handleAddUrl('url/full')}>Full text</Button>
+          <Button onClick={() => handleAddUrl('url/summary')}>Summary</Button>
+          <Button onClick={() => handleAddUrl('url/podcast')}>Podcast</Button>
+        </div>
       </div>
+
+      {/* Text inputs */}
       <div className="space-y-2">
         <Textarea
           placeholder="Article text"
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        <Button onClick={handleAddText}>Add Text</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => handleAddText('text/full')}>Full Text</Button>
+          <Button onClick={() => handleAddText('text/summary')}>Summary</Button>
+          <Button onClick={() => handleAddText('text/podcast')}>Podcast</Button>
+        </div>
       </div>
     </div>
   );

@@ -3,12 +3,16 @@ import logging
 import edge_tts
 from edge_tts import VoicesManager
 from .text_extraction import extract_text
-from .common_utils import get_output_files, add_mp3_tags, write_markdown_file, convert_wav_to_mp3
+from .common_utils import (
+    get_output_files,
+    add_mp3_tags,
+    write_markdown_file,
+    convert_wav_to_mp3,
+)
 from llm.LLM_calls import generate_title
 from .piper_tts_client import PiperTTSClient
 import os
-
-
+from typing import Optional
 
 
 async def url_with_piper(url: str, output_dir, img_pth):
@@ -34,7 +38,9 @@ async def url_with_piper(url: str, output_dir, img_pth):
     wav_file = f"{base_file_name}.wav"
     script_folder = os.path.dirname(os.path.abspath(__file__))
     voice_folder = "default_female_voice/"
-    parent_folder = os.path.dirname(script_folder)  # One folder up from the script folder
+    parent_folder = os.path.dirname(
+        script_folder
+    )  # One folder up from the script folder
     output_file = os.path.join(parent_folder, wav_file)
 
     tts_client = PiperTTSClient(verbose=True)
@@ -53,14 +59,14 @@ async def url_with_piper(url: str, output_dir, img_pth):
     return base_file_name, mp3_file, md_file
 
 
-async def read_text_piper(text: str, output_dir, img_pth):
-
+async def read_text_piper(text: str, output_dir, img_pth, title: Optional[str] = None):
     if not text:
-        logging.error(f"No text provided")
+        logging.error("No text provided")
         print("No text provided")
         return None, None, None  # Instead of raising an exception, return None
-    
-    title = generate_title(text)
+
+    if not title:
+        title = generate_title(text)
 
     base_file_name, mp3_file, md_file = await get_output_files(output_dir, title)
     write_markdown_file(md_file, text)
