@@ -34,4 +34,5 @@ whisper
 num2words
 lxml[html_clean]
 num2words
+docling
 langdetect

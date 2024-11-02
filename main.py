@@ -103,11 +103,13 @@ except Exception as e:
 class URLRequest(BaseModel):
     url: str
     tts_engine: str = "edge"  # Default to edge-tts
+    task: Optional[str] = None
 
 
 class TextRequest(BaseModel):
     text: str
     tts_engine: str = "edge"  # Default to edge-tts
+    task: Optional[str] = None
 
 
 class Source(BaseModel):
@@ -234,7 +236,24 @@ async def url_story(request: URLRequest):
 
 @app.post("/v1/url/summary")
 async def url_audio_summary(request: URLRequest):
-    return {"message": "Endpoint not yet implemented"}
+    logging.info(f"Received URL/summary: {request.url}")
+    logging.info(
+        f"URL type: {type(request.url)}, TTS Engine type: {type(request.tts_engine)}, task: summary"
+    )
+
+    # Validate URL
+    parsed_url = urlparse(request.url)
+    if not all([parsed_url.scheme, parsed_url.netloc]) or parsed_url.scheme not in [
+        "http",
+        "https",
+    ]:
+        logging.error(f"Invalid URL received: {request.url}")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
+        )
+    await add_task("url", request.url, request.tts_engine, task="tldr")
+    return {"message": "URL/Summary added to the READ2ME task list"}
 
 
 @app.post("/v1/text/full")
@@ -246,11 +265,28 @@ async def read_text(request: TextRequest):
 
 @app.post("/v1/text/summary")
 async def read_text_summary(request: TextRequest):
-    return {"message": "Endpoint not yet implemented"}
+    logging.info("Received task text/summary}")
+    logging.info(
+        f"URL type: {type(request.text)}, TTS Engine type: {type(request.tts_engine)}, task: summary"
+    )
+
+    await add_task("text", request.text, request.tts_engine, task="tldr")
+    return {"message": "text/summary added to the READ2ME task list"}
+
+
+@app.post("/v1/text/podcast")
+async def read_text_podcast(request: TextRequest):
+    logging.info("Received task text/podcast}")
+    logging.info(
+        f"URL type: {type(request.text)}, TTS Engine type: {type(request.tts_engine)}, task: podcast"
+    )
+
+    await add_task("text", request.text, request.tts_engine, task="podcast")
+    return {"message": "text/podcast added to the READ2ME task list"}
 
 
 @app.post("/v1/pdf/full")
-async def read_text_summary(request: TextRequest):
+async def read_pdf_summary(request: TextRequest):
     return {"message": "Endpoint not yet implemented"}
 
 

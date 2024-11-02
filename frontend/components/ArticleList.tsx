@@ -48,8 +48,9 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       const newArticles = data.articles || [];
 
       setArticles(prevArticles => {
-        // Replace previous articles only if pageNum is 1, otherwise append
-        return pageNum === 1 ? newArticles : [...prevArticles, ...newArticles];
+        const updatedArticles = pageNum === 1 ? newArticles : [...prevArticles, ...newArticles];
+        console.log('Updated articles:', updatedArticles);
+        return updatedArticles;
       });
 
       // Set hasMore based on whether more articles exist

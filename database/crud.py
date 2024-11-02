@@ -2,7 +2,7 @@ import base64
 import hashlib
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional
 
@@ -19,7 +19,11 @@ class ArticleData(BaseModel):
     url: Optional[HttpUrl] = None
     title: Optional[str] = None
     date_published: Optional[str] = None
+    date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
+    language: Optional[str] = None
     text: Optional[str] = None
+    markdown: Optional[str] = None
+    tl_dr: Optional[str] = None
     audio_file: Optional[str] = None
     md_file: Optional[str] = None
     vtt_file: Optional[str] = None
@@ -29,16 +33,20 @@ class ArticleData(BaseModel):
 class TextData(BaseModel):
     title: Optional[str] = None
     text: Optional[str] = None
+    date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
     audio_file: Optional[str] = None
     language: Optional[str] = None
     plain_text: Optional[str] = None
     img_file: Optional[str] = None
+    tl_dr: Optional[str] = None
 
 
 class PodcastData(BaseModel):
     url: Optional[HttpUrl] = None
     title: Optional[str] = None
     date_published: Optional[str] = None
+    date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
+    language: Optional[str] = None
     text: Optional[str] = None
     audio_file: Optional[str] = None
     md_file: Optional[str] = None
@@ -56,18 +64,21 @@ class AvailableMedia(BaseModel):
     title: str
     date_added: str
     date_published: Optional[str] = None
+    language: Optional[str] = None
     authors: Optional[List[str]] = []
-    text: Optional[str] = None
+    audio_file: Optional[str]
     type: str
 
 
 def fetch_available_media():
     conn = create_connection()
     cursor = conn.cursor()
+    media = []
 
     # Fetch articles with audio
     cursor.execute("""
-        SELECT articles.id, articles.title, articles.date_added, articles.date_published, group_concat(authors.name) as authors, articles.plain_text as text, 'article' as type
+        SELECT articles.id, articles.title, articles.date_added, articles.date_published,
+               group_concat(authors.name), articles.audio_file, 'article'
         FROM articles
         LEFT JOIN article_author ON articles.id = article_author.article_id
         LEFT JOIN authors ON article_author.author_id = authors.id
@@ -75,27 +86,31 @@ def fetch_available_media():
         GROUP BY articles.id
     """)
     articles = cursor.fetchall()
+    media.extend(articles)
 
     # Fetch podcasts with audio
     cursor.execute("""
-        SELECT podcasts.id, podcasts.title, podcasts.date_added, NULL as date_published, NULL as authors, podcasts.text, 'podcast' as type
+        SELECT podcasts.id, podcasts.title, podcasts.date_added, NULL, NULL,
+               podcasts.audio_file, 'podcast'
         FROM podcasts
         WHERE podcasts.audio_file IS NOT NULL
     """)
     podcasts = cursor.fetchall()
+    media.extend(podcasts)
 
     # Fetch texts with audio
     cursor.execute("""
-        SELECT texts.id, NULL as title, texts.date_added, NULL as date_published, NULL as authors, texts.plain_text as text, 'text' as type
+        SELECT texts.id, texts.title, texts.date_added, NULL, NULL,
+               texts.audio_file, 'text'
         FROM texts
         WHERE texts.audio_file IS NOT NULL
     """)
     texts = cursor.fetchall()
+    media.extend(texts)
 
     conn.close()
 
-    # Combine all media types
-    all_media = articles + podcasts + texts
+    # Format combined media records
     return [
         AvailableMedia(
             id=row[0],
@@ -103,114 +118,75 @@ def fetch_available_media():
             date_added=row[2],
             date_published=row[3],
             authors=row[4].split(",") if row[4] else [],
-            text=row[5],
-            type=row[6],
+            audio_file=row[5],
+            type=row[6],  # inferred from query as last column
         )
-        for row in all_media
+        for row in media
     ]
 
 
-def create_article(article_data: dict, author_names: Optional[list] = None):
+def create_article(article_data: ArticleData, authors: Optional[List[Author]] = None):
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Ensure `date_published` is properly formatted or set to None
-    date_published = article_data.get("date_published")
-    if date_published:
-        try:
-            date_published = datetime.strptime(date_published, "%Y-%m-%d").strftime(
-                "%Y-%m-%d"
-            )
-        except ValueError:
-            date_published = None  # Invalid format, set to None
-    else:
-        date_published = None
-
-    # Insert article into the database
-    cursor.execute(
-        """
-        INSERT INTO articles (id, url, title, date_published, date_added, language, plain_text, markdown_text, tl_dr, audio_file, markdown_file, vtt_file)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            generate_hash(article_data["url"]),
-            article_data["url"],
-            article_data["title"],
-            date_published,  # Use the properly formatted or None value
-            article_data.get("date_added", datetime.today().strftime("%Y-%m-%d")),
-            article_data.get("language"),
-            article_data.get("plain_text"),
-            article_data.get("markdown_text"),
-            article_data.get("tl_dr"),
-            article_data.get("audio_file"),
-            article_data.get("markdown_file"),
-            article_data.get("vtt_file"),
-        ),
+    # Ensure date_published has a default if None
+    date_published = article_data.date_published or datetime.today().strftime(
+        "%Y-%m-%d"
     )
-
-    article_id = generate_hash(article_data["url"])
-
-    # Handle author association
-    if author_names:
-        for author_name in author_names:
-            cursor.execute(
-                """
-                SELECT id FROM authors WHERE name = ?
-                """,
-                (author_name,),
-            )
-            author = cursor.fetchone()
-            if author:
-                author_id = author[0]
-            else:
-                cursor.execute(
-                    """
-                    INSERT INTO authors (name) VALUES (?)
-                    """,
-                    (author_name,),
-                )
-                author_id = cursor.lastrowid
-
-            cursor.execute(
-                """
-                INSERT INTO article_author (article_id, author_id)
-                VALUES (?, ?)
-                """,
-                (article_id, author_id),
-            )
-
-    conn.commit()
-    conn.close()
+    # Generate the article ID from the URL
+    article_id = generate_hash(str(article_data.url))
+    try:
+        cursor.execute(
+            """
+            INSERT INTO articles (id, url, title, date_published, date_added, language, plain_text, markdown_text, tl_dr, audio_file, markdown_file, vtt_file, img_file)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                article_id,
+                str(article_data.url),
+                article_data.title,
+                date_published,
+                article_data.date_added,  # Now available in ArticleData
+                article_data.language,
+                article_data.text,
+                article_data.markdown,
+                article_data.tl_dr,
+                article_data.audio_file,
+                article_data.md_file,
+                article_data.vtt_file,
+                article_data.img_file,
+            ),
+        )
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Couldn't add article data to database: {e}")
+    finally:
+        conn.close()
 
 
-def update_article(article_id: str, updated_fields: dict):
-    if not updated_fields:
+def update_article(article_id: str, updated_fields: ArticleData):
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Filter out None values to only update provided fields
+    fields_to_update = {
+        key: value
+        for key, value in updated_fields.model_dump().items()
+        if value is not None
+    }
+
+    if not fields_to_update:
         print("No fields to update.")
         return
 
-    conn = create_connection()
-    cursor = conn.cursor()
+    set_clause = ", ".join([f"{field} = ?" for field in fields_to_update.keys()])
+    values = list(fields_to_update.values()) + [article_id]
 
-    # Generate the SQL query dynamically
-    set_clause = ", ".join([f"{field} = ?" for field in updated_fields.keys()])
-    values = list(updated_fields.values())
-    values.append(article_id)
-
-    query = f"""
-        UPDATE articles
-        SET {set_clause}
-        WHERE id = ?
-    """
-
+    query = f"UPDATE articles SET {set_clause} WHERE id = ?"
     cursor.execute(query, values)
     conn.commit()
     conn.close()
-
     print(f"Article with id '{article_id}' has been updated.")
-
-    return (
-        cursor.rowcount
-    )  # Returns the number of rows affected (should be 1 if successful)
 
 
 def get_articles(skip: int = 0, limit: int = 100):
@@ -309,20 +285,27 @@ def delete_article(article_id: str):
     return cursor.rowcount
 
 
-def create_text(text_data: dict):
+def create_text(text_data: TextData):
     conn = create_connection()
     cursor = conn.cursor()
+
+    # Generate text ID
+    text_id = generate_hash(text_data.text or "")
+
     cursor.execute(
         """
-        INSERT INTO texts (id, text, date_added, language, plain_text)
-        VALUES (?, ?, ?, ?, ?)
-    """,
+        INSERT INTO texts (id, title, text, date_added, language, plain_text, img_file)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
         (
-            generate_hash(text_data["text"]),
-            text_data["text"],
-            text_data.get("date_added", datetime.today().strftime("%Y-%m-%d")),
-            text_data.get("language"),
-            text_data.get("plain_text"),
+            text_id,
+            text_data.title,
+            text_data.text,
+            text_data.date_added or datetime.today().strftime("%Y-%m-%d"),
+            text_data.language,
+            text_data.plain_text,
+            text_data.img_file,
+            text_data.tl_dr,
         ),
     )
     conn.commit()
@@ -360,34 +343,34 @@ def update_text(text_id: str, updated_fields: dict):
 
 
 def create_podcast_db_entry(
-    podcast_data: dict,
+    podcast_data: PodcastData,
     seed_text_id: Optional[str] = None,
     seed_article_id: Optional[str] = None,
 ):
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Insert the podcast into the podcasts table
+    # Generate podcast ID
+    podcast_id = generate_hash(podcast_data.title or "")
+
     cursor.execute(
         """
         INSERT INTO podcasts (id, title, text, date_added, language, plain_text, audio_file, markdown_file)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            generate_hash(podcast_data["title"]),
-            podcast_data["title"],
-            podcast_data.get("text"),
-            podcast_data.get("date_added", datetime.today().strftime("%Y-%m-%d")),
-            podcast_data.get("language"),
-            podcast_data.get("plain_text"),
-            podcast_data.get("audio_file"),
-            podcast_data.get("markdown_file"),
+            podcast_id,
+            podcast_data.title,
+            podcast_data.text,
+            podcast_data.date_added or datetime.today().strftime("%Y-%m-%d"),
+            podcast_data.language,
+            podcast_data.text,
+            podcast_data.audio_file,
+            podcast_data.md_file,
         ),
     )
 
-    podcast_id = generate_hash(podcast_data["title"])
-
-    # Link podcast to seed text or seed article
+    # Link podcast to seed text or article if provided
     if seed_text_id or seed_article_id:
         cursor.execute(
             """
@@ -438,9 +421,6 @@ def generate_hash(value: str) -> str:
 
 
 def add_author(author: Author):
-    """
-    Adds a new author to the authors table.
-    """
     conn = create_connection()
     cursor = conn.cursor()
     try:
