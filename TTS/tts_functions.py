@@ -3,7 +3,6 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
-from database.state import get_current_podcast
 from pydub import AudioSegment
 from .tts_engines import TTSEngine
 
@@ -139,6 +138,7 @@ class PodcastGenerator:
         transcript: str,
         voice_1: Optional[str] = None,
         voice_2: Optional[str] = None,
+        podcast_id: Optional[int] = None,
     ) -> str:
         """Create podcast audio file from transcript"""
         try:
@@ -182,7 +182,9 @@ class PodcastGenerator:
             final_audio = self._mix_tracks(speakers, speaker_timing, total_duration)
 
             # Export and return path
-            return await self.tts_engine.export_audio(final_audio, transcript)
+            return await self.tts_engine.export_audio(
+                final_audio, transcript, "podcast", podcast_id=podcast_id
+            )
 
         except Exception as e:
             self.logger.error(f"Error creating podcast: {e}")

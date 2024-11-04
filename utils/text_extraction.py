@@ -3,6 +3,7 @@ import logging
 import re
 import tempfile
 from datetime import datetime
+from typing import Optional
 from urllib.parse import urlparse
 
 import fitz
@@ -11,14 +12,13 @@ import tldextract
 import trafilatura
 import wikipedia
 from bs4 import BeautifulSoup, Tag
-from langdetect import LangDetectException, detect, language
+from docling.document_converter import DocumentConverter
+from langdetect import LangDetectException, detect
 from playwright.async_api import async_playwright
 from readabilipy import simple_json_from_html_string
 
-from database.crud import ArticleData, create_article
-from database.state import get_current_article, set_current_article, _current_article
+from database.crud import ArticleData, create_article, update_article
 from llm.LLM_calls import tldr
-from docling.document_converter import DocumentConverter
 
 
 # Format in this format: January 1st 2024
@@ -252,7 +252,7 @@ def download_pdf_file(url, timeout=30):
         return None
 
 
-def extract_text_from_pdf(url):
+def extract_text_from_pdf(url, article_id: Optional[str] = None):
     try:
         pdf_path = download_pdf_file(url)
         if pdf_path is None:
@@ -288,24 +288,19 @@ def extract_text_from_pdf(url):
         document.close()  # Close the document to free resources
         # Set the article in the global state
         new_article = ArticleData(
-            url=url,
             title=title,
             language=language,
-            text=text,
-            markdown=markdown,
+            plain_text=text,
+            md_file=markdown,
             tl_dr=tl_dr,
         )
-        try:
-            set_current_article(new_article)
-            # Retrieve the article and check if it's not None before passing to create_article
-            current_article = get_current_article()
-            if current_article is not None:
-                create_article(current_article)
-            else:
-                print("Error: current_article is None.")
-        except Exception as e:
-            logging.error(f"Couldn't add article data to database: {e}")
-        logging.info(f"Extracted text from PDF: {len(text)} characters")
+        if article_id:
+            try:
+                # Retrieve the article and check if it's not None before passing to create_article
+                update_article(article_id, new_article)
+            except Exception as e:
+                logging.error(f"Couldn't add article data to database: {e}")
+            logging.info(f"Extracted text from PDF: {len(text)} characters")
         return text, title
 
     except Exception as e:
@@ -316,7 +311,7 @@ def extract_text_from_pdf(url):
 # This Function extracts the main text from a given URL along with the title,
 # list of authors and the date of publication (if available) and formats the text
 # accordingly
-async def extract_text(url):
+async def extract_text(url, article_id: Optional[str] = None):
     try:
         try:
             response = requests.head(url, allow_redirects=True)
@@ -331,7 +326,7 @@ async def extract_text(url):
 
         if url.lower().endswith(".pdf") or content_type == "application/pdf":
             logging.info(f"Extracting text from PDF: {resolved_url}")
-            return extract_text_from_pdf(resolved_url)
+            return extract_text_from_pdf(resolved_url, article_id)
 
         # Check if it's a Wikipedia URL
         elif "wikipedia.org" in resolved_url:
@@ -425,31 +420,27 @@ async def extract_text(url):
             article_content += cleaned_text
 
         tl_dr = tldr(article_content)
-        try:
-            # Set the article in the global state
-            new_article = ArticleData(
-                url=url,
-                title=title,
-                date_published=date_str,
-                language=language,
-                text=article_content,
-                tl_dr=tl_dr,
-            )
-            set_current_article(new_article)
-            # Retrieve the article and check if it's not None before passing to create_article
-            current_article = get_current_article()
-            if current_article is not None:
-                create_article(current_article)
-            else:
-                print("Error: current_article is None.")
-        except Exception as e:
-            logging.error(f"Couldn't add article data to database: {e}")
 
-        return article_content, title
+        # Update article entry in database with new entry fields
+        if article_id:
+            try:
+                new_article = ArticleData(
+                    title=title,
+                    date_published=date_str if date_str else "",
+                    language=language,
+                    text=article_content,
+                    tl_dr=tl_dr,
+                )
+                update_article(article_id, new_article)
+                logging.info(f"article {article_id} sucessfully updated")
+            except Exception as e:
+                logging.error(f"Couldn't add article data to database: {e}")
+
+        return article_content, title, tl_dr
 
     except Exception as e:
         logging.error(f"Error extracting text from HTML: {e}")
-        return None, None
+        return None, None, None
 
 
 def readability(url):

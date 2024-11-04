@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 from pydub import AudioSegment
 import logging
 from num2words import num2words
+from typing import Optional
 
 
 def write_markdown_file(md_file_path, text, url=None):
@@ -166,12 +167,43 @@ async def get_output_files(output_dir, title):
         file_number += 1
 
 
-def create_image_with_date(image_path: str, output_path: str, date_text: str):
+def create_image_with_date(
+    image_path: str,
+    output_path: str,
+    date_text: str,
+    audio_type: Optional[str] = None,
+    title: Optional[str] = None,
+):
     if not os.path.exists(output_path):
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("RGBA")
         draw = ImageDraw.Draw(image)
+
+        # Define font
         font_path = "Fonts/PermanentMarker.ttf"
         font = ImageFont.truetype(font_path, 50)
+
+        # Determine tint color based on audio_type
+        if audio_type == "url/full":
+            tint_color = (0, 0, 255, 128)  # Blue
+        elif audio_type == "url/tldr":
+            tint_color = (255, 0, 0, 128)  # Red
+        elif audio_type == "text/full":
+            tint_color = (255, 255, 0, 128)  # Yellow
+        elif audio_type == "text/tldr":
+            tint_color = (0, 255, 0, 128)  # Green
+        elif audio_type == "podcast":
+            tint_color = (128, 0, 128, 128)  # Purple
+        elif audio_type == "story":
+            tint_color = (255, 192, 203, 128)  # Pink
+        else:
+            tint_color = None  # No tint if type is None or unrecognized
+
+        # Apply tint if a matching type is found
+        if tint_color:
+            tint_overlay = Image.new("RGBA", image.size, tint_color)
+            image = Image.alpha_composite(image, tint_overlay)
+
+        # Draw date text
         width, height = image.size
         text_bbox = draw.textbbox((0, 0), date_text, font=font)
         text_width, text_height = (
@@ -180,10 +212,18 @@ def create_image_with_date(image_path: str, output_path: str, date_text: str):
         )
         position = ((width - text_width) // 2, height - text_height - 35)
         draw.text(position, date_text, font=font, fill="black")
-        image.save(output_path)
+
+        # Save the image
+        image.convert("RGB").save(output_path)
 
 
-def add_mp3_tags(mp3_file: str, title: str, img_pth: str, output_dir: str):
+def add_mp3_tags(
+    mp3_file: str,
+    title: str,
+    img_pth: str,
+    output_dir: str,
+    audio_type: Optional[str] = None,
+):
     track_number = os.path.basename(mp3_file).split("_")[-1].split(".")[0]
     try:
         audio = ID3(mp3_file)
@@ -199,8 +239,10 @@ def add_mp3_tags(mp3_file: str, title: str, img_pth: str, output_dir: str):
     audio.add(TRCK(encoding=3, text=str(track_number)))
     date_text = datetime.date.today().strftime("%Y-%m-%d")
     image_path = img_pth
-    output_image_path = os.path.join(get_date_subfolder(output_dir), "cover.jpg")
-    create_image_with_date(image_path, output_image_path, date_text)
+    output_image_path = os.path.join(
+        get_date_subfolder(output_dir), title + "_cover.jpg"
+    )
+    create_image_with_date(image_path, output_image_path, date_text, audio_type, title)
     with open(output_image_path, "rb") as img_file:
         audio.add(
             APIC(
@@ -382,4 +424,3 @@ def generate_vtt_for_directory(base_dir):
 if __name__ == "__main__":
     output_dir = input("Enter the output directory: ")
     generate_vtt_for_directory(output_dir)
-

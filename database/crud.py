@@ -21,8 +21,8 @@ class ArticleData(BaseModel):
     date_published: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
     language: Optional[str] = None
-    text: Optional[str] = None
-    markdown: Optional[str] = None
+    plain_text: Optional[str] = None
+    markdown_text: Optional[str] = None
     tl_dr: Optional[str] = None
     audio_file: Optional[str] = None
     md_file: Optional[str] = None
@@ -31,14 +31,14 @@ class ArticleData(BaseModel):
 
 
 class TextData(BaseModel):
-    title: Optional[str] = None
     text: Optional[str] = None
+    title: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
-    audio_file: Optional[str] = None
     language: Optional[str] = None
-    plain_text: Optional[str] = None
-    img_file: Optional[str] = None
     tl_dr: Optional[str] = None
+    audio_file: Optional[str] = None
+    markdown_file: Optional[str] = None
+    img_file: Optional[str] = None
 
 
 class PodcastData(BaseModel):
@@ -49,8 +49,7 @@ class PodcastData(BaseModel):
     language: Optional[str] = None
     text: Optional[str] = None
     audio_file: Optional[str] = None
-    md_file: Optional[str] = None
-    vtt_file: Optional[str] = None
+    markdown_file: Optional[str] = None
     img_file: Optional[str] = None
 
 
@@ -148,8 +147,8 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
                 date_published,
                 article_data.date_added,  # Now available in ArticleData
                 article_data.language,
-                article_data.text,
-                article_data.markdown,
+                article_data.plain_text,
+                article_data.markdown_text,
                 article_data.tl_dr,
                 article_data.audio_file,
                 article_data.md_file,
@@ -162,6 +161,7 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
         print(f"Couldn't add article data to database: {e}")
     finally:
         conn.close()
+    return article_id
 
 
 def update_article(article_id: str, updated_fields: ArticleData):
@@ -289,13 +289,14 @@ def create_text(text_data: TextData):
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Generate text ID
-    text_id = generate_hash(text_data.text or "")
+    # Generate next available text ID
+    cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM texts")
+    text_id = cursor.fetchone()[0]
 
     cursor.execute(
         """
-        INSERT INTO texts (id, title, text, date_added, language, plain_text, img_file)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO texts (id, title, text, date_added, language, tl_dr, audio_file, markdown_file, img_file)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             text_id,
@@ -303,16 +304,18 @@ def create_text(text_data: TextData):
             text_data.text,
             text_data.date_added or datetime.today().strftime("%Y-%m-%d"),
             text_data.language,
-            text_data.plain_text,
-            text_data.img_file,
             text_data.tl_dr,
+            text_data.audio_file,
+            text_data.markdown_file,
+            text_data.img_file,
         ),
     )
     conn.commit()
     conn.close()
+    return id
 
 
-def update_text(text_id: str, updated_fields: dict):
+def update_text(text_id: int, updated_fields: dict):
     if not updated_fields:
         print("No fields to update.")
         return
@@ -350,12 +353,13 @@ def create_podcast_db_entry(
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Generate podcast ID
-    podcast_id = generate_hash(podcast_data.title or "")
+    # Generate next available text ID
+    cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM texts")
+    podcast_id = cursor.fetchone()[0]
 
     cursor.execute(
         """
-        INSERT INTO podcasts (id, title, text, date_added, language, plain_text, audio_file, markdown_file)
+        INSERT INTO podcasts (id, title, text, date_added, language, audio_file, markdown_file, img_file)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
@@ -364,9 +368,9 @@ def create_podcast_db_entry(
             podcast_data.text,
             podcast_data.date_added or datetime.today().strftime("%Y-%m-%d"),
             podcast_data.language,
-            podcast_data.text,
             podcast_data.audio_file,
-            podcast_data.md_file,
+            podcast_data.markdown_file,
+            podcast_data.img_file,
         ),
     )
 
@@ -382,9 +386,10 @@ def create_podcast_db_entry(
 
     conn.commit()
     conn.close()
+    return id
 
 
-def update_podcast(podcast_id: str, updated_fields: dict):
+def update_podcast(podcast_id: int, updated_fields: dict):
     if not updated_fields:
         print("No fields to update.")
         return

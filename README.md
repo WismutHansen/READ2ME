@@ -75,7 +75,7 @@ This is a currently a beta version but I plan to extend it to support other cont
   if you want to use piper, run the piperinstal file:
 
   ```sh
-  python3 -m utils.instalpipertts
+  python3 -m TTS.piper_tts.instalpipertts
   ```
 
    **Note:** [ffmpeg](https://www.ffmpeg.org/) is required when using either StyleTTS2 or PiperTTS for converting wav files into mp3. StyleTTS also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.

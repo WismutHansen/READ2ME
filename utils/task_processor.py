@@ -1,19 +1,21 @@
 import asyncio
+from hashlib import new
 import logging
-from threading import Event, Thread
-
-from requests.api import get
-
-from database.crud import create_podcast_db_entry, create_text, create_article
-import database.state
+from threading import Thread
+from database.crud import (
+    ArticleData,
+    TextData,
+    PodcastData,
+    create_article,
+    create_text,
+    create_podcast_db_entry,
+    update_article,
+)
 from llm.LLM_calls import podcast, story, generate_title, tldr
-from TTS.tts_engines import EdgeTTSEngine, F5TTSEngine
+from TTS.tts_engines import EdgeTTSEngine, F5TTSEngine, PiperTTSEngine, StyleTTS2Engine
 from TTS.tts_functions import PodcastGenerator
 from utils.env import setup_env
 from utils.history_handler import add_to_history, check_history
-from utils.podcast.castify import create_podcast_audio
-from utils.synthesize import read_text
-from utils.synthesize import synthesize_text_to_speech as synthesize_edge_tts
 from utils.task_file_handler import clear_tasks, get_tasks
 from utils.text_extraction import extract_text
 
@@ -46,44 +48,35 @@ def process_tasks(stop_event):
                     continue
 
                 try:
+                    if tts_engine == "piper":
+                        tts_engine = PiperTTSEngine("TTS/piper_tts/voices/")
+                    elif tts_engine == "edge":
+                        tts_engine = EdgeTTSEngine()
+                    elif tts_engine == "F5":
+                        tts_engine = F5TTSEngine("TTS/voices/")
+                    else:
+                        tts_engine = StyleTTS2Engine()
+
                     if task_type == "url" and (task is None or task == "full"):
-                        # URL to audio processing
-                        if tts_engine == "styletts2":
-                            from utils.synthesize_styletts2 import say_with_styletts2
+                        new_article = ArticleData(url=content)
+                        article_id = create_article(new_article)
+                        text, title, tl_dr = await extract_text(content, article_id)
 
-                            await say_with_styletts2(content, output_dir, img_pth)
-                        elif tts_engine == "piper":
-                            from utils.synthesize_piper import url_with_piper
-
-                            await url_with_piper(content, output_dir, img_pth)
-                        elif tts_engine == "F5":
-                            text, title = await extract_text(content)
-                            try:
-                                f5_tts = F5TTSEngine("utils/voices/")
-                                voices = await f5_tts.get_available_voices()
-                                voice = await f5_tts.pick_random_voice(voices)
-                                audio, _ = await f5_tts.generate_audio(text, voice)
-                                await f5_tts.export_audio(audio, text, title)
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating audio for URL {content}: {e}"
-                                )
-                        else:
-                            text, title = await extract_text(content)
-                            try:
-                                edge_tts = EdgeTTSEngine()
-                                voices = await edge_tts.get_available_voices()
-                                voice = await edge_tts.pick_random_voice(voices)
-                                audio, vtt_file = await edge_tts.generate_audio(
-                                    text, voice
-                                )
-                                await edge_tts.export_audio(
-                                    audio, text, title, vtt_file
-                                )
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating audio for URL {content}: {e}"
-                                )
+                        try:
+                            voices = await tts_engine.get_available_voices()
+                            voice = await tts_engine.pick_random_voice(voices)
+                            audio, vtt_file = await tts_engine.generate_audio(
+                                text, voice
+                            )
+                            audio = await tts_engine.export_audio(
+                                audio, text, title, vtt_file, audio_type="url/full"
+                            )
+                            new_article = ArticleData(audio_file=audio)
+                            update_article(article_id, new_article)
+                        except Exception as e:
+                            logging.error(
+                                f"Error creating audio for URL {content}: {e}"
+                            )
                         await add_to_history(
                             content
                         )  # Add URL to history after processing
@@ -91,50 +84,29 @@ def process_tasks(stop_event):
                     elif task_type == "text" and (task is None or task == "full"):
                         # Text to audio processing
                         title = generate_title(content)
-                        current_text = database.state.get_current_text()
-                        if current_text:
-                            current_text.text = content
-                            current_text.title = title
-                            create_text(current_text)
-                        if tts_engine == "styletts2":
-                            from utils.synthesize_styletts2 import (
-                                text_to_speech_with_styletts2,
+                        new_text = TextData(title=title, text=content)
+                        id = create_text(new_text)
+                        try:
+                            voices = await tts_engine.get_available_voices()
+                            voice = await tts_engine.pick_random_voice(voices)
+                            audio, vtt_file = await tts_engine.generate_audio(
+                                content, voice
                             )
-
-                            await text_to_speech_with_styletts2(
-                                content, title, output_dir, img_pth
+                            await tts_engine.export_audio(
+                                audio,
+                                content,
+                                title,
+                                vtt_file,
+                                audio_type="text/full",
+                                text_id=id,
                             )
-                        elif tts_engine == "F5":
-                            try:
-                                f5_tts = F5TTSEngine("utils/voices/")
-                                voices = await f5_tts.get_available_voices()
-                                voice = await f5_tts.pick_random_voice(voices)
-                                audio, _ = await f5_tts.generate_audio(content, voice)
-                                await f5_tts.export_audio(audio, content, title)
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating audio for URL {content}: {e}"
-                                )
-                        elif tts_engine == "piper":
-                            from utils.synthesize_piper import read_text_piper
+                        except Exception as e:
+                            logging.error(f"Error creating audio for text: {e}")
 
-                            await read_text_piper(content, output_dir, img_pth, title)
-                        else:
-                            try:
-                                edge_tts = EdgeTTSEngine()
-                                voices = await edge_tts.get_available_voices()
-                                voice = await edge_tts.pick_random_voice(voices)
-                                audio, vtt_file = await edge_tts.generate_audio(
-                                    content, voice
-                                )
-                                await edge_tts.export_audio(
-                                    audio, content, title, vtt_file
-                                )
-                            except Exception as e:
-                                logging.error(f"Error creating audio for text: {e}")
                     elif task_type == "text" and task == "podcast":
-                        # Podcast creation processing
                         # Generate the podcast script
+                        new_text = TextData(text=content)
+                        id = create_text(new_text)
                         try:
                             script = podcast(content)
                             logging.info("Generating podcast script form seed text")
@@ -144,79 +116,39 @@ def process_tasks(stop_event):
                                 )
                                 continue
                             logging.info(script)
+                            new_podcast = PodcastData(text=script)
+                            podcast_id = create_podcast_db_entry(new_podcast)
                         except Exception as e:
                             logging.error(
-                                f"Error generating podcast script for URL {content}: {e}"
+                                f"Error generating podcast script for text: {e}"
                             )
                             continue
-                        title = generate_title(script)
-                        # Create the podcast audio
-                        if tts_engine == "edge":
-                            try:
-                                edge_tts = EdgeTTSEngine()
-                                podcast_gen = PodcastGenerator(edge_tts)
-                                audio_file = await podcast_gen.create_podcast_audio(
-                                    script
-                                )
-                                logging.info("Generating podcast audio")
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating podcast audio for URL {content}: {e}"
-                                )
-                                continue
-                        elif tts_engine == "F5":
-                            try:
-                                f5_tts = F5TTSEngine("utils/voices/")
-                                podcast_gen = PodcastGenerator(f5_tts)
-                                audio_file = await podcast_gen.create_podcast_audio(
-                                    script
-                                )
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating podcast audio for URL {content}: {e}"
-                                )
+                        try:
+                            podcast_gen = PodcastGenerator(tts_engine)
+                            await podcast_gen.create_podcast_audio(
+                                script, podcast_id=podcast_id
+                            )
+                        except Exception as e:
+                            logging.error(f"Error creating podcast audio for text: {e}")
                     elif task_type == "url" and task == "tldr":
-                        text, title = await extract_text(content)
-                        tl_dr = tldr(text)
-                        # URL to audio processing
-                        if tts_engine == "styletts2":
-                            from utils.synthesize_styletts2 import (
-                                text_to_speech_with_styletts2,
+                        new_article = ArticleData(url=content)
+                        article_id = create_article(new_article)
+                        text, title, tl_dr = await extract_text(content, article_id)
+                        try:
+                            voices = await tts_engine.get_available_voices()
+                            voice = await tts_engine.pick_random_voice(voices)
+                            audio, _ = await tts_engine.generate_audio(tl_dr, voice)
+                            await tts_engine.export_audio(
+                                audio,
+                                tl_dr,
+                                title,
+                                audio_type="url/tldr",
+                                article_id=article_id,
                             )
-
-                            await text_to_speech_with_styletts2(
-                                tl_dr, title, output_dir, img_pth
+                        except Exception as e:
+                            logging.error(
+                                f"Error creating audio for URL {content}: {e}"
                             )
-                        elif tts_engine == "piper":
-                            from utils.synthesize_piper import read_text_piper
-
-                            await read_text_piper(tl_dr, output_dir, img_pth)
-                        elif tts_engine == "F5":
-                            try:
-                                f5_tts = F5TTSEngine("utils/voices/")
-                                voices = await f5_tts.get_available_voices()
-                                voice = await f5_tts.pick_random_voice(voices)
-                                audio, _ = await f5_tts.generate_audio(tl_dr, voice)
-                                await f5_tts.export_audio(audio, tl_dr, title)
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating audio for URL {content}: {e}"
-                                )
-                        else:
-                            try:
-                                edge_tts = EdgeTTSEngine()
-                                voices = await edge_tts.get_available_voices()
-                                voice = await edge_tts.pick_random_voice(voices)
-                                audio, vtt_file = await edge_tts.generate_audio(
-                                    tl_dr, voice
-                                )
-                                await edge_tts.export_audio(
-                                    audio, tl_dr, title, vtt_file
-                                )
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating audio for URL/summary: {e}"
-                                )
                         await add_to_history(
                             content
                         )  # Add URL to history after processing
@@ -225,48 +157,27 @@ def process_tasks(stop_event):
                         # Text to audio processing
                         title = generate_title(content)
                         tl_dr = tldr(content)
-
-                        if tts_engine == "edge":
-                            try:
-                                edge_tts = EdgeTTSEngine()
-                                voices = await edge_tts.get_available_voices()
-                                voice = await edge_tts.pick_random_voice(voices)
-                                audio, vtt_file = await edge_tts.generate_audio(
-                                    tl_dr, voice
-                                )
-                                await edge_tts.export_audio(
-                                    audio, tl_dr, title, vtt_file
-                                )
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating audio for text/summary: {e}"
-                                )
-
-                        elif tts_engine == "F5":
-                            try:
-                                f5_tts = F5TTSEngine("utils/voices/")
-                                voices = await f5_tts.get_available_voices()
-                                voice = await f5_tts.pick_random_voice(voices)
-                                audio, _ = await f5_tts.generate_audio(tl_dr, voice)
-                                await f5_tts.export_audio(audio, tl_dr, title)
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating audio for text/summary: {e}"
-                                )
-
-                        current_text = database.state.get_current_text()
-                        if current_text:
-                            current_text.text = content
-                            current_text.title = title
-                            current_text.tl_dr = tl_dr
-                            create_text(current_text)
-                            logging.info("text/summary added to database")
+                        new_text = TextData(text=content, title=title, tl_dr=tl_dr)
+                        id = create_text(new_text)
+                        try:
+                            voices = await tts_engine.get_available_voices()
+                            voice = await tts_engine.pick_random_voice(voices)
+                            audio, vtt_file = await tts_engine.generate_audio(
+                                tl_dr, voice
+                            )
+                            await tts_engine.export_audio(
+                                audio, tl_dr, title, vtt_file, "text/tldr", text_id=id
+                            )
+                        except Exception as e:
+                            logging.error(f"Error creating audio for text/summary: {e}")
 
                     elif task_type == "podcast":
                         # Podcast creation processing
                         # Extract the text from the URL
+                        new_article = ArticleData(url=content)
+                        article_id = create_article(new_article)
                         try:
-                            text, title = await extract_text(content)
+                            text, title, tl_dr = await extract_text(content, article_id)
                             if not text or len(text.strip()) == 0:
                                 logging.error(
                                     f"Text extraction failed for URL: {content}"
@@ -288,6 +199,8 @@ def process_tasks(stop_event):
                                 )
                                 continue
                             logging.info(script)
+                            new_podcast = PodcastData(text=script)
+                            podcast_id = create_podcast_db_entry(new_podcast)
                         except Exception as e:
                             logging.error(
                                 f"Error generating podcast script for URL {content}: {e}"
@@ -295,52 +208,42 @@ def process_tasks(stop_event):
                             continue
 
                         # Create the podcast audio
-                        if tts_engine == "edge":
-                            try:
-                                edge_tts = EdgeTTSEngine()
-                                podcast_gen = PodcastGenerator(edge_tts)
-                                audio_file = await podcast_gen.create_podcast_audio(
-                                    script
-                                )
-                                logging.info("Generating podcast audio")
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating podcast audio for URL {content}: {e}"
-                                )
-                                continue
-                        elif tts_engine == "F5":
-                            try:
-                                f5_tts = F5TTSEngine("utils/voices/")
-                                podcast_gen = PodcastGenerator(f5_tts)
-                                audio_file = await podcast_gen.create_podcast_audio(
-                                    script
-                                )
-                            except Exception as e:
-                                logging.error(
-                                    f"Error creating podcast audio for URL {content}: {e}"
-                                )
-                    elif task_type == "story":
-                        # Extract the text from the URL
                         try:
-                            text, title = await extract_text(content)
-                            if not text or len(text.strip()) == 0:
-                                logging.error(
-                                    f"Text extraction failed for URL: {content}"
-                                )
-                                continue
+                            podcast_gen = PodcastGenerator(tts_engine)
+                            audio = await podcast_gen.create_podcast_audio(
+                                script, podcast_id=podcast_id
+                            )
+                            logging.info("Generating podcast audio")
                         except Exception as e:
                             logging.error(
-                                f"Error extracting text from URL {content}: {e}"
+                                f"Error creating podcast audio for URL {content}: {e}"
                             )
                             continue
 
-                        # Generate the podcast script
+                    elif task == "story":
+                        # Extract the text from the URL
+                        if task_type == "url":
+                            try:
+                                text, title, tl_dr = await extract_text(content)
+                                if not text or len(text.strip()) == 0:
+                                    logging.error(
+                                        f"Text extraction failed for URL: {content}"
+                                    )
+                                    continue
+                            except Exception as e:
+                                logging.error(
+                                    f"Error extracting text from URL {content}: {e}"
+                                )
+                                continue
+                        elif task_type == "text":
+                            text = content
+                        # Generate the story script
                         try:
-                            script = story(text, "Spanish")
+                            script = story(content)
                             logging.info("Generating story text from seed text")
                             if not script or len(script.strip()) == 0:
                                 logging.error(
-                                    f"Podcast story generation failed for text from URL: {content}"
+                                    f"Story generation failed for text from URL: {content}"
                                 )
                                 continue
                         except Exception as e:
@@ -349,10 +252,15 @@ def process_tasks(stop_event):
                             )
                             continue
 
-                        # Create the podcast audio
                         try:
-                            await read_text(script, output_dir, img_pth)
-                            logging.info("Generating story audio")
+                            voices = await tts_engine.get_available_voices()
+                            voice = await tts_engine.pick_random_voice(voices)
+                            audio, vtt_file = await tts_engine.generate_audio(
+                                script, voice
+                            )
+                            await tts_engine.export_audio(
+                                audio, script, audio_type="story"
+                            )
                         except Exception as e:
                             logging.error(
                                 f"Error creating story audio for URL {content}: {e}"
