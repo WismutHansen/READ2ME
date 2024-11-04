@@ -48,8 +48,9 @@ def create_or_update_tables():
             ("title", "TEXT"),
             ("date_added", "DATE DEFAULT CURRENT_DATE"),
             ("language", "TEXT"),
-            ("plain_text", "TEXT"),
+            ("tl_dr", "TEXT"),
             ("audio_file", "TEXT"),
+            ("markdown_file", "TEXT"),
             ("img_file", "TEXT"),
         ],
         "books": [
@@ -73,7 +74,6 @@ def create_or_update_tables():
             ("text", "TEXT"),
             ("date_added", "DATE DEFAULT CURRENT_DATE"),
             ("language", "TEXT"),
-            ("plain_text", "TEXT"),
             ("audio_file", "TEXT"),
             ("markdown_file", "TEXT"),
             ("img_file", "TEXT"),
