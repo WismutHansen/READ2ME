@@ -17,6 +17,7 @@ This is a currently a beta version but I plan to extend it to support other cont
 - For urls from wikipedia, uses the wikipedia python library to extract article content
 - Automatic retrieval of new articles from specified sources at defined intervals (currently hard coded to twice a day at 5AM and 5PM local time). Sources and keywords can be specified via text files.
 - Turn any seed text (url or manually entered text) into a podcast (currently works with edge-tts and F5)
+- Chrome Extension available on the Chrome WebStore: [READ2ME Browser Companion](https://chromewebstore.google.com/detail/read2me-browser-companion/khbimiljkjbgnphmpeoimkppidmgnelb). If you prefere installing the Extension from source, it's available in this repository as well.
 
 ## Requirements
 
