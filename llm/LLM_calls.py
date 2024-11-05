@@ -3,9 +3,15 @@ import os
 import logging
 from utils.common_utils import shorten_text, split_text, write_markdown_file
 from dotenv import load_dotenv
+
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pydantic import BaseModel, Field
+from typing import Literal
+
 from .Local_Ollama import ask_Ollama
 from .Local_OpenAI import ask_LLM
-from .Prompts import pod, title_prompt, story_mode
+from .Prompts import pod, title_prompt, story_mode, summ_prompt, story_mode_with_language
 
 # Configure logging
 logging.basicConfig(
@@ -15,7 +21,17 @@ logging.basicConfig(
 load_dotenv()
 
 
-def llm_call(prompt: str) -> str:
+class PodcastLine(BaseModel):
+    speaker: Literal['man', 'woman'] = Field(
+        description='Indicates the gender of the speaker in this podcast line. Acceptable values are "man" or "woman"')
+    text: str = Field(description='The text of the podcast line')
+
+
+class Podcast(BaseModel):
+    podcast: list[PodcastLine] = Field(description="List of podcast lines")
+
+
+def llm_call(prompt) -> str:
     llm_engine = os.getenv("LLM_ENGINE")
     logging.debug(f"LLM_ENGINE: {llm_engine}")
 
@@ -32,7 +48,7 @@ def llm_call(prompt: str) -> str:
 def generate_title(text):
     try:
         short_text = shorten_text(text)
-        prompt = f"{short_text} +{title_prompt}"
+        prompt = title_prompt.format(text=short_text)
 
         title = llm_call(prompt)
         return title
@@ -44,7 +60,15 @@ def generate_title(text):
 
 def tldr(text):
     try:
-        chunks = split_text(text, max_words=64000)
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=300,
+            chunk_overlap=20,
+            length_function=len,
+            is_separator_regex=False
+        )
+
+        chunks = text_splitter.split_text(text)
+        print(len(chunks))
         summaries = []
 
         logging.debug(f"Number of chunks: {len(chunks)}")
@@ -53,7 +77,7 @@ def tldr(text):
             logging.debug(
                 f"Processing chunk {i + 1}/{len(chunks)} with {len(chunk.split())} words"
             )
-            prompt = f"{chunk}\n--------\nReturn a concise summary for the above text, without referencing the text or mentioning 'in the text' or similar phrases. Keep the tone and perspective of the original text."
+            prompt = summ_prompt.format(text=chunk)
 
             summary = llm_call(prompt)
 
@@ -67,14 +91,20 @@ def tldr(text):
 
 
 def podcast(text: str) -> str:
-    prompt = f"{text} + {pod}"
+    parser = JsonOutputParser(pydantic_object=Podcast)
+    prompt = pod.format(text=text, format_instructions=parser.get_format_instructions())
     script = llm_call(prompt)
-    write_markdown_file("podcast.md", script)
+    parsed_script = parser.parse(script)
+    message = ""
+    for line in parsed_script["podcast"]:
+        message_line = f"{line['speaker']}: {line['text']}"
+        message += message_line + "\n\n"
+    write_markdown_file("podcast.md", message)
     return script
 
 
 def story(text: str, language: str = "en-US"):
-    prompt = f"{text} + {story_mode} + In {language}"
+    prompt = story_mode_with_language.format(text=text, language=language)
     script = llm_call(prompt)
     write_markdown_file("story.md", script)
     return script
