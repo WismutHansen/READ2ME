@@ -153,20 +153,34 @@ def load_audio(reference_audio, sr):
 
 def encode_reference(*, decoder_model, reference_audio, enable_reference_audio):
     if enable_reference_audio and reference_audio is not None:
-        # Load audios, and prepare basic info here
-        reference_audio_content = load_audio(
-            reference_audio, decoder_model.spec_transform.sample_rate
-        )
+        # Check if reference_audio is a NumPy array
+        if isinstance(reference_audio, np.ndarray):
+            reference_audio_content = reference_audio
+            original_sr = (
+                decoder_model.spec_transform.sample_rate
+            )  # Use the model's sample rate
+        else:
+            # Load audio from file path
+            reference_audio_content = load_audio(
+                reference_audio, decoder_model.spec_transform.sample_rate
+            )
+            original_sr = (
+                decoder_model.spec_transform.sample_rate
+            )  # Already resampled in load_audio
 
-        audios = torch.from_numpy(reference_audio_content).to(decoder_model.device)[
-            None, None, :
-        ]
+        # Ensure the audio data is in the correct shape
+        if reference_audio_content.ndim == 1:
+            # Add channel dimension if mono audio
+            reference_audio_content = reference_audio_content[np.newaxis, :]
+        elif reference_audio_content.ndim > 2:
+            raise ValueError("Audio data has too many dimensions")
+
+        # Convert to torch.Tensor and move to the appropriate device
+        audios = torch.from_numpy(reference_audio_content).to(decoder_model.device)
         audio_lengths = torch.tensor(
-            [audios.shape[2]], device=decoder_model.device, dtype=torch.long
+            [audios.shape[-1]], device=decoder_model.device, dtype=torch.long
         )
-        logger.info(
-            f"Loaded audio with {audios.shape[2] / decoder_model.spec_transform.sample_rate:.2f} seconds"
-        )
+        logger.info(f"Loaded audio with {audios.shape[-1] / original_sr:.2f} seconds")
 
         # VQ Encoder
         if isinstance(decoder_model, FireflyArchitecture):
