@@ -1,25 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import { Button } from './ui/button';
+import { Play, Pause } from 'lucide-react';
 
-interface AudioPlayerProps {
-  audioUrl: string;
-}
-
-export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
+export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.src = audioUrl;
-      setIsPlaying(false);
-      setCurrentTime(0);
-    }
+    setError(null);
   }, [audioUrl]);
 
   const togglePlayPause = () => {
@@ -27,55 +18,54 @@ export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        setError(null);
+        audioRef.current.play().catch(err => {
+          console.error('Play error:', err);
+          setError('Failed to play audio');
+        });
       }
       setIsPlaying(!isPlaying);
     }
   };
 
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
-  };
-
-  const handleSliderChange = (value: number[]) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = value[0];
-      setCurrentTime(value[0]);
-    }
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const handleError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    const mediaError = e.currentTarget.error;
+    console.error('Audio error:', {
+      url: audioUrl,
+      error: mediaError,
+      code: mediaError?.code,
+      message: mediaError?.message
+    });
+    setError('Failed to load audio');
+    setIsPlaying(false);
   };
 
   return (
-    <div className="flex items-center space-x-4">
-      <Button onClick={togglePlayPause}>
-        {isPlaying ? 'Pause' : 'Play'}
-      </Button>
-      <Slider
-        value={[currentTime]}
-        max={duration}
-        step={1}
-        onValueChange={handleSliderChange}
-        className="w-64"
-      />
-      <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
-      <audio
+    <div className="flex items-center gap-4">
+      <audio 
         ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
+        src={audioUrl}
+        onEnded={() => setIsPlaying(false)}
+        onError={handleError}
+        preload="metadata"
+        crossOrigin="anonymous"
       />
+      <Button 
+        onClick={togglePlayPause}
+        variant="outline"
+        size="icon"
+        className="w-10 h-10"
+        disabled={!!error}
+      >
+        {isPlaying ? (
+          <Pause className="h-5 w-5" />
+        ) : (
+          <Play className="h-5 w-5" />
+        )}
+      </Button>
+      {error && (
+        <span className="text-sm text-destructive">{error}</span>
+      )}
     </div>
   );
 }

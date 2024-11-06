@@ -2,66 +2,106 @@
 
 import { useState, useEffect } from 'react';
 import AudioPlayer from './AudioPlayer';
-import MarkdownRenderer from './MarkdownRenderer';
-import { Button } from './ui/button';
-import MarkdownPreview from '@uiw/react-markdown-preview';
+import { getSettings } from '@/lib/settings';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Article {
   id: string;
   title: string;
   date: string;
   audio_file: string;
+  content?: string;
 }
 
 interface BottomBarProps {
-  currentArticle: Article | null;
+  articleId: string;
 }
 
-export default function BottomBar({ currentArticle }: BottomBarProps) {
+export default function BottomBar({ articleId }: { articleId: string }) {
+  const [article, setArticle] = useState<Article | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [articleText, setArticleText] = useState('');
 
-  useEffect(() => {
-    if (currentArticle) {
-      fetchArticleText(currentArticle.id);
-    }
-  }, [currentArticle]);
-
-  const fetchArticleText = async (articleId: string) => {
-    try {
-      const response = await fetch(`http://localhost:7777/v1/article/${articleId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch article text');
-      }
-      const data = await response.json();
-      setArticleText(data.content);
-    } catch (error) {
-      console.error('Error fetching article text:', error);
-    }
+  const toggleExpanded = () => {
+    setIsExpanded((prev) => !prev);
   };
 
-  if (!currentArticle) return null;
+  useEffect(() => {
+    async function fetchArticle() {
+      if (!articleId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/article/${articleId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Article data:', data);
+        setArticle(data);
+      } catch (error) {
+        console.error('Error fetching article:', error);
+      }
+    }
+
+    fetchArticle();
+  }, [articleId]);
+
+  if (!article) return null;
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 transition-all duration-300 ${isExpanded ? 'h-5/6' : 'h-20'} bg-white dark:bg-black text-black dark:text-white`}>
-      <div className="container mx-auto p-4 h-full flex flex-col">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold flex-1 break-words text-left mr-4">
-            {currentArticle.title}
-          </h3>
-          <div className="absolute left-1/2 transform -translate-x-1/2">
-            <AudioPlayer audioUrl={`http://localhost:7777${currentArticle.audio_file}`} />
+    <div className={`fixed bottom-0 left-0 right-0 bg-background border-t z-50 ${isExpanded ? 'h-[80vh] overflow-y-auto' : ''}`}>
+      <div className="container mx-auto px-4">
+        {/* Header section with controls */}
+        <div className="sticky top-0 bg-background py-4">
+          <div className="flex items-center justify-between">
+            {/* Left side - Title and Date */}
+            <div className="flex-1 min-w-0 mr-4">
+              <h3 className="text-lg font-semibold truncate">{article.title}</h3>
+              {article.date && (
+                <p className="text-sm text-muted-foreground">
+                  {new Date(article.date).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+
+            {/* Center - Audio Player */}
+            <div className="flex-shrink-0">
+              {article.audio_file && (
+                <>
+                  {console.log('Audio file path:', article.audio_file)}
+                  <AudioPlayer 
+                    audioUrl={`${process.env.NEXT_PUBLIC_API_URL}/${article.audio_file}`}
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Right side - Expand/Collapse Button */}
+            <div className="flex-shrink-0 ml-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleExpanded}
+                className="hover:bg-accent hover:text-accent-foreground"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronUp className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
-          <Button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="ml-auto"
-          >
-            {isExpanded ? 'Collapse' : 'Expand'}
-          </Button>
         </div>
+
+        {/* Expanded Content */}
         {isExpanded && (
-          <div className="mt-4 overflow-y-auto flex-1">
-            <MarkdownPreview source={articleText} />
+          <div className="py-4">
+            <div className="prose dark:prose-invert max-w-none">
+              {article.content}
+            </div>
           </div>
         )}
       </div>

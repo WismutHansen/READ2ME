@@ -4,6 +4,8 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 from pydub import AudioSegment
+
+from database.crud import PodcastData, update_podcast
 from .tts_engines import TTSEngine
 
 
@@ -180,12 +182,15 @@ class PodcastGenerator:
 
             # Create and mix tracks
             final_audio = self._mix_tracks(speakers, speaker_timing, total_duration)
-
-            # Export and return path
-            return await self.tts_engine.export_audio(
+            audio_path = await self.tts_engine.export_audio(
                 final_audio, transcript, "podcast", podcast_id=podcast_id
             )
-
+            if podcast_id:
+                new_podcast = PodcastData(audio_file=audio_path)
+                update_podcast(podcast_id=podcast_id, updated_fields=new_podcast)
+                logging.info(f"Added audio file path to db for Podcast {podcast_id}")
+            # Export and return path
+            return audio_path
         except Exception as e:
             self.logger.error(f"Error creating podcast: {e}")
             raise
