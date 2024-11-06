@@ -345,6 +345,20 @@ def update_text(text_id: int, updated_fields: dict):
     )  # Returns the number of rows affected (should be 1 if successful)
 
 
+def get_text(text_id: str):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM texts WHERE id = ?
+    """,
+        (text_id,),
+    )
+    article = cursor.fetchone()
+    conn.close()
+    return article
+
+
 def create_podcast_db_entry(
     podcast_data: PodcastData,
     seed_text_id: Optional[str] = None,
@@ -417,6 +431,20 @@ def update_podcast(podcast_id: int, updated_fields: dict):
     return (
         cursor.rowcount
     )  # Returns the number of rows affected (should be 1 if successful)
+
+
+def get_podcast(podcast_id: str):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM podcasts WHERE id = ?
+    """,
+        (podcast_id,),
+    )
+    article = cursor.fetchone()
+    conn.close()
+    return article
 
 
 def generate_hash(value: str) -> str:

@@ -118,6 +118,9 @@ def process_tasks(stop_event):
                             logging.info(script)
                             new_podcast = PodcastData(text=script)
                             podcast_id = create_podcast_db_entry(new_podcast)
+                            logging.info(
+                                f"Podcast script added to db. Podcast ID: {podcast_id}"
+                            )
                         except Exception as e:
                             logging.error(
                                 f"Error generating podcast script for text: {e}"

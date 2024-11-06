@@ -17,7 +17,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from tzlocal import get_localzone
 
-from database.crud import fetch_available_media, AvailableMedia
+from database.crud import (
+    fetch_available_media,
+    AvailableMedia,
+    get_article,
+    get_text,
+    get_podcast,
+)
 from utils.env import setup_env
 from utils.history_handler import add_to_history
 from utils.logging_utils import setup_logging
@@ -152,15 +158,11 @@ app = FastAPI(
 # Update this line to use an absolute path
 # output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
 
-# Mount the static files with the correct directory
-app.mount("/static", StaticFiles(directory=output_dir), name="static")
+app.mount("/Output", StaticFiles(directory="Output"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-    ],  # Update with the frontend URL if different from the standard
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -517,38 +519,117 @@ async def get_articles(request: Request, page: int = 1, limit: int = 20):
 
 
 @app.get("/v1/article/{article_id}")
-async def get_article(article_id: str):
-    date_folder, file_prefix = article_id.split("_")
+async def get_article_from_db(article_id: str):
+    try:
+        article = get_article(
+            article_id
+        )  # Function to retrieve article from the database
 
-    for root, dirs, files in os.walk(os.path.join(output_dir, date_folder)):
-        for file in files:
-            if (
-                file.endswith(".mp3")
-                and generate_article_id(date_folder, file) == article_id
-            ):
-                relative_path = os.path.relpath(os.path.join(root, file), output_dir)
-                audio_url = f"/v1/audio/{relative_path}"
-                text_file_path = os.path.join(root, f"{os.path.splitext(file)[0]}.md")
+        if not article:
+            raise HTTPException(status_code=404, detail="Article not found")
 
-                if not os.path.isfile(text_file_path):
-                    raise HTTPException(
-                        status_code=404, detail="Article text not found"
-                    )
+        # Get the audio file path and format it correctly
+        audio_file = article[9]  # Adjust index based on database structure
+        if audio_file:
+            # Remove any leading slashes and ensure proper path structure
+            audio_file = audio_file.lstrip("/")
+            # Don't include 'static' in the response - it will be added by the frontend
+            audio_file = (
+                audio_file
+                if audio_file.startswith("Output/")
+                else f"Output/{audio_file}"
+            )
 
-                with open(text_file_path, "r", encoding="utf-8") as text_file:
-                    content = text_file.read()
+        # Parse the article details
+        content = {
+            "id": article_id,
+            "title": article[2],
+            "date": article[3],
+            "audio_file": audio_file,  # This should be like "Output/20241102/file.mp3"
+            "content": article[6],
+        }
 
-                return JSONResponse(
-                    content={
-                        "id": article_id,
-                        "date": date_folder,
-                        "audio_file": audio_url,
-                        "title": os.path.splitext(file)[0].replace("_", " "),
-                        "content": content,
-                    }
-                )
+        return JSONResponse(content=content)
+    except Exception as e:
+        logging.error(f"Error fetching article {article_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Failed to fetch article", "error": str(e)},
+        )
 
-    raise HTTPException(status_code=404, detail="Article not found")
+
+@app.get("/v1/podcast/{podcast_id}")
+async def get_podcast_from_db(podcast_id: str):
+    try:
+        podcast = get_podcast(
+            podcast_id
+        )  # Function to retrieve podcast from the database
+
+        if not podcast:
+            raise HTTPException(status_code=404, detail="Podcast not found")
+
+        # Format the audio file path
+        audio_file = podcast[5]  # Adjust index based on database structure
+        if audio_file:
+            audio_file = audio_file.lstrip("/")
+            audio_file = (
+                audio_file
+                if audio_file.startswith("Output/")
+                else f"Output/{audio_file}"
+            )
+
+        # Parse the podcast details
+        content = {
+            "id": podcast_id,
+            "title": podcast[1],  # Adjust index for title
+            "date_added": podcast[3],  # Adjust index for date
+            "audio_file": audio_file,
+            "content": podcast[4],  # Adjust index for text/content
+        }
+
+        return JSONResponse(content=content)
+    except Exception as e:
+        logging.error(f"Error fetching podcast {podcast_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Failed to fetch podcast", "error": str(e)},
+        )
+
+
+@app.get("/v1/texts/{text_id}")
+async def get_text_from_db(text_id: str):
+    try:
+        text = get_text(text_id)  # Function to retrieve text from the database
+
+        if not text:
+            raise HTTPException(status_code=404, detail="Text not found")
+
+        # Format the audio file path
+        audio_file = text[5]  # Adjust index based on database structure
+        if audio_file:
+            audio_file = audio_file.lstrip("/")
+            audio_file = (
+                audio_file
+                if audio_file.startswith("Output/")
+                else f"Output/{audio_file}"
+            )
+
+        # Parse the text details
+        content = {
+            "id": text_id,
+            "title": text[1],  # Adjust index for title
+            "date_added": text[3],  # Adjust index for date
+            "audio_file": audio_file,
+            "content": text[2],  # Adjust index for the main text content
+        }
+
+        return JSONResponse(content=content)
+    except Exception as e:
+        logging.error(f"Error fetching text {text_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={"message": "Failed to fetch text", "error": str(e)},
+        )
 
 
 @app.get("/v1/available-media", response_model=List[AvailableMedia])

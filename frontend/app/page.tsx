@@ -22,8 +22,11 @@ import type { ArticleListRef } from "@/components/ArticleList";
 interface Article {
   id: string;
   title: string;
-  date: string;
+  date_added: string;
+  date_published?: string;
   audio_file: string;
+  type: string;
+  // ... other fields if needed
 }
 
 export default function Home() {
@@ -33,9 +36,12 @@ export default function Home() {
   const [articleAdderOpen, setArticleAdderOpen] = useState(false);
   const { toast } = useToast();
   const articleListRef = useRef<ArticleListRef>(null);
+  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
 
   const handleSelectArticle = (article: Article) => {
+    console.log('Selected article:', article);
     setCurrentArticle(article);
+    setSelectedArticleId(article.id);
   };
 
   const handleRefresh = async () => {
@@ -70,7 +76,7 @@ export default function Home() {
               alt="READ2ME Logo"
               className="block dark:hidden"
               width={60}
-              height={16}
+              height={32}
               priority
             />
 
@@ -79,7 +85,7 @@ export default function Home() {
               alt="READ2ME Logo"
               className="hidden dark:block"
               width={60}
-              height={16}
+              height={32}
               priority
             />
           </a>
@@ -88,14 +94,14 @@ export default function Home() {
           <Button
             variant="outline"
             onClick={() => setSourceManagerOpen(true)}
-            className="bg-[#000000]"
+            className="bg-[rgb(0,_0,_0)]"
           >
             Manage Sources
           </Button>
           <Button
             variant="outline"
             onClick={() => setArticleAdderOpen(true)}
-            className="bg-[#000000]"
+            className="bg-[rgb(0,_0,_0)]"
           >
             Add Content
           </Button>
@@ -129,7 +135,7 @@ export default function Home() {
           variant="outline"
           size="sm"
           disabled={isRefreshing}
-          className="bg-[#000000]"
+          className="bg-[rgb(0,_0,_0)]"
         >
           {isRefreshing ? (
             <>
@@ -147,7 +153,14 @@ export default function Home() {
 
       <ArticleList ref={articleListRef} onSelectArticle={handleSelectArticle} />
 
-      <BottomBar currentArticle={currentArticle} />
+      {console.log('Selected ID:', selectedArticleId)}
+
+      {selectedArticleId && (
+        <BottomBar 
+          articleId={selectedArticleId} 
+          key={selectedArticleId}
+        />
+      )}
     </main>
   );
 }
