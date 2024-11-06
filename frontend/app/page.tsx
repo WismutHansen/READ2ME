@@ -1,10 +1,10 @@
-'use client';
-import { useState, useRef } from 'react';
-import Image from 'next/image';
-import ArticleList from '@/components/ArticleList';
-import BottomBar from '@/components/BottomBar';
-import { ModeToggle } from '@/components/ModeToggle';
-import { Button } from '@/components/ui/button';
+"use client";
+import { useState, useRef } from "react";
+import Image from "next/image";
+import ArticleList from "@/components/ArticleList";
+import BottomBar from "@/components/BottomBar";
+import { ModeToggle } from "@/components/ModeToggle";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,12 +12,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Cog } from "lucide-react";
-import SourceManager from '@/components/SourceManager';
-import ArticleAdder from '@/components/ArticleAdder';
-import SettingsManager from '@/components/SettingsManager';
-import { Loader2, RefreshCw } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import type { ArticleListRef } from '@/components/ArticleList';
+import SourceManager from "@/components/SourceManager";
+import ArticleAdder from "@/components/ArticleAdder";
+import SettingsManager from "@/components/SettingsManager";
+import { Loader2, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import type { ArticleListRef } from "@/components/ArticleList";
 
 interface Article {
   id: string;
@@ -73,6 +73,7 @@ export default function Home() {
               height={16}
               priority
             />
+
             <Image
               src="/White.svg"
               alt="READ2ME Logo"
@@ -87,12 +88,14 @@ export default function Home() {
           <Button
             variant="outline"
             onClick={() => setSourceManagerOpen(true)}
+            className="bg-[#000000]"
           >
             Manage Sources
           </Button>
           <Button
             variant="outline"
             onClick={() => setArticleAdderOpen(true)}
+            className="bg-[#000000]"
           >
             Add Content
           </Button>
@@ -126,6 +129,7 @@ export default function Home() {
           variant="outline"
           size="sm"
           disabled={isRefreshing}
+          className="bg-[#000000]"
         >
           {isRefreshing ? (
             <>
@@ -141,10 +145,7 @@ export default function Home() {
         </Button>
       </div>
 
-      <ArticleList
-        ref={articleListRef}
-        onSelectArticle={handleSelectArticle}
-      />
+      <ArticleList ref={articleListRef} onSelectArticle={handleSelectArticle} />
 
       <BottomBar currentArticle={currentArticle} />
     </main>
