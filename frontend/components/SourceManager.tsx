@@ -3,30 +3,34 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function SourceManager() {
   const [url, setUrl] = useState('');
   const [keywords, setKeywords] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [dialogMessage, setDialogMessage] = useState<string | null>(null);
+  const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
 
   const validateUrl = (url: string): boolean => {
     try {
-      // First, try to construct a URL object (this checks basic URL format)
       const urlObject = new URL(url);
-      
-      // Check if protocol is http or https
       if (!['http:', 'https:'].includes(urlObject.protocol)) {
         setUrlError('URL must start with http:// or https://');
         return false;
       }
-
-      // Check if URL has a valid domain
       if (!urlObject.hostname.includes('.')) {
         setUrlError('URL must contain a valid domain');
         return false;
       }
-
-      // Clear any previous errors if validation passes
       setUrlError('');
       return true;
     } catch (err) {
@@ -46,12 +50,10 @@ export default function SourceManager() {
   };
 
   const handleAddSource = async () => {
-    // Validate URL before proceeding
     if (!url) {
       setUrlError('URL is required');
       return;
     }
-
     if (!validateUrl(url)) {
       return;
     }
@@ -63,25 +65,25 @@ export default function SourceManager() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sources: [{ 
-            url, 
+          sources: [{
+            url,
             keywords: keywords.split(',')
               .map(k => k.trim())
-              .filter(k => k.length > 0) 
+              .filter(k => k.length > 0)
           }]
         }),
       });
-      
+
       if (!response.ok) throw new Error('Failed to add source');
-      
-      // Reset form and show success message
+
       setUrl('');
       setKeywords('');
-      setUrlError('');
-      alert('Source added successfully');
+      setDialogType('success');
+      setDialogMessage('Source added successfully');
     } catch (error) {
       console.error('Error adding source:', error);
-      alert('Failed to add source');
+      setDialogType('error');
+      setDialogMessage('Failed to add source');
     }
   };
 
@@ -91,16 +93,19 @@ export default function SourceManager() {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to fetch articles');
-      alert('Fetching new articles started');
+
+      setDialogType('success');
+      setDialogMessage('Fetching new articles started');
     } catch (error) {
       console.error('Error fetching articles:', error);
-      alert('Failed to fetch articles');
+      setDialogType('error');
+      setDialogMessage('Failed to fetch articles');
     }
   };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Manage Sources</h2>
+      <h3 className="text">Add sources by url</h3>
       <div className="flex flex-col space-y-4">
         <div className="space-y-2">
           <Input
@@ -117,6 +122,7 @@ export default function SourceManager() {
             </Alert>
           )}
         </div>
+        <h3 className="text">You can specify keywords that are applied to the source (optional)</h3>
         <Input
           type="text"
           placeholder="Keywords (comma-separated)"
@@ -124,14 +130,14 @@ export default function SourceManager() {
           onChange={(e) => setKeywords(e.target.value)}
         />
         <div className="flex space-x-2">
-          <Button 
-            onClick={handleAddSource} 
+          <Button
+            onClick={handleAddSource}
             className="flex-1"
             disabled={!!urlError}
           >
             Add Source
           </Button>
-          <Button 
+          <Button
             onClick={handleFetchArticles}
             variant="secondary"
             className="flex-1"
@@ -140,6 +146,23 @@ export default function SourceManager() {
           </Button>
         </div>
       </div>
+
+      {/* AlertDialog for Success and Error Messages */}
+      <AlertDialog open={!!dialogMessage} onOpenChange={() => setDialogMessage(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {dialogType === 'success' ? 'Success' : 'Error'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {dialogMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDialogMessage(null)}>Ok</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
