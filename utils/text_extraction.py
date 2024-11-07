@@ -428,7 +428,7 @@ async def extract_text(url, article_id: Optional[str] = None):
                     title=title,
                     date_published=date_str if date_str else "",
                     language=language,
-                    text=article_content,
+                    plain_text=article_content,
                     tl_dr=tl_dr,
                 )
                 update_article(article_id, new_article)
