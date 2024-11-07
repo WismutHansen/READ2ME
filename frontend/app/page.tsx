@@ -92,16 +92,32 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="sm"
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Refreshing
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </>
+            )}
+          </Button>
+          <Button
             variant="outline"
             onClick={() => setSourceManagerOpen(true)}
-            className="bg-[rgb(0,_0,_0)]"
           >
             Manage Sources
           </Button>
           <Button
             variant="outline"
             onClick={() => setArticleAdderOpen(true)}
-            className="bg-[rgb(0,_0,_0)]"
           >
             Add Content
           </Button>
@@ -128,36 +144,14 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl">READ2ME Audio Library</h2>
-        <Button
-          onClick={handleRefresh}
-          variant="outline"
-          size="sm"
-          disabled={isRefreshing}
-          className="bg-[rgb(0,_0,_0)]"
-        >
-          {isRefreshing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Refreshing
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </>
-          )}
-        </Button>
-      </div>
 
       <ArticleList ref={articleListRef} onSelectArticle={handleSelectArticle} />
 
       {console.log('Selected ID:', selectedArticleId)}
 
       {selectedArticleId && (
-        <BottomBar 
-          articleId={selectedArticleId} 
+        <BottomBar
+          articleId={selectedArticleId}
           key={selectedArticleId}
         />
       )}

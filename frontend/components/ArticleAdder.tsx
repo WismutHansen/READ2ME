@@ -2,6 +2,15 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const STORAGE_KEYS = {
   SERVER_URL: 'serverUrl',
@@ -11,6 +20,8 @@ const STORAGE_KEYS = {
 export default function ArticleAdder() {
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
 
   const getSettings = () => {
     const serverUrl = localStorage.getItem(STORAGE_KEYS.SERVER_URL) || 'http://localhost:7777';
@@ -18,7 +29,22 @@ export default function ArticleAdder() {
     return { serverUrl, ttsEngine };
   };
 
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleAddUrl = async (endpoint: string) => {
+    if (!isValidUrl(url)) {
+      setMessageType('error');
+      setAlertMessage('Please enter a valid URL');
+      return;
+    }
+
     const { serverUrl, ttsEngine } = getSettings();
     try {
       const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
@@ -30,10 +56,12 @@ export default function ArticleAdder() {
       });
       if (!response.ok) throw new Error(`Failed to add URL to ${endpoint}`);
       setUrl('');
-      alert('URL added successfully');
+      setMessageType('success');
+      setAlertMessage('URL added successfully');
     } catch (error) {
       console.error(`Error adding URL to ${endpoint}:`, error);
-      alert(`Failed to add URL to ${endpoint}`);
+      setMessageType('error');
+      setAlertMessage(`Failed to add URL to ${endpoint}`);
     }
   };
 
@@ -49,17 +77,19 @@ export default function ArticleAdder() {
       });
       if (!response.ok) throw new Error(`Failed to add text to ${endpoint}`);
       setText('');
-      alert('Text added successfully');
+      setMessageType('success');
+      setAlertMessage('Text added successfully');
     } catch (error) {
       console.error(`Error adding text to ${endpoint}:`, error);
-      alert(`Failed to add text to ${endpoint}`);
+      setMessageType('error');
+      setAlertMessage(`Failed to add text to ${endpoint}`);
     }
   };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Add Single Article</h2>
-      
+      <h2 className="text">Add Single Article by URL</h2>
+
       {/* URL inputs */}
       <div className="space-y-2">
         <Input
@@ -69,7 +99,7 @@ export default function ArticleAdder() {
           onChange={(e) => setUrl(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => handleAddUrl('url/full')}>Full text</Button>
+          <Button onClick={() => handleAddUrl('url/full')}>Full Text</Button>
           <Button onClick={() => handleAddUrl('url/summary')}>Summary</Button>
           <Button onClick={() => handleAddUrl('url/podcast')}>Podcast</Button>
         </div>
@@ -77,6 +107,7 @@ export default function ArticleAdder() {
 
       {/* Text inputs */}
       <div className="space-y-2">
+        <h2 className="text">Add Text</h2>
         <Textarea
           placeholder="Article text"
           value={text}
@@ -88,6 +119,23 @@ export default function ArticleAdder() {
           <Button onClick={() => handleAddText('text/podcast')}>Podcast</Button>
         </div>
       </div>
+
+      {/* AlertDialog for Messages */}
+      <AlertDialog open={!!alertMessage} onOpenChange={() => setAlertMessage(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {messageType === 'success' ? 'Success' : 'Error'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertMessage(null)}>Ok</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
