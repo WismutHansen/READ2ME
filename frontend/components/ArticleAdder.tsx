@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { getSettings } from "@/hooks/useSettings";
+import { getSettings } from '@/lib/settings';
 import {
   AlertDialog,
   AlertDialogCancel,

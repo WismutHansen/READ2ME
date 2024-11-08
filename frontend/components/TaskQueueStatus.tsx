@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings } from "@/hooks/useSettings";
-
+import { getSettings } from '@/lib/settings';
 interface TaskQueueStatusProps {
   refreshInterval?: number;
 }
