@@ -142,7 +142,7 @@ class TTSEngine(ABC):
             if article_id:
                 if audio_type == "url/full" or "url/tldr":
                     new_article = ArticleData(
-                        md_file=md_file_name,
+                        markdown_file=md_file_name,
                         vtt_file=vtt_file if vtt_file else "",
                         audio_file=output_path,
                         img_file=img_pth,
@@ -155,7 +155,7 @@ class TTSEngine(ABC):
             elif text_id:
                 if audio_type == "text/full" or "text/tldr":
                     new_text = TextData(
-                        md_file=md_file_name,
+                        markdown_file=md_file_name,
                         vtt_file=vtt_file if vtt_file else "",
                         audio_file=output_path,
                         img_file=img_pth,

@@ -18,6 +18,7 @@ import SettingsManager from "@/components/SettingsManager";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { ArticleListRef } from "@/components/ArticleList";
+import TaskQueueStatus from "@/components/TaskQueueStatus";
 
 interface Article {
   id: string;
@@ -91,6 +92,7 @@ export default function Home() {
           </a>
         </div>
         <div className="flex items-center gap-4">
+          <TaskQueueStatus />
           <Button
             onClick={handleRefresh}
             variant="outline"
