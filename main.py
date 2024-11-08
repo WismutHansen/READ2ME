@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 from logging.handlers import TimedRotatingFileHandler
 from threading import Event
-from typing import List, Optional
+from typing import List, Optional, Union
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -26,9 +26,8 @@ from database.crud import (
 )
 from utils.env import setup_env
 from utils.history_handler import add_to_history
-from utils.logging_utils import setup_logging
 from utils.source_manager import read_sources, update_sources
-from utils.task_file_handler import add_task, get_task_count, get_tasks
+from utils.task_file_handler import add_task, get_task_count, get_tasks, remove_task
 from utils.task_processor import start_task_processor
 from utils.version_check import check_package_versions
 
@@ -128,6 +127,13 @@ class SourceUpdate(BaseModel):
     sources: Optional[List[Source]] = None
 
 
+class TaskRemoveRequest(BaseModel):
+    type: str
+    content: str
+    tts_engine: str
+    task: Union[str, dict, None] = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stop_event.clear()  # Ensure the event is clear before starting the thread
@@ -175,6 +181,18 @@ async def get_queue_status():
     tasks = await get_tasks()  # retrieve list of tasks
 
     return {"task_count": task_count, "tasks": tasks}
+
+
+@app.delete("/v1/queue/remove")
+async def remove_task_endpoint(task: TaskRemoveRequest):
+    task_dict = task.model_dump()
+    existing_tasks = await get_tasks()
+
+    if task_dict not in existing_tasks:
+        raise HTTPException(status_code=404, detail="Task not found in queue")
+
+    await remove_task(task_dict)
+    return {"status": "success", "message": "Task removed from queue"}
 
 
 @app.post("/v1/url/full")

@@ -1,25 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { getSettings as fetchSettings, DEFAULT_SETTINGS, Settings } from "@/lib/settings";
 
-const STORAGE_KEYS = {
-  SERVER_URL: 'serverUrl',
-  TTS_ENGINE: 'ttsEngine',
-};
-
-// Regular function to get settings without React hooks
-export const getSettings = () => {
-  const serverUrl = localStorage.getItem(STORAGE_KEYS.SERVER_URL) || 'http://localhost:7777';
-  const ttsEngine = localStorage.getItem(STORAGE_KEYS.TTS_ENGINE) || 'edge';
-  return { serverUrl, ttsEngine };
-};
-
-// Custom hook for use within functional components
 export const useSettings = () => {
-  const [settings, setSettings] = useState(() => getSettings());
+  const [settings, setSettings] = useState<Settings>(() => fetchSettings());
+
+  const updateSetting = useCallback((key: keyof Settings, value: string) => {
+    const updatedSettings = { ...settings, [key]: value };
+    localStorage.setItem('settings', JSON.stringify(updatedSettings));
+    setSettings(updatedSettings);
+  }, [settings]);
 
   useEffect(() => {
-    const storedSettings = getSettings();
-    setSettings(storedSettings);
+    const handleStorageChange = () => setSettings(fetchSettings());
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  return settings;
+  return { ...settings, updateSetting };
 };
