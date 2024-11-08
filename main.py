@@ -28,7 +28,7 @@ from utils.env import setup_env
 from utils.history_handler import add_to_history
 from utils.logging_utils import setup_logging
 from utils.source_manager import read_sources, update_sources
-from utils.task_file_handler import add_task
+from utils.task_file_handler import add_task, get_task_count, get_tasks
 from utils.task_processor import start_task_processor
 from utils.version_check import check_package_versions
 
@@ -167,6 +167,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/v1/queue/status")
+async def get_queue_status():
+    task_count = await get_task_count()  # get number of tasks in queue
+    tasks = await get_tasks()  # retrieve list of tasks
+
+    return {"task_count": task_count, "tasks": tasks}
 
 
 @app.post("/v1/url/full")
