@@ -4,16 +4,23 @@ import { useState, useEffect } from 'react';
 import AudioPlayer from '@/components/AudioPlayer';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
-export default function ArticlePage({ params }: { params: { id: string } }) {
+export default function ArticlePage({ params }: { params: { id: string; type: string } }) {
   const [article, setArticle] = useState<any>(null);
 
   useEffect(() => {
     fetchArticle();
-  }, [params.id]);
+  }, [params.id, params.type]);
 
   const fetchArticle = async () => {
     try {
-      const response = await fetch(`/api/article/${params.id}`);
+      // Determine the URL based on the content type
+      const endpoint = params.type === 'podcast'
+        ? `/api/article/${params.id}`
+        : `/api/texts/${params.id}`;
+
+      const response = await fetch(endpoint);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
       const data = await response.json();
       setArticle(data);
     } catch (error) {
