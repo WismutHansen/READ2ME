@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { getSettings } from "@/hooks/useSettings";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,22 +13,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-const STORAGE_KEYS = {
-  SERVER_URL: 'serverUrl',
-  TTS_ENGINE: 'ttsEngine',
-};
-
 export default function ArticleAdder() {
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-
-  const getSettings = () => {
-    const serverUrl = localStorage.getItem(STORAGE_KEYS.SERVER_URL) || 'http://localhost:7777';
-    const ttsEngine = localStorage.getItem(STORAGE_KEYS.TTS_ENGINE) || 'edge';
-    return { serverUrl, ttsEngine };
-  };
 
   const isValidUrl = (url: string): boolean => {
     try {

@@ -25,7 +25,7 @@ class ArticleData(BaseModel):
     markdown_text: Optional[str] = None
     tl_dr: Optional[str] = None
     audio_file: Optional[str] = None
-    md_file: Optional[str] = None
+    markdown_file: Optional[str] = None
     vtt_file: Optional[str] = None
     img_file: Optional[str] = None
 
@@ -60,7 +60,7 @@ class Author(BaseModel):
 
 class AvailableMedia(BaseModel):
     id: str
-    title: str
+    title: Optional[str] = None
     date_added: str
     date_published: Optional[str] = None
     language: Optional[str] = None
@@ -145,13 +145,13 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
                 str(article_data.url),
                 article_data.title,
                 date_published,
-                article_data.date_added,  # Now available in ArticleData
+                article_data.date_added,
                 article_data.language,
                 article_data.plain_text,
                 article_data.markdown_text,
                 article_data.tl_dr,
                 article_data.audio_file,
-                article_data.md_file,
+                article_data.markdown_file,
                 article_data.vtt_file,
                 article_data.img_file,
             ),
@@ -289,51 +289,57 @@ def create_text(text_data: TextData):
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Generate next available text ID
-    cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM texts")
-    text_id = cursor.fetchone()[0]
+    try:
+        cursor.execute(
+            """
+            INSERT INTO texts (title, text, date_added, language, tl_dr, audio_file, markdown_file, img_file)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                text_data.title,
+                text_data.text,
+                text_data.date_added or datetime.today().strftime("%Y-%m-%d"),
+                text_data.language,
+                text_data.tl_dr,
+                text_data.audio_file,
+                text_data.markdown_file,
+                text_data.img_file,
+            ),
+        )
+        conn.commit()
 
-    cursor.execute(
-        """
-        INSERT INTO texts (id, title, text, date_added, language, tl_dr, audio_file, markdown_file, img_file)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            text_id,
-            text_data.title,
-            text_data.text,
-            text_data.date_added or datetime.today().strftime("%Y-%m-%d"),
-            text_data.language,
-            text_data.tl_dr,
-            text_data.audio_file,
-            text_data.markdown_file,
-            text_data.img_file,
-        ),
-    )
-    conn.commit()
-    conn.close()
-    return id
+        # Retrieve the auto-generated ID of the newly inserted text
+        text_id = cursor.lastrowid
+    except sqlite3.IntegrityError as e:
+        print(f"Could not add text data to the database: {e}")
+        text_id = (
+            None  # Handle error by setting text_id to None or other error handling
+        )
+    finally:
+        conn.close()
+
+    return text_id
 
 
-def update_text(text_id: int, updated_fields: dict):
-    if not updated_fields:
-        print("No fields to update.")
-        return
-
+def update_text(text_id: int, updated_fields: TextData):
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Generate the SQL query dynamically
-    set_clause = ", ".join([f"{field} = ?" for field in updated_fields.keys()])
-    values = list(updated_fields.values())
-    values.append(text_id)
+    # Filter out None values to only update provided fields
+    fields_to_update = {
+        key: value
+        for key, value in updated_fields.model_dump().items()
+        if value is not None
+    }
 
-    query = f"""
-        UPDATE articles
-        SET {set_clause}
-        WHERE id = ?
-    """
+    if not fields_to_update:
+        print("No fields to update.")
+        return
 
+    set_clause = ", ".join([f"{field} = ?" for field in fields_to_update.keys()])
+    values = list(fields_to_update.values()) + [text_id]
+
+    query = f"UPDATE texts SET {set_clause} WHERE id = ?"
     cursor.execute(query, values)
     conn.commit()
     conn.close()
@@ -367,17 +373,13 @@ def create_podcast_db_entry(
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Generate next available text ID
-    cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM texts")
-    podcast_id = cursor.fetchone()[0]
-
+    # Insert the podcast data, letting SQLite handle the ID generation
     cursor.execute(
         """
-        INSERT INTO podcasts (id, title, text, date_added, language, audio_file, markdown_file, img_file)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO podcasts (title, text, date_added, language, audio_file, markdown_file, img_file)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            podcast_id,
             podcast_data.title,
             podcast_data.text,
             podcast_data.date_added or datetime.today().strftime("%Y-%m-%d"),
@@ -387,6 +389,9 @@ def create_podcast_db_entry(
             podcast_data.img_file,
         ),
     )
+
+    # Retrieve the generated podcast_id for linking
+    podcast_id = cursor.lastrowid
 
     # Link podcast to seed text or article if provided
     if seed_text_id or seed_article_id:
@@ -400,28 +405,27 @@ def create_podcast_db_entry(
 
     conn.commit()
     conn.close()
-    return id
+    return podcast_id
 
 
-def update_podcast(podcast_id: int, updated_fields: dict):
-    if not updated_fields:
+def update_podcast(podcast_id: int, updated_fields: PodcastData):
+    conn = create_connection()
+    cursor = conn.cursor()
+    # Filter out None values to only update provided fields
+    fields_to_update = {
+        key: value
+        for key, value in updated_fields.model_dump().items()
+        if value is not None
+    }
+
+    if not fields_to_update:
         print("No fields to update.")
         return
 
-    conn = create_connection()
-    cursor = conn.cursor()
+    set_clause = ", ".join([f"{field} = ?" for field in fields_to_update.keys()])
+    values = list(fields_to_update.values()) + [podcast_id]
 
-    # Generate the SQL query dynamically
-    set_clause = ", ".join([f"{field} = ?" for field in updated_fields.keys()])
-    values = list(updated_fields.values())
-    values.append(podcast_id)
-
-    query = f"""
-        UPDATE articles
-        SET {set_clause}
-        WHERE id = ?
-    """
-
+    query = f"UPDATE podcasts SET {set_clause} WHERE id = ?"
     cursor.execute(query, values)
     conn.commit()
     conn.close()
@@ -509,18 +513,19 @@ def main():
     vtt_file = input("Please enter the path to the VTT file (optional): ") or None
 
     # Create the article data dictionary
-    article_data = {
-        "url": url,
-        "title": title,
-        "date_published": date_published,
-        "language": language,
-        "plain_text": plain_text,
-        "markdown_text": markdown_text,
-        "tl_dr": tl_dr,
-        "audio_file": audio_file,
-        "markdown_file": markdown_file,
-        "vtt_file": vtt_file,
-    }
+    article_data = ArticleData(
+        url=url,
+        title=title,
+        date_published=date_published,
+        language=language,
+        plain_text=plain_text,
+        markdown_text=markdown_text,
+        tl_dr=tl_dr,
+        audio_file=audio_file,
+        markdown_file=markdown_file,
+        vtt_file=vtt_file,
+    )
+
     create_article(article_data)
     print(f"Article '{title}' has been successfully added to the database.")
 
