@@ -138,6 +138,7 @@ class PodcastGenerator:
     async def create_podcast_audio(
         self,
         transcript: str,
+        title: str,
         voice_1: Optional[str] = None,
         voice_2: Optional[str] = None,
         podcast_id: Optional[int] = None,
@@ -183,7 +184,7 @@ class PodcastGenerator:
             # Create and mix tracks
             final_audio = self._mix_tracks(speakers, speaker_timing, total_duration)
             audio_path = await self.tts_engine.export_audio(
-                final_audio, transcript, "podcast", podcast_id=podcast_id
+                final_audio, transcript, title, podcast_id=podcast_id
             )
             if podcast_id:
                 new_podcast = PodcastData(audio_file=audio_path)

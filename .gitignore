@@ -7,7 +7,7 @@ podcast.md
 # Ignore the.env file in the root directory
 
 .env
-
+my_feeds.json
 # Ommit the DS_Store folder automatically created by macOS
 .DS_Store/
 

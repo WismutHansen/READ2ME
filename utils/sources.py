@@ -8,7 +8,7 @@ import newspaper
 from .task_file_handler import add_task
 from .rssfeed import find_rss_feed, get_articles_from_feed
 
-MAX_ARTICLES_PER_SOURCE = 10
+MAX_ARTICLES_PER_SOURCE = 20
 
 
 def compile_patterns(keywords):

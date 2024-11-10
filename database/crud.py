@@ -112,13 +112,13 @@ def fetch_available_media():
     # Format combined media records
     return [
         AvailableMedia(
-            id=row[0],
+            id=str(row[0]),  # Convert ID to string
             title=row[1],
             date_added=row[2],
             date_published=row[3],
             authors=row[4].split(",") if row[4] else [],
             audio_file=row[5],
-            type=row[6],  # inferred from query as last column
+            type=row[6],
         )
         for row in media
     ]
@@ -357,19 +357,19 @@ def get_text(text_id: str):
     cursor.execute(
         """
         SELECT * FROM texts WHERE id = ?
-    """,
-        (text_id,),
+        """,
+        (int(text_id),),  # Convert ID to integer
     )
-    article = cursor.fetchone()
+    text = cursor.fetchone()
     conn.close()
-    return article
+    return text
 
 
 def create_podcast_db_entry(
     podcast_data: PodcastData,
     seed_text_id: Optional[str] = None,
     seed_article_id: Optional[str] = None,
-):
+) -> int:
     conn = create_connection()
     cursor = conn.cursor()
 
@@ -443,12 +443,12 @@ def get_podcast(podcast_id: str):
     cursor.execute(
         """
         SELECT * FROM podcasts WHERE id = ?
-    """,
-        (podcast_id,),
+        """,
+        (int(podcast_id),),  # Convert ID to integer
     )
-    article = cursor.fetchone()
+    podcast = cursor.fetchone()
     conn.close()
-    return article
+    return podcast
 
 
 def generate_hash(value: str) -> str:

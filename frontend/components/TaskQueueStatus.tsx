@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings } from '@/lib/settings';
+import { getSettings } from "@/lib/settings";
+
 interface TaskQueueStatusProps {
   refreshInterval?: number;
+  refreshArticles: () => Promise<void>;
 }
 
 interface Task {
@@ -16,6 +18,7 @@ interface Task {
 
 const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
   refreshInterval = 5000,
+  refreshArticles,
 }) => {
   const [taskCount, setTaskCount] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -53,6 +56,10 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
       });
       if (!response.ok) throw new Error("Failed to remove task");
       toast({ variant: "success", title: "Task removed successfully" });
+
+      // Call refreshArticles after task removal
+      await refreshArticles();
+
       // Refresh the task list after deletion
       await fetchQueueStatus();
     } catch (error) {

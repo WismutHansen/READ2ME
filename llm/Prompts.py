@@ -13,3 +13,7 @@ Create a 3-word title for the above text. Output only the 3-word title and nothi
 story_mode = """\n--------\n
 turn the above text into an exciting story for children!
 """
+
+markdown = """\n--------\n
+reformat the above text into markdown, do not change the content, only the formatting!
+"""

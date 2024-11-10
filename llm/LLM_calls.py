@@ -5,7 +5,7 @@ from utils.common_utils import shorten_text, split_text, write_markdown_file
 from dotenv import load_dotenv
 from .Local_Ollama import ask_Ollama
 from .Local_OpenAI import ask_LLM
-from .Prompts import pod, title_prompt, story_mode
+from .Prompts import pod, title_prompt, story_mode, markdown
 
 # Configure logging
 logging.basicConfig(
@@ -66,11 +66,12 @@ def tldr(text):
         return ""
 
 
-def podcast(text: str) -> str:
+def podcast(text: str) -> tuple[str, str]:
     prompt = f"{text} + {pod}"
     script = llm_call(prompt)
-    write_markdown_file("podcast.md", script)
-    return script
+    title = generate_title(script)
+    write_markdown_file(title + ".md", script)
+    return script, title
 
 
 def story(text: str, language: str = "en-US"):
@@ -78,6 +79,12 @@ def story(text: str, language: str = "en-US"):
     script = llm_call(prompt)
     write_markdown_file("story.md", script)
     return script
+
+
+def to_markdown(text: str) -> str:
+    prompt = f"{text} + {markdown}"
+    markdown_text = llm_call(prompt)
+    return markdown_text
 
 
 if __name__ == "__main__":

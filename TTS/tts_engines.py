@@ -143,7 +143,6 @@ class TTSEngine(ABC):
                 if audio_type == "url/full" or "url/tldr":
                     new_article = ArticleData(
                         markdown_file=md_file_name,
-                        vtt_file=vtt_file if vtt_file else "",
                         audio_file=output_path,
                         img_file=img_pth,
                     )
@@ -156,13 +155,12 @@ class TTSEngine(ABC):
                 if audio_type == "text/full" or "text/tldr":
                     new_text = TextData(
                         markdown_file=md_file_name,
-                        vtt_file=vtt_file if vtt_file else "",
                         audio_file=output_path,
                         img_file=img_pth,
                     )
                     update_text(text_id, new_text)
                     logging.info(
-                        f"article {article_id} db entry successfully updated with audio data"
+                        f"Text with {text_id} db entry successfully updated with audio data"
                     )
 
             elif podcast_id:
@@ -173,7 +171,7 @@ class TTSEngine(ABC):
                     )
                     update_podcast(podcast_id, new_podcast)
                     logging.info(
-                        f"podcast{podcast_id} db entry successfully updated with audio data"
+                        f"Podcast {podcast_id} db entry successfully updated with audio data"
                     )
 
             return output_path
@@ -264,33 +262,24 @@ class F5TTSEngine(TTSEngine):
                 raise ValueError(f"F5-TTS returned None for voice {voice_id}")
 
             # Convert numpy array to AudioSegment
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-                try:
-                    # Ensure the array is normalized to [-1, 1]
-                    audio_data = np.clip(audio_data, -1, 1)
+            # Ensure the array is normalized to [-1, 1]
+            audio_data = np.clip(audio_data, -1, 1)
 
-                    # Convert to 16-bit PCM
-                    audio_np_int16 = (audio_data * 32767).astype(np.int16)
+            # Convert to 16-bit PCM
+            audio_np_int16 = (audio_data * 32767).astype(np.int16)
 
-                    # Create AudioSegment
-                    audio_segment = AudioSegment(
-                        data=audio_np_int16.tobytes(),
-                        sample_width=2,  # 16-bit
-                        frame_rate=sr,
-                        channels=1,  # mono
-                    )
+            # Create AudioSegment directly from bytes
+            audio_segment = AudioSegment(
+                data=audio_np_int16.tobytes(),
+                sample_width=2,  # 16-bit
+                frame_rate=sr,
+                channels=1,  # mono
+            )
 
-                    self.logger.info(
-                        f"Successfully generated audio segment of length {len(audio_segment)}ms"
-                    )
-                    return audio_segment, None
-
-                except Exception as e:
-                    self.logger.error(f"Error converting audio data: {e}")
-                    raise
-                finally:
-                    if os.path.exists(temp_file.name):
-                        os.unlink(temp_file.name)
+            self.logger.info(
+                f"Successfully generated audio segment of length {len(audio_segment)}ms"
+            )
+            return audio_segment, None
 
         except Exception as e:
             self.logger.error(f"Error in generate_audio: {e}")
