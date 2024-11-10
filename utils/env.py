@@ -1,37 +1,40 @@
 import os
 from dotenv import load_dotenv
 import logging
+import shutil
+
+from dotenv.main import DotEnv
 
 
 def setup_env():
     task_file = "tasks.json"
     sources_file_path = "sources.json"
+    feeds_file = "feeds.json"
+    personal_feeds = "my_feeds.json"
+    env_example = ".env.example"
+    env_file = ".env"
 
     if not os.path.isfile(task_file):
         print("Creating tasks.json")
         with open(task_file, "w") as f:
             pass  # This creates an empty tasks.json file
 
-    def check_env_file_exists(directory="."):
-        env_file_path = os.path.join(directory, ".env")
-        exists = os.path.isfile(env_file_path)
-        return exists
+    if not os.path.isfile(personal_feeds):
+        print("my_feeds.json does not exist, copying feeds.json to my_feeds.json")
+        shutil.copyfile(feeds_file, personal_feeds)
 
-    if check_env_file_exists():
-        load_dotenv()
-
-        output_dir = os.getenv("OUTPUT_DIR", "Output")
-        img_pth = os.getenv("IMG_PATH", "front.jpg")
-
-    else:
-        print(".env file not found, using default values")
-        output_dir = "Output"
-        img_pth = "front.jpg"
+    if not os.path.isfile(env_file):
+        print(".env file does not exist, copying .env.example to .env")
+        shutil.copyfile(env_example, env_file)
 
     if not os.path.isfile(sources_file_path):
         print("Creating sources.json")
         with open(sources_file_path, "w") as f:
             pass  # This creates an empty sources.txt file
+
+    load_dotenv()
+    output_dir = os.getenv("OUTPUT_DIR", "Output")
+    img_pth = os.getenv("IMG_PATH", "front.jpg")
 
     check_output_dir()
 

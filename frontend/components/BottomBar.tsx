@@ -16,9 +16,10 @@ interface Article {
 
 interface BottomBarProps {
   articleId: string;
+  type: string; // Add type to props
 }
 
-export default function BottomBar({ articleId }: { articleId: string }) {
+export default function BottomBar({ articleId, type }: BottomBarProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -28,17 +29,29 @@ export default function BottomBar({ articleId }: { articleId: string }) {
 
   useEffect(() => {
     async function fetchArticle() {
-      if (!articleId) {
-        return;
-      }
+      if (!articleId || !type) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/article/${articleId}`);
+        // Determine the endpoint based on the type
+        let endpoint;
+        if (type === 'article') {
+          endpoint = `${process.env.NEXT_PUBLIC_API_URL}/v1/article/${articleId}`;
+        } else if (type === 'podcast') {
+          endpoint = `${process.env.NEXT_PUBLIC_API_URL}/v1/podcast/${articleId}`;
+        } else if (type === 'text') {
+          endpoint = `${process.env.NEXT_PUBLIC_API_URL}/v1/texts/${articleId}`;
+        } else {
+          console.warn(`Unknown type: ${type}`);
+          throw new Error(`Unknown type: ${type}`);
+        }
+
+        const response = await fetch(endpoint);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+
         const data = await response.json();
-        console.log('Article data:', data);
+        console.log('Fetched article data:', data);
         setArticle(data);
       } catch (error) {
         console.error('Error fetching article:', error);
@@ -46,7 +59,7 @@ export default function BottomBar({ articleId }: { articleId: string }) {
     }
 
     fetchArticle();
-  }, [articleId]);
+  }, [articleId, type]);
 
   if (!article) return null;
 
@@ -71,7 +84,7 @@ export default function BottomBar({ articleId }: { articleId: string }) {
               {article.audio_file && (
                 <>
                   {console.log('Audio file path:', article.audio_file)}
-                  <AudioPlayer 
+                  <AudioPlayer
                     audioUrl={`${process.env.NEXT_PUBLIC_API_URL}/${article.audio_file}`}
                   />
                 </>

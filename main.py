@@ -30,6 +30,7 @@ from utils.source_manager import read_sources, update_sources
 from utils.task_file_handler import add_task, get_task_count, get_tasks, remove_task
 from utils.task_processor import start_task_processor
 from utils.version_check import check_package_versions
+from utils.rssfeed import get_articles_from_feed, load_feeds_from_json
 
 # Check package versions
 check_package_versions()
@@ -722,6 +723,41 @@ async def schedule_fetch_articles():
         except asyncio.CancelledError:
             logging.info("Scheduled fetch task cancelled.")
             break
+
+
+@app.get("/v1/feeds/get")
+async def get_feeds():
+    """API endpoint to return the contents of my_feeds.json."""
+    feeds = load_feeds_from_json("my_feeds.json")
+    if feeds:
+        return JSONResponse(content={"feeds": feeds})
+    else:
+        raise HTTPException(
+            status_code=404, detail="Feeds data is unavailable or invalid."
+        )
+
+
+@app.get("/v1/feeds/get_todays_articles")
+async def get_todays_articles():
+    """API endpoint to return today's articles from all feeds with categories."""
+    feeds = load_feeds_from_json("my_feeds.json")
+    all_todays_articles = []
+
+    for feed in feeds:
+        feed_url = feed["url"]
+        category = feed["category"]
+
+        # Fetch today's articles and include category
+        todays_articles = get_articles_from_feed(feed_url, category)
+        all_todays_articles.extend(todays_articles)
+
+    if all_todays_articles:
+        return JSONResponse(content={"articles": all_todays_articles})
+    else:
+        return JSONResponse(
+            content={"message": "No articles published today across all feeds."},
+            status_code=204,
+        )
 
 
 if __name__ == "__main__":

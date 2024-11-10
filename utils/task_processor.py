@@ -10,6 +10,8 @@ from database.crud import (
     create_text,
     create_podcast_db_entry,
     update_article,
+    update_text,
+    update_podcast,
 )
 from llm.LLM_calls import podcast, story, generate_title, tldr
 from TTS.tts_engines import EdgeTTSEngine, F5TTSEngine, PiperTTSEngine, StyleTTS2Engine
@@ -86,6 +88,7 @@ def process_tasks(stop_event):
                         title = generate_title(content)
                         new_text = TextData(title=title, text=content)
                         id = create_text(new_text)
+                        print(f"text {id} added to database")
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
@@ -107,8 +110,9 @@ def process_tasks(stop_event):
                         # Generate the podcast script
                         new_text = TextData(text=content)
                         id = create_text(new_text)
+                        print(f"text {id} added to database")
                         try:
-                            script = podcast(content)
+                            script, title = podcast(content)
                             logging.info("Generating podcast script form seed text")
                             if not script or len(script.strip()) == 0:
                                 logging.error(
@@ -116,7 +120,7 @@ def process_tasks(stop_event):
                                 )
                                 continue
                             logging.info(script)
-                            new_podcast = PodcastData(text=script)
+                            new_podcast = PodcastData(text=script, title=title)
                             podcast_id = create_podcast_db_entry(new_podcast)
                             logging.info(
                                 f"Podcast script added to db. Podcast ID: {podcast_id}"
@@ -129,8 +133,9 @@ def process_tasks(stop_event):
                         try:
                             podcast_gen = PodcastGenerator(tts_engine)
                             await podcast_gen.create_podcast_audio(
-                                script, podcast_id=podcast_id
+                                script, title, podcast_id=podcast_id
                             )
+
                         except Exception as e:
                             logging.error(f"Error creating podcast audio for text: {e}")
                     elif task_type == "url" and task == "tldr":
@@ -162,6 +167,7 @@ def process_tasks(stop_event):
                         tl_dr = tldr(content)
                         new_text = TextData(text=content, title=title, tl_dr=tl_dr)
                         id = create_text(new_text)
+                        print(f"text {id} added to database")
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
@@ -169,7 +175,12 @@ def process_tasks(stop_event):
                                 tl_dr, voice
                             )
                             await tts_engine.export_audio(
-                                audio, tl_dr, title, vtt_file, "text/tldr", text_id=id
+                                audio,
+                                tl_dr,
+                                title,
+                                vtt_file,
+                                audio_type="text/tldr",
+                                text_id=id,
                             )
                         except Exception as e:
                             logging.error(f"Error creating audio for text/summary: {e}")
@@ -194,7 +205,7 @@ def process_tasks(stop_event):
 
                         # Generate the podcast script
                         try:
-                            script = podcast(text)
+                            script, title = podcast(text)
                             logging.info("Generating podcast script form seed text")
                             if not script or len(script.strip()) == 0:
                                 logging.error(
@@ -202,7 +213,7 @@ def process_tasks(stop_event):
                                 )
                                 continue
                             logging.info(script)
-                            new_podcast = PodcastData(text=script)
+                            new_podcast = PodcastData(text=script, title=title)
                             podcast_id = create_podcast_db_entry(new_podcast)
                         except Exception as e:
                             logging.error(
@@ -214,7 +225,7 @@ def process_tasks(stop_event):
                         try:
                             podcast_gen = PodcastGenerator(tts_engine)
                             audio = await podcast_gen.create_podcast_audio(
-                                script, podcast_id=podcast_id
+                                script, title, podcast_id=podcast_id
                             )
                             logging.info("Generating podcast audio")
                         except Exception as e:

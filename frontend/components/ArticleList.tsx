@@ -61,14 +61,12 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   }));
 
   const handleArticleClick = async (article: Article) => {
-    console.log('Article clicked:', article); // Debug log
-    console.log('Article type:', article.type); // Log article type explicitly
+    console.log('Article clicked:', article); // Check if type is logged correctly here
 
     try {
       const settings = getSettings();
       let endpoint;
 
-      // Explicitly check the type with if conditions
       if (article.type === 'article') {
         endpoint = `${settings.serverUrl}/v1/article/${article.id}`;
       } else if (article.type === 'podcast') {
@@ -92,7 +90,8 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       }
 
       const articleData = await response.json();
-      onSelectArticle(articleData);
+      articleData.type = article.type; // Ensure type is added to the fetched data
+      onSelectArticle(articleData); // Pass full article data with type
     } catch (error: any) {
       console.error('Error fetching article data:', error.message);
       setError(`Failed to load data for type ${article.type}: ${error.message}`);

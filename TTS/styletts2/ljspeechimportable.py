@@ -42,7 +42,7 @@ from .text_utils import TextCleaner
 textclenaer = TextCleaner()
 
 # Define the cache directory
-cache_dir = "utils/styletts2/Models/"
+cache_dir = "TTS/styletts2/Models/"
 os.makedirs(cache_dir, exist_ok=True)
 
 # Get the file path of the current module
@@ -100,9 +100,33 @@ from phonemizer.backend.espeak.wrapper import EspeakWrapper
 # if windows set espeakwrapper
 import platform
 
-# Hacky fix to make sure espeak-ng can be found -> Need to fix in future update
-if platform.system() == "Windows":
-    EspeakWrapper.set_library("C:\Program Files\eSpeak NG\libespeak-ng.dll")
+
+def set_espeak_library():
+    if platform.system() == "Windows":
+        common_paths = [
+            "C:\\Program Files\\eSpeak NG\\libespeak-ng.dll",
+            "C:\\Program Files (x86)\\eSpeak NG\\libespeak-ng.dll",
+        ]
+    elif platform.system() == "Darwin":  # macOS
+        common_paths = [
+            "/opt/homebrew/Cellar/espeak-ng/1.51/lib/libespeak-ng.dylib"
+            "/usr/local/lib/libespeak-ng.dylib",
+            "/opt/homebrew/lib/libespeak-ng.dylib",  # for Apple Silicon Macs using Homebrew
+        ]
+    elif platform.system() == "Linux":
+        common_paths = ["/usr/lib/libespeak-ng.so", "/usr/local/lib/libespeak-ng.so"]
+    else:
+        raise EnvironmentError("Unsupported OS")
+
+    for path in common_paths:
+        if os.path.exists(path):
+            EspeakWrapper.set_library(path)
+            print(f"eSpeak-NG library found at: {path}")
+            return
+    raise FileNotFoundError("eSpeak-NG library not found in standard locations.")
+
+
+set_espeak_library()
 
 global_phonemizer = phonemizer.backend.EspeakBackend(
     language="en-us",
@@ -147,17 +171,16 @@ model = build_model(
 _ = [model[key].eval() for key in model]
 _ = [model[key].to(device) for key in model]
 
-params_whole = torch.load("Models/epoch_2nd_00099.pth", map_location="cpu")
-# params_whole = torch.load(
-#    str(
-#        cached_path(
-#            "hf://yl4579/StyleTTS2-LJSpeech/Models/LJSpeech/epoch_2nd_00100.pth",
-#            cache_dir=cache_dir,
-#        )
-#    ),
-#    map_location="cpu",
-# )
-# params = params_whole["net"]
+params_whole = torch.load(
+    str(
+        cached_path(
+            "hf://yl4579/StyleTTS2-LJSpeech/Models/LJSpeech/epoch_2nd_00100.pth",
+            cache_dir=cache_dir,
+        )
+    ),
+    map_location="cpu",
+)
+params = params_whole["net"]
 
 for key in model:
     if key in params:

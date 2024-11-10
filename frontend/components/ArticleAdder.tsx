@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { getSettings } from '@/lib/settings';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
+import { handleAddUrl, handleAddText } from '@/components/addHandlers';
 export default function ArticleAdder() {
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
@@ -28,58 +27,10 @@ export default function ArticleAdder() {
     }
   };
 
-  const handleAddUrl = async (endpoint: string) => {
-    if (!isValidUrl(url)) {
-      setMessageType('error');
-      setAlertMessage('Please enter a valid URL');
-      return;
-    }
-
-    const { serverUrl, ttsEngine } = getSettings();
-    try {
-      const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url, tts_engine: ttsEngine }),
-      });
-      if (!response.ok) throw new Error(`Failed to add URL to ${endpoint}`);
-      setUrl('');
-      setMessageType('success');
-      setAlertMessage('URL added successfully');
-    } catch (error) {
-      console.error(`Error adding URL to ${endpoint}:`, error);
-      setMessageType('error');
-      setAlertMessage(`Failed to add URL to ${endpoint}`);
-    }
-  };
-
-  const handleAddText = async (endpoint: string) => {
-    const { serverUrl, ttsEngine } = getSettings();
-    try {
-      const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text, tts_engine: ttsEngine }),
-      });
-      if (!response.ok) throw new Error(`Failed to add text to ${endpoint}`);
-      setText('');
-      setMessageType('success');
-      setAlertMessage('Text added successfully');
-    } catch (error) {
-      console.error(`Error adding text to ${endpoint}:`, error);
-      setMessageType('error');
-      setAlertMessage(`Failed to add text to ${endpoint}`);
-    }
-  };
 
   return (
     <div className="space-y-4">
       <h2 className="text">Add Single Article by URL</h2>
-
       {/* URL inputs */}
       <div className="space-y-2">
         <Input
@@ -89,9 +40,9 @@ export default function ArticleAdder() {
           onChange={(e) => setUrl(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => handleAddUrl('url/full')}>Full Text</Button>
-          <Button onClick={() => handleAddUrl('url/summary')}>Summary</Button>
-          <Button onClick={() => handleAddUrl('url/podcast')}>Podcast</Button>
+          <Button onClick={() => handleAddUrl(url, 'url/full', setUrl, setAlertMessage, setMessageType)}>Full Text</Button>
+          <Button onClick={() => handleAddUrl(url, 'url/summary', setUrl, setAlertMessage, setMessageType)}>Summary</Button>
+          <Button onClick={() => handleAddUrl(url, 'url/podcast', setUrl, setAlertMessage, setMessageType)}>Podcast</Button>
         </div>
       </div>
 
@@ -104,9 +55,9 @@ export default function ArticleAdder() {
           onChange={(e) => setText(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => handleAddText('text/full')}>Full Text</Button>
-          <Button onClick={() => handleAddText('text/summary')}>Summary</Button>
-          <Button onClick={() => handleAddText('text/podcast')}>Podcast</Button>
+          <Button onClick={() => handleAddText(text, 'text/full', setText, setAlertMessage, setMessageType)}>Full Text</Button>
+          <Button onClick={() => handleAddText(text, 'text/summary', setText, setAlertMessage, setMessageType)}>Summary</Button>
+          <Button onClick={() => handleAddText(text, 'text/podcast', setText, setAlertMessage, setMessageType)}>Podcast</Button>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import ArticleList from "@/components/ArticleList";
 import BottomBar from "@/components/BottomBar";
@@ -11,14 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Cog } from "lucide-react";
 import SourceManager from "@/components/SourceManager";
 import ArticleAdder from "@/components/ArticleAdder";
 import SettingsManager from "@/components/SettingsManager";
-import { Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { ArticleListRef } from "@/components/ArticleList";
 import TaskQueueStatus from "@/components/TaskQueueStatus";
+import TodayFeedList from "@/components/TodayFeedList";
+import { getSettings } from "@/lib/settings";
 
 interface Article {
   id: string;
@@ -26,29 +26,38 @@ interface Article {
   date_added: string;
   date_published?: string;
   audio_file: string;
+  content?: string;
   type: string;
-  // ... other fields if needed
+}
+
+interface FeedEntry {
+  title: string;
+  link: string;
+  published: string;
+  category: string;
 }
 
 export default function Home() {
-  const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentArticle, setCurrentArticle] = useState<Article | null>(null); // State for the currently selected article
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
   const [articleAdderOpen, setArticleAdderOpen] = useState(false);
   const { toast } = useToast();
   const articleListRef = useRef<ArticleListRef>(null);
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null); // Stores the ID of the selected article
+  const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
 
   const handleSelectArticle = (article: Article) => {
-    console.log('Selected article:', article);
+    console.log("Selected article:", article);
+    console.log("Selected Article ID:", selectedArticleId);
+    console.log("Selected Article Type:", currentArticle?.type);
     setCurrentArticle(article);
     setSelectedArticleId(article.id);
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
+  // Function to refresh articles list via ArticleListRef
+  const refreshArticles = async () => {
     try {
-      await articleListRef.current?.refresh();
+      await articleListRef.current?.refresh(); // Call the refresh function on the ArticleList ref
       toast({
         title: "Articles refreshed",
       });
@@ -57,10 +66,29 @@ export default function Home() {
         variant: "destructive",
         title: "Failed to refresh articles",
       });
-    } finally {
-      setIsRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    const { serverUrl } = getSettings();
+    async function fetchFeedEntries() {
+      try {
+        const response = await fetch(`${serverUrl}/v1/feeds/get_todays_articles`);
+        const data = await response.json();
+
+        // Ensure data is an array before setting it
+        if (Array.isArray(data)) {
+          setFeedEntries(data);
+        } else {
+          console.error("Unexpected data format:", data);
+          setFeedEntries([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch feed entries:", error);
+      }
+    }
+    fetchFeedEntries();
+  }, []);
 
   return (
     <main className="container mx-auto px-4 py-8 mb-24">
@@ -80,7 +108,6 @@ export default function Home() {
               height={32}
               priority
             />
-
             <Image
               src="/White.svg"
               alt="READ2ME Logo"
@@ -92,25 +119,7 @@ export default function Home() {
           </a>
         </div>
         <div className="flex items-center gap-4">
-          <TaskQueueStatus />
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            size="sm"
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Refreshing
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </>
-            )}
-          </Button>
+          <TaskQueueStatus refreshArticles={refreshArticles} />
           <Button
             variant="outline"
             onClick={() => setSourceManagerOpen(true)}
@@ -146,16 +155,15 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-
+      {/* Pass handleSelectArticle to ArticleList */}
       <ArticleList ref={articleListRef} onSelectArticle={handleSelectArticle} />
 
-      {console.log('Selected ID:', selectedArticleId)}
+      {/* Display Today's Feed Entries */}
+      <TodayFeedList feedEntries={feedEntries} />
 
-      {selectedArticleId && (
-        <BottomBar
-          articleId={selectedArticleId}
-          key={selectedArticleId}
-        />
+      {/* Conditionally render the BottomBar based on the selectedArticleId */}
+      {selectedArticleId && currentArticle && (
+        <BottomBar articleId={selectedArticleId} type={currentArticle.type} key={selectedArticleId} />
       )}
     </main>
   );
