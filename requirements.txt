@@ -33,6 +33,5 @@ fastapi-cors
 whisper
 num2words
 lxml[html_clean]
-num2words
-docling
+docling>=2.5.2
 langdetect
