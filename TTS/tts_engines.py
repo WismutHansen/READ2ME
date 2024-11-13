@@ -401,8 +401,10 @@ class StyleTTS2Engine(TTSEngine):
         self.logger = logging.getLogger(__name__)
 
     async def get_available_voices(self) -> List[str]:
-        # Only one voice for StyleTTS2
-        return ["styletts2_default_voice"]
+        # Only one voice for StyleTTS2 available
+        # so we return two dummy voices to avoid throwing
+        # errors in podacast generateion
+        return ["styletts2_default_voice", "styletts2_dummy_voice"]
 
     async def generate_audio(
         self, text: str, voice_id: str

@@ -38,9 +38,9 @@ def process_tasks(stop_event):
                 task_type = task.get("type")
                 content = task.get("content")
                 tts_engine = task.get("tts_engine")
-                task = task.get("task")
+                current_task = task.get("task")
 
-                if not all([task_type, content, tts_engine]):
+                if not all([task_type, content, tts_engine, current_task]):
                     logging.error(f"Invalid task format: {task}")
                     continue
 
@@ -59,11 +59,13 @@ def process_tasks(stop_event):
                     else:
                         tts_engine = StyleTTS2Engine()
 
-                    if task_type == "url" and (task is None or task == "full"):
+                    if task_type == "url" and current_task == "full":
                         new_article = ArticleData(url=content)
                         article_id = create_article(new_article)
                         text, title, tl_dr = await extract_text(content, article_id)
-
+                        if not text or len(text.strip()) == 0:
+                            logging.error(f"Text extraction failed for URL: {content}")
+                            continue
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
@@ -83,7 +85,7 @@ def process_tasks(stop_event):
                             content
                         )  # Add URL to history after processing
 
-                    elif task_type == "text" and (task is None or task == "full"):
+                    elif task_type == "text" and current_task == "full":
                         # Text to audio processing
                         title = generate_title(content)
                         new_text = TextData(title=title, text=content)
@@ -106,7 +108,7 @@ def process_tasks(stop_event):
                         except Exception as e:
                             logging.error(f"Error creating audio for text: {e}")
 
-                    elif task_type == "text" and task == "podcast":
+                    elif task_type == "text" and current_task == "podcast":
                         # Generate the podcast script
                         new_text = TextData(text=content)
                         id = create_text(new_text)
@@ -138,13 +140,23 @@ def process_tasks(stop_event):
 
                         except Exception as e:
                             logging.error(f"Error creating podcast audio for text: {e}")
-                    elif task_type == "url" and task == "tldr":
+                    elif task_type == "url" and current_task == "tldr":
                         new_article = ArticleData(url=content)
                         article_id = create_article(new_article)
                         text, title, tl_dr = await extract_text(content, article_id)
+                        if text is None:
+                            logging.error("Text extraction failed")
+                            if not text or len(text.strip()) == 0:
+                                logging.error(
+                                    f"Text extraction failed for URL: {content}"
+                                )
+                                return
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
+                            if voice is None:
+                                logging.error("Failed to pick voice")
+                                return
                             audio, _ = await tts_engine.generate_audio(tl_dr, voice)
                             await tts_engine.export_audio(
                                 audio,
@@ -161,7 +173,7 @@ def process_tasks(stop_event):
                             content
                         )  # Add URL to history after processing
                         pass
-                    elif task_type == "text" and task == "tldr":
+                    elif task_type == "text" and current_task == "tldr":
                         # Text to audio processing
                         title = generate_title(content)
                         tl_dr = tldr(content)
@@ -185,7 +197,7 @@ def process_tasks(stop_event):
                         except Exception as e:
                             logging.error(f"Error creating audio for text/summary: {e}")
 
-                    elif task_type == "podcast":
+                    elif current_task == "podcast":
                         # Podcast creation processing
                         # Extract the text from the URL
                         new_article = ArticleData(url=content)
@@ -234,7 +246,7 @@ def process_tasks(stop_event):
                             )
                             continue
 
-                    elif task == "story":
+                    elif current_task == "story":
                         # Extract the text from the URL
                         if task_type == "url":
                             try:

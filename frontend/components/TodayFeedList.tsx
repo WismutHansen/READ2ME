@@ -82,7 +82,7 @@ export default function TodayFeedList() {
     <div className="space-y-4 pt-8 pl-2">
       <h2 className="text-xl font-bold">Today's News</h2>
       {Object.keys(groupedFeedEntries).length === 0 ? (
-        <div className="text-gray-500">No entries found for today</div>
+        <div className="text-gray-500">Fetching today's entries</div>
       ) : (
         Object.entries(groupedFeedEntries).map(([category, entries]) => (
           <div key={category} className="space-y-2">

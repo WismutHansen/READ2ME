@@ -66,7 +66,7 @@ class AvailableMedia(BaseModel):
     language: Optional[str] = None
     authors: Optional[List[str]] = []
     audio_file: Optional[str]
-    type: str
+    content_type: str
 
 
 def fetch_available_media():
@@ -118,7 +118,7 @@ def fetch_available_media():
             date_published=row[3],
             authors=row[4].split(",") if row[4] else [],
             audio_file=row[5],
-            type=row[6],
+            content_type=row[6],
         )
         for row in media
     ]

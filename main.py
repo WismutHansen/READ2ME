@@ -215,7 +215,7 @@ async def url_audio_full(request: URLRequest):
             detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
         )
 
-    await add_task("url", request.url, request.tts_engine)
+    await add_task("url", request.url, request.tts_engine, "full")
     return {"message": "URL added to the READ2ME task list"}
 
 
@@ -237,7 +237,7 @@ async def url_podcast(request: URLRequest):
             status_code=400,
             detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
         )
-    await add_task("podcast", request.url, request.tts_engine)
+    await add_task("url", request.url, request.tts_engine, "podcast")
     return {"message": "URL added to the READ2ME task list"}
 
 
@@ -259,7 +259,7 @@ async def url_story(request: URLRequest):
             status_code=400,
             detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
         )
-    await add_task("story", request.url, request.tts_engine)
+    await add_task("url", request.url, request.tts_engine, "story")
     return {"message": "URL added to the READ2ME task list"}
 
 
@@ -288,7 +288,7 @@ async def url_audio_summary(request: URLRequest):
 @app.post("/v1/text/full")
 async def read_text(request: TextRequest):
     logging.info(f"Received text: {request.text}")
-    await add_task("text", request.text, request.tts_engine)
+    await add_task("text", request.text, request.tts_engine, task="full")
     return {"message": "Text added to the READ2ME task list"}
 
 
@@ -416,18 +416,18 @@ async def get_audio_file(file_name: str):
     return JSONResponse(content={"text": text_content})
 
 
-@app.get("/v1/audio-file/{title}")
-async def get_audio_file_text(title: str):
-    # Assuming the text files are stored in the Output directory with the same name as the title
-    text_file_path = os.path.join("", f"{title}.md")
-
-    if not os.path.isfile(text_file_path):
-        raise HTTPException(status_code=404, detail="Text file not found")
-
-    with open(text_file_path, "r") as file:
-        text = file.read()
-
-    return {"text": text}
+# @app.get("/v1/audio-file/{title}")
+# async def get_audio_file_text(title: str):
+#    # Assuming the text files are stored in the Output directory with the same name as the title
+#    text_file_path = os.path.join("", f"{title}.md")
+#
+#    if not os.path.isfile(text_file_path):
+#        raise HTTPException(status_code=404, detail="Text file not found")
+#
+#    with open(text_file_path, "r") as file:
+#        text = file.read()
+#
+#    return {"text": text}
 
 
 @app.get("/v1/audio-file/{file_path:path}")
