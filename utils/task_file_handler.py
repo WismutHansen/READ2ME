@@ -41,7 +41,10 @@ async def get_tasks():
         for task in tasks:
             try:
                 task_dict = json.loads(task.strip())
-                if all(key in task_dict for key in ["type", "content", "tts_engine"]):
+                if all(
+                    key in task_dict
+                    for key in ["type", "content", "tts_engine", "task"]
+                ):
                     valid_tasks.append(task_dict)
             except json.JSONDecodeError:
                 logging.warning(f"Invalid task format: {task}")
@@ -88,4 +91,3 @@ async def get_task_count():
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-

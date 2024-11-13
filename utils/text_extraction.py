@@ -3,7 +3,7 @@ import logging
 import re
 import tempfile
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import fitz
@@ -17,7 +17,7 @@ from langdetect import LangDetectException, detect
 from playwright.async_api import async_playwright
 from readabilipy import simple_json_from_html_string
 
-from database.crud import ArticleData, create_article, update_article
+from database.crud import ArticleData, update_article
 from llm.LLM_calls import tldr
 
 
@@ -39,7 +39,7 @@ def check_word_count(text):
     return len(words) < 200
 
 
-# Function to check for paywall or robot disclaimer
+# Function to check for paywall or robot disclaimer (currently very hacky fix, need to find a better solution)
 def is_paywall_or_robot_text(text):
     paywall_phrases = [
         "Please make sure your browser supports JavaScript and cookies",
@@ -79,7 +79,7 @@ async def extract_with_playwright(url):
         return content
 
 
-# Function to extract text using Jina
+# Function to extract text using the free jina API
 def extract_with_jina(url):
     try:
         headers = {"X-Return-Format": "html"}
@@ -204,7 +204,24 @@ def clean_pdf_text(text):
     return text
 
 
-def extract_from_wikipedia(url):
+def extract_from_wikipedia(
+    url: str, article_id: Optional[str] = None
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Extracts content from a Wikipedia page, cleans it, and updates the article in the database if an article_id is provided.
+
+    Args:
+        url (str): The URL of the Wikipedia page to extract content from.
+        article_id (Optional[str]): Optional identifier for the article in the database to update.
+
+    Returns:
+        Tuple[Optional[str], Optional[str], Optional[str]]:
+            - clean_article_content (Optional[str]): The full cleaned article content from Wikipedia.
+            - article_title (Optional[str]): The title of the Wikipedia article.
+            - tl_dr (Optional[str]): A summary or short version of the article content.
+
+            Returns `None, None, None` if extraction fails or an error occurs.
+    """
     try:
         # Reformat the URL to remove additional parameters
         parsed_url = urlparse(url)
@@ -217,26 +234,34 @@ def extract_from_wikipedia(url):
         page = wikipedia.page(title, auto_suggest=False)
 
         # Construct the article content
-        article_content = f"{page.title}.\n\n"
+        article_title = page.title
+        article_content = f"{article_title}.\n\n"
         article_content += f"From Wikipedia. Retrieved on {get_formatted_date()}\n\n"
 
         # Add summary
-        # article_content += "Summary:\n"
-        # article_content += page.summary + "\n\n"
+        tl_dr = page.summary
 
         # Add full content
-        article_content += clean_wikipedia_content(page.content)
+        clean_article_content = clean_wikipedia_content(page.content)
+        if article_id:
+            article_data = ArticleData(
+                title=title,
+                plain_text=clean_article_content,
+                markdown_text=article_content,
+                tl_dr=tl_dr,
+            )
+            update_article(article_id, article_data)
 
-        return article_content, page.title
+        return clean_article_content, article_title, tl_dr
     except wikipedia.exceptions.DisambiguationError as e:
         logging.error(f"DisambiguationError: {e}")
-        return None, None
+        return None, None, None
     except wikipedia.exceptions.PageError as e:
         logging.error(f"PageError: {e}")
-        return None, None
+        return None, None, None
     except Exception as e:
         logging.error(f"Error extracting text from Wikipedia: {e}")
-        return None, None
+        return None, None, None
 
 
 def download_pdf_file(url, timeout=30):
@@ -257,7 +282,7 @@ def extract_text_from_pdf(url, article_id: Optional[str] = None):
         pdf_path = download_pdf_file(url)
         if pdf_path is None:
             logging.error("Failed to download PDF file.")
-            return None, None
+            return None, None, None
 
         # Open the PDF file
         document = fitz.open(pdf_path)
@@ -267,8 +292,8 @@ def extract_text_from_pdf(url, article_id: Optional[str] = None):
 
         converter = DocumentConverter()
         result = converter.convert(pdf_path)
-        text = result.document.export_to_markdown()
-        markdown = result.document.export_to_text()
+        markdown = result.document.export_to_markdown()
+        text = result.document.export_to_text()
         tl_dr = tldr(text)
         # Initialize language variable
         language = "Unknown"
@@ -278,20 +303,15 @@ def extract_text_from_pdf(url, article_id: Optional[str] = None):
         except LangDetectException:
             language = "Unknown"
         logging.info(f"Detected language: {language}")
-        ## Initialize an empty string to store the main text
-        # main_text = ""
-
-        ## Loop through each page and extract text
-        # for page in document:
-        #    main_text += page.get_text()
 
         document.close()  # Close the document to free resources
+
         # Set the article in the global state
         new_article = ArticleData(
             title=title,
             language=language,
             plain_text=text,
-            md_file=markdown,
+            markdown_text=markdown,
             tl_dr=tl_dr,
         )
         if article_id:
@@ -301,17 +321,34 @@ def extract_text_from_pdf(url, article_id: Optional[str] = None):
             except Exception as e:
                 logging.error(f"Couldn't add article data to database: {e}")
             logging.info(f"Extracted text from PDF: {len(text)} characters")
-        return text, title
+        return text, title, tl_dr
 
     except Exception as e:
         logging.error(f"Error processing PDF: {e}")
-        return None, None
+        return None, None, None
 
 
 # This Function extracts the main text from a given URL along with the title,
 # list of authors and the date of publication (if available) and formats the text
 # accordingly
-async def extract_text(url, article_id: Optional[str] = None):
+async def extract_text(
+    url: str, article_id: Optional[str] = None
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Extracts text content from a given URL, processes it, and updates an article in the database if an article_id is provided.
+
+    Args:
+        url (str): The URL of the webpage or PDF to extract content from.
+        article_id (Optional[str]): Optional identifier for the article in the database to update.
+
+    Returns:
+        Tuple[Optional[str], Optional[str], Optional[str]]:
+            - article_content (Optional[str]): The extracted and processed article text.
+            - title (Optional[str]): The title of the article.
+            - tl_dr (Optional[str]): A summary or "too long; didn't read" version of the article.
+
+            Returns `None, None, None` if extraction fails.
+    """
     try:
         try:
             response = requests.head(url, allow_redirects=True)
@@ -322,7 +359,7 @@ async def extract_text(url, article_id: Optional[str] = None):
 
         except requests.RequestException as e:
             logging.error(f"Error resolving url: {e}")
-            return None, None
+            return None, None, None
 
         if url.lower().endswith(".pdf") or content_type == "application/pdf":
             logging.info(f"Extracting text from PDF: {resolved_url}")
@@ -331,7 +368,7 @@ async def extract_text(url, article_id: Optional[str] = None):
         # Check if it's a Wikipedia URL
         elif "wikipedia.org" in resolved_url:
             logging.info(f"Extracting text from Wikipedia: {resolved_url}")
-            return extract_from_wikipedia(resolved_url)
+            return extract_from_wikipedia(resolved_url, article_id)
 
         downloaded = trafilatura.fetch_url(resolved_url)
         if (
@@ -349,14 +386,14 @@ async def extract_text(url, article_id: Optional[str] = None):
                     )
                     downloaded = extract_with_jina(resolved_url)
                     if downloaded is None:
-                        return None, None
+                        return None, None, None
             except Exception as e:
                 logging.error(f"Error extracting text with playwright: {e}")
-                return None, None
+                return None, None, None
 
         if downloaded is None:
             logging.error(f"No content downloaded from {resolved_url}")
-            return None, None
+            return None, None, None
 
         # We use tldextract to extract the main domain name from a URL
         domainname = tldextract.extract(resolved_url)
@@ -364,9 +401,9 @@ async def extract_text(url, article_id: Optional[str] = None):
 
         # We use trafilatura to extract the text content from the HTML page
         result = trafilatura.extract(downloaded, include_comments=False)
-        # if result is None or check_word_count(result):
-        #     logging.error(f"Extracted text is less than 100 words.")
-        #     return None, None
+        if result is None or check_word_count(result):
+            logging.error("Extracted text is less than 100 words.")
+            return None, None, None
 
         soup = BeautifulSoup(downloaded, "html.parser")
         title_tag = soup.find("title")
@@ -443,7 +480,7 @@ async def extract_text(url, article_id: Optional[str] = None):
         return None, None, None
 
 
-def readability(url):
+def readability(url):  # Currently not used
     response = requests.head(url, allow_redirects=True)
     resolved_url = response.url
     downloaded = trafilatura.fetch_url(resolved_url)

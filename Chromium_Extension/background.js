@@ -42,19 +42,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   switch (request.action) {
     case 'addUrlFull':
-      makeRequest('/v1/url/full', 'POST', { url: request.url, tts_engine: request.ttsEngine });
+      makeRequest('/v1/url/full', 'POST', { url: request.url, tts_engine: request.ttsEngine, task: "full" });
       break;
     case 'addUrlSummary':
-      makeRequest('/v1/url/summary', 'POST', { url: request.url, tts_engine: request.ttsEngine });
+      makeRequest('/v1/url/summary', 'POST', { url: request.url, tts_engine: request.ttsEngine, task: "tldr" });
       break;
     case 'addUrlPodcast':
-      makeRequest('/v1/url/podcast', 'POST', { url: request.url, tts_engine: request.ttsEngine });
+      makeRequest('/v1/url/podcast', 'POST', { url: request.url, tts_engine: request.ttsEngine, task: "podcast" });
       break;
     case 'addTextFull':
-      makeRequest('/v1/text/full', 'POST', { text: request.text, tts_engine: request.ttsEngine });
+      makeRequest('/v1/text/full', 'POST', { text: request.text, tts_engine: request.ttsEngine, task: "full" });
       break;
     case 'addTextSummary':
-      makeRequest('/v1/text/summary', 'POST', { text: request.text, tts_engine: request.ttsEngine });
+      makeRequest('/v1/text/summary', 'POST', { text: request.text, tts_engine: request.ttsEngine, task: "tldr" });
       break;
     case 'fetchSources':
       makeRequest('/v1/sources/fetch', 'POST', {});
