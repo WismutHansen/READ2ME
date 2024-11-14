@@ -9,7 +9,7 @@ interface Article {
   date_added: string;
   date_published?: string;
   audio_file: string;
-  type: string;
+  content_type: string;
 }
 
 interface ArticleListProps {
@@ -61,21 +61,21 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   }));
 
   const handleArticleClick = async (article: Article) => {
-    console.log('Article clicked:', article); // Check if type is logged correctly here
+    console.log('Article clicked:', article);
 
     try {
       const settings = getSettings();
       let endpoint;
 
-      if (article.type === 'article') {
+      if (article.content_type === 'article') {
         endpoint = `${settings.serverUrl}/v1/article/${article.id}`;
-      } else if (article.type === 'podcast') {
+      } else if (article.content_type === 'podcast') {
         endpoint = `${settings.serverUrl}/v1/podcast/${article.id}`;
-      } else if (article.type === 'text') {
+      } else if (article.content_type === 'text') {
         endpoint = `${settings.serverUrl}/v1/texts/${article.id}`;
       } else {
-        console.warn(`Unknown type for article with ID ${article.id}:`, article.type);
-        throw new Error(`Unknown article type: ${article.type}`);
+        console.warn(`Unknown type for article with ID ${article.id}:`, article.content_type || 'undefined');
+        throw new Error(`Unknown article type: ${article.content_type || 'undefined'}`);
       }
 
       const response = await fetch(endpoint, {
@@ -86,15 +86,15 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch data for type ${article.type}`);
+        throw new Error(`Failed to fetch data for type ${article.content_type}`);
       }
 
       const articleData = await response.json();
-      articleData.type = article.type; // Ensure type is added to the fetched data
-      onSelectArticle(articleData); // Pass full article data with type
+      articleData.type = article.content_type; // Ensure type is added to the fetched data
+      onSelectArticle(articleData);
     } catch (error: any) {
       console.error('Error fetching article data:', error.message);
-      setError(`Failed to load data for type ${article.type}: ${error.message}`);
+      setError(`Failed to load data for type ${article.content_type || 'unknown'}: ${error.message}`);
     }
   };
 
@@ -124,7 +124,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
                   {article.date_published || article.date_added}
                 </span>
                 <span className="text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
-                  {article.type}
+                  {article.content_type}
                 </span>
               </div>
             </div>

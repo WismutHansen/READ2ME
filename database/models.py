@@ -1,5 +1,4 @@
 import sqlite3
-from datetime import date
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

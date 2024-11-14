@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { getSettings } from '@/lib/settings';
 import {
@@ -10,13 +10,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { handleAddUrl } from '@/components/addHandlers';
-interface FeedEntry {
-  title: string | null;
-  link: string;
-  published: string;
-  category: string;
-  source: string;  // Add source field
-}
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -26,9 +19,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+
+interface FeedEntry {
+  title: string | null;
+  link: string;
+  published: string;
+  category: string;
+  source: string;
+}
+
 export default function TodayFeedList() {
   const { toast } = useToast();
-  const { serverUrl, ttsEngine } = getSettings();
+  const { serverUrl } = getSettings();
   const today = new Date().toISOString().split('T')[0];
   const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<FeedEntry | null>(null);
@@ -37,6 +39,39 @@ export default function TodayFeedList() {
   const [url, setUrl] = useState('');
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+
+  // Custom handler for URL actions
+  const handleUrlAction = async (link: string, endpoint: string) => {
+    try {
+      await handleAddUrl(
+        link,
+        endpoint,
+        setUrl,
+        setAlertMessage,
+        setMessageType,
+        setModalOpen,
+        () => { } // We're not using setAlertDialogOpen anymore
+      );
+
+      // Show toast instead of alert dialog
+      toast({
+        title: messageType === 'success' ? "Success" : "Error",
+        description: alertMessage || "Operation completed",
+        variant: messageType === 'success' ? "default" : "destructive",
+      });
+
+      // Close the modal after successful action
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error handling URL action:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process the request",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     async function fetchFeedEntries() {
       setIsLoading(true);
@@ -50,7 +85,6 @@ export default function TodayFeedList() {
         if (data && Array.isArray(data.articles)) {
           setFeedEntries(data.articles);
         } else {
-          console.error("Unexpected data format:", data);
           throw new Error("Invalid API response format");
         }
       } catch (error) {
@@ -82,7 +116,9 @@ export default function TodayFeedList() {
     <div className="space-y-4 pt-8 pl-2">
       <h2 className="text-xl font-bold">Today's News</h2>
       {Object.keys(groupedFeedEntries).length === 0 ? (
-        <div className="text-gray-500">Fetching today's entries</div>
+        <div className="text-gray-500">
+          {isLoading ? "Fetching today's entries..." : "No entries for today"}
+        </div>
       ) : (
         Object.entries(groupedFeedEntries).map(([category, entries]) => (
           <div key={category} className="space-y-2">
@@ -130,35 +166,18 @@ export default function TodayFeedList() {
             <DialogTitle>Add "{selectedEntry?.title}" to Queue</DialogTitle>
           </DialogHeader>
           <DialogFooter className="flex justify-around">
-            <Button onClick={() => selectedEntry?.link && handleAddUrl(selectedEntry.link, 'url/full', setUrl, setAlertMessage, setMessageType)}>
+            <Button onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/full')}>
               Full Text
             </Button>
-            <Button onClick={() => selectedEntry?.link && handleAddUrl(selectedEntry.link, 'url/summary', setUrl, setAlertMessage, setMessageType)}>
+            <Button onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/summary')}>
               TL;DR
             </Button>
-            <Button onClick={() => selectedEntry?.link && handleAddUrl(selectedEntry.link, 'url/podcast', setUrl, setAlertMessage, setMessageType)}>
+            <Button onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/podcast')}>
               Podcast
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* AlertDialog for Messages */}
-      <AlertDialog open={!!alertMessage} onOpenChange={() => setAlertMessage(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {messageType === 'success' ? 'Success' : 'Error'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {alertMessage}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setAlertMessage(null)}>Ok</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

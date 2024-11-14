@@ -611,7 +611,7 @@ async def get_podcast_from_db(podcast_id: str):
             "title": podcast[1],  # Adjust index for title
             "date_added": podcast[3],  # Adjust index for date
             "audio_file": audio_file,
-            "content": podcast[4],  # Adjust index for text/content
+            "content": podcast[2],  # Adjust index for text/content
         }
 
         return JSONResponse(content=content)
@@ -632,7 +632,7 @@ async def get_text_from_db(text_id: str):
             raise HTTPException(status_code=404, detail="Text not found")
 
         # Format the audio file path
-        audio_file = text[5]  # Adjust index based on database structure
+        audio_file = text[6]  # Adjust index based on database structure
         if audio_file:
             audio_file = audio_file.lstrip("/")
             audio_file = (
@@ -644,10 +644,10 @@ async def get_text_from_db(text_id: str):
         # Parse the text details
         content = {
             "id": text_id,
-            "title": text[1],  # Adjust index for title
+            "title": text[2],  # Adjust index for title
             "date_added": text[3],  # Adjust index for date
             "audio_file": audio_file,
-            "content": text[2],  # Adjust index for the main text content
+            "content": text[1],  # Adjust index for the main text content
         }
 
         return JSONResponse(content=content)
