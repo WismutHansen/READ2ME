@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from unicodedata import category
 import aiofiles
 import asyncio
 import logging
@@ -78,6 +79,12 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
             await add_task("url", article_url, "edge_tts")
             return True
 
+        # Check that article_url is a string
+        if not isinstance(article_url, str):
+            raise TypeError(
+                f"Expected a string for article_url, but got {type(article_url)}"
+            )
+
         # Extract the headline from the URL
         headline = article_url.split("/")[-1].replace("-", " ").lower()
         all_patterns = (
@@ -104,6 +111,7 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
 
 async def process_source(source, global_patterns):
     source_url = source["url"]
+    source_category = source["category"]
     source_keywords = source.get("keywords", [])
     download_all = "*" in source_keywords
     #    filter_quality = "%" in source_keywords # if the % character is used, all articles should first be rated by th score_text function
@@ -111,7 +119,7 @@ async def process_source(source, global_patterns):
 
     if source.get("is_rss", False):
         logging.info(f"Source {source_url} is an RSS feed.")
-        articles = get_articles_from_feed(source_url)
+        articles = get_articles_from_feed(source_url, category=source_category)
     else:
         logging.info(f"Starting to build newspaper for source: {source_url}")
         paper = newspaper.build(source_url, memoize_articles=True)
@@ -124,15 +132,20 @@ async def process_source(source, global_patterns):
 
     tasks = []
     articles_processed = 0
-    for article_url in articles:
+    for article in articles:
+        # If RSS feed, article is a dictionary, so access the 'link' field
+        article_url = article["link"] if isinstance(article, dict) else article
+
         if download_all and articles_processed >= MAX_ARTICLES_PER_SOURCE:
             break
+
         task = asyncio.create_task(
             process_article_with_timeout(
                 article_url, global_patterns, source_patterns, download_all
             )
         )
         tasks.append(task)
+
         if download_all:
             articles_processed += 1
 

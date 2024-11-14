@@ -42,12 +42,10 @@ class TextData(BaseModel):
 
 
 class PodcastData(BaseModel):
-    url: Optional[HttpUrl] = None
     title: Optional[str] = None
-    date_published: Optional[str] = None
+    text: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
     language: Optional[str] = None
-    text: Optional[str] = None
     audio_file: Optional[str] = None
     markdown_file: Optional[str] = None
     img_file: Optional[str] = None
