@@ -76,7 +76,7 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
     try:
         if download_all:
             logging.info(f"Adding article to task list: {article_url}")
-            await add_task("url", article_url, "edge_tts")
+            await add_task("url", article_url, "edge_tts", "full")
             return True
 
         # Check that article_url is a string
@@ -98,7 +98,7 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
                 logging.info(
                     f"Keyword '{pattern.pattern}' found in headline: {article_url}"
                 )
-                await add_task("url", article_url, "edge_tts")
+                await add_task("url", article_url, "edge_tts", "full")
                 return True
 
         logging.debug(f"No keywords found in headline: {article_url}")
