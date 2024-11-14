@@ -2,6 +2,10 @@ from cached_path import cached_path
 import os
 import inspect
 
+import subprocess
+from typing import Optional
+import shutil
+from pathlib import Path
 
 import torch
 
@@ -23,14 +27,10 @@ nltk.download("punkt")
 nltk.download("punkt_tab")
 
 # load packages
-import time
 import random
 import yaml
-from munch import Munch
 import numpy as np
 import torch
-from torch import nn
-import torch.nn.functional as F
 import torchaudio
 import librosa
 from nltk.tokenize import word_tokenize
@@ -101,29 +101,139 @@ from phonemizer.backend.espeak.wrapper import EspeakWrapper
 import platform
 
 
-def set_espeak_library():
+def check_espeak_availability() -> tuple[bool, Optional[str]]:
+    """
+    Check if espeak-ng is available on the system PATH.
+
+    Returns:
+        tuple: (bool indicating if espeak is available, path to espeak binary if found)
+    """
+    # First check if the command is available on PATH
+    espeak_binary = "espeak-ng.exe" if platform.system() == "Windows" else "espeak-ng"
+    espeak_path = shutil.which(espeak_binary)
+
+    if espeak_path:
+        return True, espeak_path
+
+    # If not found directly, try running the command to see if it's accessible
+    try:
+        subprocess.run(
+            ["espeak-ng", "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        return True, None
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return False, None
+
+
+def find_library_path() -> Optional[str]:
+    """
+    Find the espeak-ng library path based on the OS and common installation locations.
+
+    Returns:
+        Optional[str]: Path to the library if found, None otherwise
+    """
     if platform.system() == "Windows":
         common_paths = [
-            "C:\\Program Files\\eSpeak NG\\libespeak-ng.dll",
-            "C:\\Program Files (x86)\\eSpeak NG\\libespeak-ng.dll",
+            Path(os.environ.get("PROGRAMFILES", "C:\\Program Files"))
+            / "eSpeak NG"
+            / "libespeak-ng.dll",
+            Path(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)"))
+            / "eSpeak NG"
+            / "libespeak-ng.dll",
+            # Check for custom installation in PATH directories
+            *[
+                Path(p) / "libespeak-ng.dll"
+                for p in os.environ.get("PATH", "").split(os.pathsep)
+            ],
         ]
+        lib_name = "libespeak-ng.dll"
     elif platform.system() == "Darwin":  # macOS
         common_paths = [
-            "/opt/homebrew/Cellar/espeak-ng/1.51/lib/libespeak-ng.dylib"
-            "/usr/local/lib/libespeak-ng.dylib",
-            "/opt/homebrew/lib/libespeak-ng.dylib",  # for Apple Silicon Macs using Homebrew
+            Path("/opt/homebrew/Cellar/espeak-ng/1.51/lib/libespeak-ng.dylib"),
+            Path("/usr/local/lib/libespeak-ng.dylib"),
+            Path("/opt/homebrew/lib/libespeak-ng.dylib"),
+            # Additional Homebrew paths
+            *list(
+                Path("/opt/homebrew/Cellar/espeak-ng").glob("*/lib/libespeak-ng.dylib")
+            ),
+            *list(Path("/usr/local/Cellar/espeak-ng").glob("*/lib/libespeak-ng.dylib")),
         ]
+        lib_name = "libespeak-ng.dylib"
     elif platform.system() == "Linux":
-        common_paths = ["/usr/lib/libespeak-ng.so", "/usr/local/lib/libespeak-ng.so"]
+        common_paths = [
+            Path("/usr/lib/libespeak-ng.so"),
+            Path("/usr/local/lib/libespeak-ng.so"),
+            Path("/usr/lib/x86_64-linux-gnu/libespeak-ng.so"),  # Debian/Ubuntu
+            Path("/usr/lib64/libespeak-ng.so"),  # Fedora/RHEL
+            Path("/usr/bin/espeak-ng/libespeak-ng.so"),
+        ]
+        lib_name = "libespeak-ng.so"
     else:
-        raise EnvironmentError("Unsupported OS")
+        raise EnvironmentError(f"Unsupported operating system: {platform.system()}")
 
+    # Check all common paths
     for path in common_paths:
-        if os.path.exists(path):
-            EspeakWrapper.set_library(path)
-            print(f"eSpeak-NG library found at: {path}")
-            return
-    raise FileNotFoundError("eSpeak-NG library not found in standard locations.")
+        if path.exists():
+            return str(path)
+
+    # If not found in common paths, try to find it in system library paths
+    system_lib_paths = [
+        p.strip()
+        for p in os.environ.get("LD_LIBRARY_PATH", "").split(os.pathsep)
+        + os.environ.get("DYLD_LIBRARY_PATH", "").split(os.pathsep)
+        + os.environ.get("PATH", "").split(os.pathsep)
+        if p.strip()
+    ]
+
+    for lib_path in system_lib_paths:
+        path = Path(lib_path) / lib_name
+        if path.exists():
+            return str(path)
+
+    return None
+
+
+def set_espeak_library():
+    """
+    Configure the espeak-ng library for use with the wrapper.
+    First checks if espeak-ng is available on PATH, then searches for the library in common locations.
+
+    Raises:
+        FileNotFoundError: If the espeak-ng library cannot be found
+        EnvironmentError: If running on an unsupported OS
+    """
+    # First check if espeak is available on the system
+    espeak_available, espeak_path = check_espeak_availability()
+
+    if espeak_available:
+        print(f"Found espeak-ng on system: {espeak_path or 'available in PATH'}")
+
+        # If espeak is available, try to find the library
+        library_path = find_library_path()
+        if library_path:
+            try:
+                EspeakWrapper.set_library(library_path)
+                print(f"Successfully configured eSpeak-NG library at: {library_path}")
+                return
+            except Exception as e:
+                print(
+                    f"Warning: Found library at {library_path} but failed to load it: {e}"
+                )
+                # Continue to try other methods if this fails
+
+    # If we reach here, we couldn't find or load the library
+    raise FileNotFoundError(
+        "Could not find or load eSpeak-NG library. Please ensure espeak-ng is installed.\n"
+        f"Installation guide for {platform.system()}:\n"
+        "Windows: Download from https://github.com/espeak-ng/espeak-ng/releases\n"
+        "MacOS: brew install espeak-ng\n"
+        "Linux: sudo apt-get install espeak-ng-data libespeak-ng1 (Ubuntu/Debian)\n"
+        "       sudo dnf install espeak-ng (Fedora)\n"
+        "       sudo pacman -S espeak-ng (Arch)"
+    )
 
 
 set_espeak_library()
