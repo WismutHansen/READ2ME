@@ -70,14 +70,12 @@ def podcast(text: str) -> tuple[str, str]:
     prompt = f"{text} + {pod}"
     script = llm_call(prompt)
     title = generate_title(script)
-    write_markdown_file(title + ".md", script)
     return script, title
 
 
 def story(text: str, language: str = "en-US"):
     prompt = f"{text} + {story_mode} + In {language}"
     script = llm_call(prompt)
-    write_markdown_file("story.md", script)
     return script
 
 
