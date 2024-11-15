@@ -39,16 +39,16 @@ from utils.env import setup_env
 from scipy.io import wavfile
 import queue
 import soundfile as sf
-from TTS.fish_speech.tools.llama.generate import (
-    GenerateRequest,
-    GenerateResponse,
-    WrappedGenerateResponse,
-)
-from TTS.fish_speech.tools.api import encode_reference, decode_vq_tokens
-from TTS.fish_speech.tools.llama.generate import generate_long
-from TTS.fish_speech.tools.vqgan.inference import (
-    load_model as load_decoder_model,
-)
+#from TTS.fish_speech.tools.llama.generate import (
+#    GenerateRequest,
+#    GenerateResponse,
+#    WrappedGenerateResponse,
+#)
+#from TTS.fish_speech.tools.api import encode_reference, decode_vq_tokens
+#from TTS.fish_speech.tools.llama.generate import generate_long
+#from TTS.fish_speech.tools.vqgan.inference import (
+#    load_model as load_decoder_model,
+#)
 
 logger = logging.getLogger(__name__)
 
@@ -453,395 +453,395 @@ class StyleTTS2Engine(TTSEngine):
             self.logger.error(f"Error generating audio with StyleTTS2: {e}")
 
 
-class FishTTSEngine(TTSEngine):
-    def __init__(
-        self,
-        model_repo: str,
-        voices_dir: str,
-        max_length: int = 2048,
-    ):
-        """
-        Initialize FishTTSEngine with required models and configurations.
-
-        Args:
-            model_repo: HuggingFace repository ID for the main model
-            voices_dir: Directory containing voice reference files
-            device: Computing device (cuda/cpu)
-            max_length: Maximum sequence length
-        """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        try:
-            self.model_repo = model_repo
-            self.voices_dir = voices_dir
-            self.device = device
-            self.max_length = max_length
-            self.cache_dir = os.path.join(
-                os.path.dirname(__file__), "fish_speech", "checkpoints"
-            )
-            self.logger = logging.getLogger(__name__)
-
-            # Create cache directory if it doesn't exist
-            os.makedirs(self.cache_dir, exist_ok=True)
-
-            # Import required modules here to avoid early import issues
-            # from .fish_speech.tools.llama.generate import launch_thread_safe_queue
-
-            self.encode_reference = encode_reference
-            self.decode_vq_tokens = decode_vq_tokens
-
-            # Download the entire model repository
-            self.repo_path = snapshot_download(
-                repo_id=self.model_repo,
-                cache_dir=self.cache_dir,
-            )
-
-            # Set decoder checkpoint path
-            self.decoder_checkpoint_path = os.path.join(
-                self.repo_path, "firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
-            )
-
-            # Initialize models
-            self.llama_queue = self.launch_thread_safe_queue(
-                checkpoint_path=self.repo_path,
-                device=self.device,
-                precision=torch.bfloat16,
-                compile=False,
-            )
-            self.decoder_model = load_decoder_model(
-                config_name="firefly_gan_vq",
-                checkpoint_path=self.decoder_checkpoint_path,
-                device=self.device,
-            )
-
-            # Process reference files
-            self._prepare_reference_files()
-
-        except Exception as e:
-            self.logger.error(f"Error initializing FishTTSEngine: {e}")
-            raise
-
-    def _prepare_reference_files(self):
-        """Generate .npy reference files from .wav voice samples."""
-        try:
-            for wav_file in os.listdir(self.voices_dir):
-                if wav_file.endswith(".wav"):
-                    wav_path = os.path.join(self.voices_dir, wav_file)
-                    self.logger.info(f"Processing audio file: {wav_file}")
-                    npy_file = os.path.join(
-                        self.voices_dir, f"{os.path.splitext(wav_file)[0]}.npy"
-                    )
-                    if not os.path.exists(npy_file):
-                        # Read the audio data
-                        try:
-                            sr, audio_data = wavfile.read(wav_path)
-                        except Exception as e:
-                            self.logger.error(f"Error reading {wav_file}: {e}")
-                            continue  # Skip to the next file
-
-                        # Check if audio data is not empty
-                        if audio_data.size == 0:
-                            self.logger.warning(
-                                f"Skipping empty audio file: {wav_file}"
-                            )
-                            continue  # Skip to the next file
-
-                        # Ensure the audio data is in the correct format
-                        if audio_data.dtype != np.float32:
-                            max_value = np.iinfo(audio_data.dtype).max
-                            audio_data = audio_data.astype(np.float32) / max_value
-
-                        # Calculate duration
-                        duration = audio_data.shape[0] / sr
-                        self.logger.info(f"Audio duration: {duration:.2f} seconds")
-
-                        # Skip short audio files (e.g., less than 1 second)
-                        if duration < 1.0:
-                            self.logger.warning(
-                                f"Skipping short audio file ({duration:.2f}s): {wav_file}"
-                            )
-                            continue  # Skip to the next file
-
-                        # Encode reference audio
-                        encoded_reference = self.encode_reference(
-                            decoder_model=self.decoder_model,
-                            reference_audio=audio_data,
-                            enable_reference_audio=True,
-                        )
-                        np.save(npy_file, encoded_reference)
-                        self.logger.info(f"Generated reference file: {npy_file}")
-
-        except Exception as e:
-            self.logger.error(f"Error preparing reference files: {e}")
-            raise
-
-    def _load_reference_tokens(self, voice_id: str):
-        npy_file = os.path.join(self.voices_dir, f"{voice_id}.npy")
-        if os.path.exists(npy_file):
-            reference_tokens = np.load(npy_file)
-            self.logger.debug(
-                f"Loaded reference tokens for voice {voice_id}: {reference_tokens.shape}"
-            )
-            return reference_tokens
-        else:
-            self.logger.warning(f"Reference tokens not found for voice {voice_id}")
-            return None
-
-    def load_model(
-        self,
-        checkpoint_path: str,
-        device: str,
-        precision: torch.dtype,
-        compile: bool = False,
-    ):
-        """
-        Loads the model from a checkpoint and configures it for inference.
-
-        Args:
-            checkpoint_path (str): Path to the model checkpoint directory.
-            device (str): Device to load the model on ('cpu' or 'cuda').
-            precision (torch.dtype): Precision to use for model parameters.
-            compile (bool): Whether to compile the model with TorchScript (if applicable).
-
-        Returns:
-            model: The loaded and configured model.
-            decode_one_token: A function for decoding a single token, if applicable.
-        """
-        # Load the model (example assumes a Hugging Face-style checkpoint)
-        model = torch.load(checkpoint_path, map_location=device)
-        model.to(device=device, dtype=precision)
-        model.eval()
-
-        # Optional: Compile the model for optimized inference
-        if compile:
-            model = torch.jit.script(
-                model
-            )  # or torch.compile(model) if supported in your setup
-
-        # Set up a dummy decode function if needed (replace this with actual decoding if available)
-        def decode_one_token(input_token):
-            # This is a placeholder; replace with actual token decoding logic
-            with torch.no_grad():
-                return model(input_token)
-
-        return model, decode_one_token
-
-    def launch_thread_safe_queue(
-        self,
-        checkpoint_path,
-        device,
-        precision,
-        compile: bool = False,
-    ):
-        input_queue = queue.Queue()
-        init_event = threading.Event()
-
-        def worker():
-            model, decode_one_token = self.load_model(
-                checkpoint_path, device, precision, compile=compile
-            )
-            with torch.device(device):
-                model.setup_caches(
-                    max_batch_size=1,
-                    max_seq_len=model.config.max_seq_len,
-                    dtype=next(model.parameters()).dtype,
-                )
-            init_event.set()
-
-            while True:
-                item: GenerateRequest | None = input_queue.get()
-                if item is None:
-                    break
-
-                kwargs = item.request
-                response_queue = item.response_queue
-
-                try:
-                    for chunk in generate_long(
-                        model=model, decode_one_token=decode_one_token, **kwargs
-                    ):
-                        response_queue.put(
-                            WrappedGenerateResponse(status="success", response=chunk)
-                        )
-                except Exception as e:
-                    response_queue.put(
-                        WrappedGenerateResponse(status="error", response=e)
-                    )
-
-        threading.Thread(target=worker, daemon=True).start()
-        init_event.wait()
-
-        return input_queue
-
-    async def get_available_voices(self) -> List[str]:
-        """Return list of available voice IDs based on .wav files."""
-        try:
-            return [
-                os.path.splitext(f)[0]
-                for f in os.listdir(self.voices_dir)
-                if f.endswith(".wav")
-            ]
-        except Exception as e:
-            self.logger.error(f"Error getting available voices: {e}")
-            raise
-
-    async def generate_audio(
-        self, text: str, voice_id: str
-    ) -> Tuple[AudioSegment, str]:
-        self.logger.debug(f"Generating audio for text: {text}, voice: {voice_id}")
-        try:
-            # Create a response queue
-            response_queue = queue.Queue()
-
-            # Prepare the request parameters
-            request_params = {
-                "device": self.device,
-                "max_new_tokens": self.max_length,
-                "text": text,
-                "top_p": 0.95,
-                "repetition_penalty": 1.2,
-                "temperature": 0.7,
-                "iterative_prompt": False,
-                "chunk_length": 0,
-                "max_length": 2048,
-                "prompt_tokens": self._load_reference_tokens(voice_id),
-                "prompt_text": "",
-            }
-
-            # Create a GenerateRequest object
-            generate_request = GenerateRequest(
-                request=request_params,
-                response_queue=response_queue,
-            )
-
-            # Put the request into the input queue
-            self.llama_queue.put(generate_request)
-
-            # Create a thread pool executor
-            executor = concurrent.futures.ThreadPoolExecutor()
-
-            # Collect responses
-            segments = []
-
-            while True:
-                # Use the executor to run the blocking get() call
-                result: WrappedGenerateResponse = (
-                    await asyncio.get_event_loop().run_in_executor(
-                        executor, response_queue.get
-                    )
-                )
-                if result.status == "error":
-                    self.logger.error(f"Error in inference: {result.response}")
-                    raise Exception(f"Error in inference: {result.response}")
-
-                response: GenerateResponse = result.response
-                if response.action == "next":
-                    break
-
-                # Decode VQ tokens into audio waveform
-                fake_audios = self.decode_vq_tokens(
-                    decoder_model=self.decoder_model,
-                    codes=response.codes,
-                )
-
-                fake_audios = fake_audios.float().cpu().numpy()
-                segments.append(fake_audios)
-
-            # Concatenate all audio segments
-            if len(segments) == 0:
-                self.logger.error("No audio generated")
-                raise Exception("No audio generated")
-            else:
-                audio = np.concatenate(segments, axis=1)  # Concatenate along time axis
-
-                # Save the waveform to a temporary WAV file
-                temp_wav_file = "temp_output.wav"
-                sf.write(temp_wav_file, audio.T, self.decoder_model.sample_rate)
-                self.logger.info(f"Saved raw waveform to {temp_wav_file}")
-
-                # Load the audio segment from the WAV file
-                audio_segment = AudioSegment.from_wav(temp_wav_file)
-                self.logger.debug(
-                    f"Audio segment duration: {len(audio_segment)} milliseconds"
-                )
-
-                # Optionally, remove the temporary file
-                # os.remove(temp_wav_file)
-
-                return audio_segment
-
-        except Exception as e:
-            self.logger.error(f"Error in generate_audio: {e}")
-            raise
-
-    @torch.inference_mode()
-    def inference(
-        self,
-        text: str,
-        enable_reference_audio: bool = False,
-        prompt_tokens: Optional[np.ndarray] = None,
-        max_new_tokens: int = 200,
-        chunk_length: int = 200,
-        top_p: float = 0.7,
-        repetition_penalty: float = 1.2,
-        temperature: float = 0.7,
-        seed: str = "0",
-    ) -> Generator[
-        Tuple[Optional[bytes], Tuple[int, np.ndarray], Optional[str]], None, None
-    ]:
-        """Generate audio using Fish TTS model."""
-        if int(seed) != 0:
-            torch.manual_seed(int(seed))
-
-        from .fish_speech.tools.llama.generate import (
-            GenerateRequest,
-            GenerateResponse,
-            WrappedGenerateResponse,
-        )
-
-        request = dict(
-            device=self.device,
-            max_new_tokens=max_new_tokens,
-            text=text,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
-            temperature=temperature,
-            iterative_prompt=chunk_length > 0,
-            chunk_length=chunk_length,
-            max_length=self.max_length,
-            prompt_tokens=prompt_tokens if enable_reference_audio else None,
-        )
-
-        response_queue = queue.Queue()
-        self.llama_queue.put(
-            GenerateRequest(
-                request=request,
-                response_queue=response_queue,
-            )
-        )
-
-        segments = []
-        while True:
-            result: WrappedGenerateResponse = response_queue.get()
-            if result.status == "error":
-                yield None, None, f"Error in inference: {result.response}"
-                break
-
-            result: GenerateResponse = result.response
-            if result.action == "next":
-                break
-
-            # Generate audio from tokens
-            fake_audios = self.decode_vq_tokens(
-                decoder_model=self.decoder_model,
-                codes=result.codes,
-            )
-            fake_audios = fake_audios.float().cpu().numpy()
-            segments.append(fake_audios)
-
-        # Return concatenated audio segments
-        if not segments:
-            yield None, None, "No audio generated"
-        else:
-            audio = np.concatenate(segments, axis=0)
-            yield None, (24000, audio), None  # 24 kHz sample rate
+#class FishTTSEngine(TTSEngine):
+#    def __init__(
+#        self,
+#        model_repo: str,
+#        voices_dir: str,
+#        max_length: int = 2048,
+#    ):
+#        """
+#        Initialize FishTTSEngine with required models and configurations.
+#
+#        Args:
+#            model_repo: HuggingFace repository ID for the main model
+#            voices_dir: Directory containing voice reference files
+#            device: Computing device (cuda/cpu)
+#            max_length: Maximum sequence length
+#        """
+#        device = "cuda" if torch.cuda.is_available() else "cpu"
+#
+#        try:
+#            self.model_repo = model_repo
+#            self.voices_dir = voices_dir
+#            self.device = device
+#            self.max_length = max_length
+#            self.cache_dir = os.path.join(
+#                os.path.dirname(__file__), "fish_speech", "checkpoints"
+#            )
+#            self.logger = logging.getLogger(__name__)
+#
+#            # Create cache directory if it doesn't exist
+#            os.makedirs(self.cache_dir, exist_ok=True)
+#
+#            # Import required modules here to avoid early import issues
+#            # from .fish_speech.tools.llama.generate import launch_thread_safe_queue
+#
+#            self.encode_reference = encode_reference
+#            self.decode_vq_tokens = decode_vq_tokens
+#
+#            # Download the entire model repository
+#            self.repo_path = snapshot_download(
+#                repo_id=self.model_repo,
+#                cache_dir=self.cache_dir,
+#            )
+#
+#            # Set decoder checkpoint path
+#            self.decoder_checkpoint_path = os.path.join(
+#                self.repo_path, "firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
+#            )
+#
+#            # Initialize models
+#            self.llama_queue = self.launch_thread_safe_queue(
+#                checkpoint_path=self.repo_path,
+#                device=self.device,
+#                precision=torch.bfloat16,
+#                compile=False,
+#            )
+#            self.decoder_model = load_decoder_model(
+#                config_name="firefly_gan_vq",
+#                checkpoint_path=self.decoder_checkpoint_path,
+#                device=self.device,
+#            )
+#
+#            # Process reference files
+#            self._prepare_reference_files()
+#
+#        except Exception as e:
+#            self.logger.error(f"Error initializing FishTTSEngine: {e}")
+#            raise
+#
+#    def _prepare_reference_files(self):
+#        """Generate .npy reference files from .wav voice samples."""
+#        try:
+#            for wav_file in os.listdir(self.voices_dir):
+#                if wav_file.endswith(".wav"):
+#                    wav_path = os.path.join(self.voices_dir, wav_file)
+#                    self.logger.info(f"Processing audio file: {wav_file}")
+#                    npy_file = os.path.join(
+#                        self.voices_dir, f"{os.path.splitext(wav_file)[0]}.npy"
+#                    )
+#                    if not os.path.exists(npy_file):
+#                        # Read the audio data
+#                        try:
+#                            sr, audio_data = wavfile.read(wav_path)
+#                        except Exception as e:
+#                            self.logger.error(f"Error reading {wav_file}: {e}")
+#                            continue  # Skip to the next file
+#
+#                        # Check if audio data is not empty
+#                        if audio_data.size == 0:
+#                            self.logger.warning(
+#                                f"Skipping empty audio file: {wav_file}"
+#                            )
+#                            continue  # Skip to the next file
+#
+#                        # Ensure the audio data is in the correct format
+#                        if audio_data.dtype != np.float32:
+#                            max_value = np.iinfo(audio_data.dtype).max
+#                            audio_data = audio_data.astype(np.float32) / max_value
+#
+#                        # Calculate duration
+#                        duration = audio_data.shape[0] / sr
+#                        self.logger.info(f"Audio duration: {duration:.2f} seconds")
+#
+#                        # Skip short audio files (e.g., less than 1 second)
+#                        if duration < 1.0:
+#                            self.logger.warning(
+#                                f"Skipping short audio file ({duration:.2f}s): {wav_file}"
+#                            )
+#                            continue  # Skip to the next file
+#
+#                        # Encode reference audio
+#                        encoded_reference = self.encode_reference(
+#                            decoder_model=self.decoder_model,
+#                            reference_audio=audio_data,
+#                            enable_reference_audio=True,
+#                        )
+#                        np.save(npy_file, encoded_reference)
+#                        self.logger.info(f"Generated reference file: {npy_file}")
+#
+#        except Exception as e:
+#            self.logger.error(f"Error preparing reference files: {e}")
+#            raise
+#
+#    def _load_reference_tokens(self, voice_id: str):
+#        npy_file = os.path.join(self.voices_dir, f"{voice_id}.npy")
+#        if os.path.exists(npy_file):
+#            reference_tokens = np.load(npy_file)
+#            self.logger.debug(
+#                f"Loaded reference tokens for voice {voice_id}: {reference_tokens.shape}"
+#            )
+#            return reference_tokens
+#        else:
+#            self.logger.warning(f"Reference tokens not found for voice {voice_id}")
+#            return None
+#
+#    def load_model(
+#        self,
+#        checkpoint_path: str,
+#        device: str,
+#        precision: torch.dtype,
+#        compile: bool = False,
+#    ):
+#        """
+#        Loads the model from a checkpoint and configures it for inference.
+#
+#        Args:
+#            checkpoint_path (str): Path to the model checkpoint directory.
+#            device (str): Device to load the model on ('cpu' or 'cuda').
+#            precision (torch.dtype): Precision to use for model parameters.
+#            compile (bool): Whether to compile the model with TorchScript (if applicable).
+#
+#        Returns:
+#            model: The loaded and configured model.
+#            decode_one_token: A function for decoding a single token, if applicable.
+#        """
+#        # Load the model (example assumes a Hugging Face-style checkpoint)
+#        model = torch.load(checkpoint_path, map_location=device)
+#        model.to(device=device, dtype=precision)
+#        model.eval()
+#
+#        # Optional: Compile the model for optimized inference
+#        if compile:
+#            model = torch.jit.script(
+#                model
+#            )  # or torch.compile(model) if supported in your setup
+#
+#        # Set up a dummy decode function if needed (replace this with actual decoding if available)
+#        def decode_one_token(input_token):
+#            # This is a placeholder; replace with actual token decoding logic
+#            with torch.no_grad():
+#                return model(input_token)
+#
+#        return model, decode_one_token
+#
+#    def launch_thread_safe_queue(
+#        self,
+#        checkpoint_path,
+#        device,
+#        precision,
+#        compile: bool = False,
+#    ):
+#        input_queue = queue.Queue()
+#        init_event = threading.Event()
+#
+#        def worker():
+#            model, decode_one_token = self.load_model(
+#                checkpoint_path, device, precision, compile=compile
+#            )
+#            with torch.device(device):
+#                model.setup_caches(
+#                    max_batch_size=1,
+#                    max_seq_len=model.config.max_seq_len,
+#                    dtype=next(model.parameters()).dtype,
+#                )
+#            init_event.set()
+#
+#            while True:
+#                item: GenerateRequest | None = input_queue.get()
+#                if item is None:
+#                    break
+#
+#                kwargs = item.request
+#                response_queue = item.response_queue
+#
+#                try:
+#                    for chunk in generate_long(
+#                        model=model, decode_one_token=decode_one_token, **kwargs
+#                    ):
+#                        response_queue.put(
+#                            WrappedGenerateResponse(status="success", response=chunk)
+#                        )
+#                except Exception as e:
+#                    response_queue.put(
+#                        WrappedGenerateResponse(status="error", response=e)
+#                    )
+#
+#        threading.Thread(target=worker, daemon=True).start()
+#        init_event.wait()
+#
+#        return input_queue
+#
+#    async def get_available_voices(self) -> List[str]:
+#        """Return list of available voice IDs based on .wav files."""
+#        try:
+#            return [
+#                os.path.splitext(f)[0]
+#                for f in os.listdir(self.voices_dir)
+#                if f.endswith(".wav")
+#            ]
+#        except Exception as e:
+#            self.logger.error(f"Error getting available voices: {e}")
+#            raise
+#
+#    async def generate_audio(
+#        self, text: str, voice_id: str
+#    ) -> Tuple[AudioSegment, str]:
+#        self.logger.debug(f"Generating audio for text: {text}, voice: {voice_id}")
+#        try:
+#            # Create a response queue
+#            response_queue = queue.Queue()
+#
+#            # Prepare the request parameters
+#            request_params = {
+#                "device": self.device,
+#                "max_new_tokens": self.max_length,
+#                "text": text,
+#                "top_p": 0.95,
+#                "repetition_penalty": 1.2,
+#                "temperature": 0.7,
+#                "iterative_prompt": False,
+#                "chunk_length": 0,
+#                "max_length": 2048,
+#                "prompt_tokens": self._load_reference_tokens(voice_id),
+#                "prompt_text": "",
+#            }
+#
+#            # Create a GenerateRequest object
+#            generate_request = GenerateRequest(
+#                request=request_params,
+#                response_queue=response_queue,
+#            )
+#
+#            # Put the request into the input queue
+#            self.llama_queue.put(generate_request)
+#
+#            # Create a thread pool executor
+#            executor = concurrent.futures.ThreadPoolExecutor()
+#
+#            # Collect responses
+#            segments = []
+#
+#            while True:
+#                # Use the executor to run the blocking get() call
+#                result: WrappedGenerateResponse = (
+#                    await asyncio.get_event_loop().run_in_executor(
+#                        executor, response_queue.get
+#                    )
+#                )
+#                if result.status == "error":
+#                    self.logger.error(f"Error in inference: {result.response}")
+#                    raise Exception(f"Error in inference: {result.response}")
+#
+#                response: GenerateResponse = result.response
+#                if response.action == "next":
+#                    break
+#
+#                # Decode VQ tokens into audio waveform
+#                fake_audios = self.decode_vq_tokens(
+#                    decoder_model=self.decoder_model,
+#                    codes=response.codes,
+#                )
+#
+#                fake_audios = fake_audios.float().cpu().numpy()
+#                segments.append(fake_audios)
+#
+#            # Concatenate all audio segments
+#            if len(segments) == 0:
+#                self.logger.error("No audio generated")
+#                raise Exception("No audio generated")
+#            else:
+#                audio = np.concatenate(segments, axis=1)  # Concatenate along time axis
+#
+#                # Save the waveform to a temporary WAV file
+#                temp_wav_file = "temp_output.wav"
+#                sf.write(temp_wav_file, audio.T, self.decoder_model.sample_rate)
+#                self.logger.info(f"Saved raw waveform to {temp_wav_file}")
+#
+#                # Load the audio segment from the WAV file
+#                audio_segment = AudioSegment.from_wav(temp_wav_file)
+#                self.logger.debug(
+#                    f"Audio segment duration: {len(audio_segment)} milliseconds"
+#                )
+#
+#                # Optionally, remove the temporary file
+#                # os.remove(temp_wav_file)
+#
+#                return audio_segment
+#
+#        except Exception as e:
+#            self.logger.error(f"Error in generate_audio: {e}")
+#            raise
+#
+#    @torch.inference_mode()
+#    def inference(
+#        self,
+#        text: str,
+#        enable_reference_audio: bool = False,
+#        prompt_tokens: Optional[np.ndarray] = None,
+#        max_new_tokens: int = 200,
+#        chunk_length: int = 200,
+#        top_p: float = 0.7,
+#        repetition_penalty: float = 1.2,
+#        temperature: float = 0.7,
+#        seed: str = "0",
+#    ) -> Generator[
+#        Tuple[Optional[bytes], Tuple[int, np.ndarray], Optional[str]], None, None
+#    ]:
+#        """Generate audio using Fish TTS model."""
+#        if int(seed) != 0:
+#            torch.manual_seed(int(seed))
+#
+#        from .fish_speech.tools.llama.generate import (
+#            GenerateRequest,
+#            GenerateResponse,
+#            WrappedGenerateResponse,
+#        )
+#
+#        request = dict(
+#            device=self.device,
+#            max_new_tokens=max_new_tokens,
+#            text=text,
+#            top_p=top_p,
+#            repetition_penalty=repetition_penalty,
+#            temperature=temperature,
+#            iterative_prompt=chunk_length > 0,
+#            chunk_length=chunk_length,
+#            max_length=self.max_length,
+#            prompt_tokens=prompt_tokens if enable_reference_audio else None,
+#        )
+#
+#        response_queue = queue.Queue()
+#        self.llama_queue.put(
+#            GenerateRequest(
+#                request=request,
+#                response_queue=response_queue,
+#            )
+#        )
+#
+#        segments = []
+#        while True:
+#            result: WrappedGenerateResponse = response_queue.get()
+#            if result.status == "error":
+#                yield None, None, f"Error in inference: {result.response}"
+#                break
+#
+#            result: GenerateResponse = result.response
+#            if result.action == "next":
+#                break
+#
+#            # Generate audio from tokens
+#            fake_audios = self.decode_vq_tokens(
+#                decoder_model=self.decoder_model,
+#                codes=result.codes,
+#            )
+#            fake_audios = fake_audios.float().cpu().numpy()
+#            segments.append(fake_audios)
+#
+#        # Return concatenated audio segments
+#        if not segments:
+#            yield None, None, "No audio generated"
+#        else:
+#            audio = np.concatenate(segments, axis=0)
+#            yield None, (24000, audio), None  # 24 kHz sample rate
