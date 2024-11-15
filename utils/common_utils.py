@@ -9,6 +9,11 @@ import logging
 from num2words import num2words
 from typing import Optional
 
+def sanitize_filename(filename):
+    """
+    Remove or replace invalid characters in filenames.
+    """
+    return re.sub(r'[<>:"/\\|?*]', '', filename).strip()
 
 def write_markdown_file(md_file_path, text, url=None):
     with open(md_file_path, "w", encoding="utf-8") as md_file_handle:
