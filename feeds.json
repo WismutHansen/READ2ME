@@ -1,49 +1,44 @@
 {
   "feeds": [
     {
-      "category": "technology",
+      "category": "Technology",
       "name": "Tech Crunch",
       "url": "https://techcrunch.com/rss"
     },
     {
-      "category": "technology",
+      "category": "Technology",
       "name": "Wired",
       "url": "https://www.wired.com/feed"
     },
     {
-      "category": "technology",
+      "category": "Technology",
       "name": "The Verge",
       "url": "https://www.theverge.com/rss/index.xml"
     },
     {
-      "category": "artificial intelligence",
+      "category": "Artificial Intelligence",
       "name": "AI News",
       "url": "https://ainews.com/rss"
     },
     {
-      "category": "artificial intelligence",
+      "category": "Artificial Intelligence",
       "name": "DeepMind Blog",
       "url": "https://deepmind.com/blog/feed/basic/"
     },
     {
-      "category": "artificial intelligence",
+      "category": "Artificial Intelligence",
       "name": "OpenAI Blog",
       "url": "https://openai.com/blog/rss"
     },
     {
-      "category": "sports",
+      "category": "Sports",
       "name": "ESPN",
       "url": "https://www.espn.com/espn/rss/news"
     },
     {
-      "category": "sports",
+      "category": "Sports",
       "name": "Sky Sports",
       "url": "https://www.skysports.com/rss/12040"
-    },
-    {
-      "category": "sports",
-      "name": "Bleacher Report",
-      "url": "https://bleacherreport.com/articles/feed"
     }
   ]
 }
