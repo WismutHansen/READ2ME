@@ -131,7 +131,7 @@ def fetch_available_media():
     # Format combined media records
     return [
         AvailableMedia(
-            id=str(dict(row)["id"]),
+            id=dict(row)["id"],
             title=row["title"],
             date_added=row["date_added"],
             date_published=row["date_published"],
@@ -306,17 +306,21 @@ def delete_article(article_id: str):
     return cursor.rowcount
 
 
-def create_text(text_data: TextData):
+def create_text(text_data: TextData) -> str:
     conn = create_connection()
     cursor = conn.cursor()
 
     try:
+        # Generate a unique text ID for the text entry
+        text_id = generate_hash(f"{text_data.title or ''}{text_data.text or ''}{datetime.now().isoformat()}")
+
         cursor.execute(
             """
-            INSERT INTO texts (title, text, date_added, language, tl_dr, audio_file, markdown_file, img_file)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO texts (id, title, text, date_added, language, tl_dr, audio_file, markdown_file, img_file)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
+                text_id,
                 text_data.title,
                 text_data.text,
                 text_data.date_added or datetime.today().strftime("%Y-%m-%d"),
@@ -328,21 +332,16 @@ def create_text(text_data: TextData):
             ),
         )
         conn.commit()
-
-        # Retrieve the auto-generated ID of the newly inserted text
-        text_id = cursor.lastrowid
     except sqlite3.IntegrityError as e:
         print(f"Could not add text data to the database: {e}")
-        text_id = (
-            None  # Handle error by setting text_id to None or other error handling
-        )
+        text_id = None  # Handle error by setting text_id to None or other error handling
     finally:
         conn.close()
 
     return text_id
 
 
-def update_text(text_id: int, updated_fields: TextData):
+def update_text(text_id: str, updated_fields: TextData):
     conn = create_connection()
     cursor = conn.cursor()
 
@@ -391,17 +390,21 @@ def create_podcast_db_entry(
     podcast_data: PodcastData,
     seed_text_id: Optional[str] = None,
     seed_article_id: Optional[str] = None,
-) -> int:
+) -> str:
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Insert the podcast data, letting SQLite handle the ID generation
+    # Generate a unique text ID for the podcast
+    podcast_id = generate_hash(f"{podcast_data.title or ''}{podcast_data.text or ''}{datetime.now().isoformat()}")
+
+    # Insert the podcast data with the generated ID
     cursor.execute(
         """
-        INSERT INTO podcasts (title, text, date_added, language, audio_file, markdown_file, img_file)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO podcasts (id, title, text, date_added, language, audio_file, markdown_file, img_file)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
+            podcast_id,
             podcast_data.title,
             podcast_data.text,
             podcast_data.date_added or datetime.today().strftime("%Y-%m-%d"),
@@ -411,9 +414,6 @@ def create_podcast_db_entry(
             podcast_data.img_file,
         ),
     )
-
-    # Retrieve the generated podcast_id for linking
-    podcast_id = cursor.lastrowid
 
     # Link podcast to seed text or article if provided
     if seed_text_id or seed_article_id:
@@ -430,7 +430,7 @@ def create_podcast_db_entry(
     return podcast_id
 
 
-def update_podcast(podcast_id: int, updated_fields: PodcastData):
+def update_podcast(podcast_id: str, updated_fields: PodcastData):
     conn = create_connection()
     cursor = conn.cursor()
     # Filter out None values to only update provided fields
