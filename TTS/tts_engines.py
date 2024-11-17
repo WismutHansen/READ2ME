@@ -193,38 +193,58 @@ class EdgeTTSEngine(TTSEngine):
     async def generate_audio(
         self, text: str, voice_id: str
     ) -> Tuple[AudioSegment, Optional[str]]:
-        with tempfile.NamedTemporaryFile(suffix=".mp3") as temp_audio:
-            with tempfile.NamedTemporaryFile(suffix=".vtt") as temp_vtt:
-                # Create communicate object
-                communicate = Communicate(text, voice_id)
-                submaker = SubMaker()
-                # Generate audio and save to temp file
-                async for chunk in communicate.stream():
-                    if chunk["type"] == "audio":
-                        temp_audio.write(chunk["data"])
-                    elif chunk["type"] == "WordBoundary":
-                        # Handle SSML timing data if needed
-                        submaker.create_sub(
-                            (chunk["offset"], chunk["duration"]), chunk["text"]
-                        )
-                        with open(temp_vtt.name, "w", encoding="utf-8") as f:
-                            f.write(submaker.generate_subs())
+        # Create temp files but don't use context manager
+        temp_audio = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        temp_vtt = tempfile.NamedTemporaryFile(suffix=".vtt", delete=False)
+        
+        try:
+            # Create communicate object
+            communicate = Communicate(text, voice_id)
+            submaker = SubMaker()
+            
+            # Generate audio and save to temp file
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    temp_audio.write(chunk["data"])
+                elif chunk["type"] == "WordBoundary":
+                    # Handle SSML timing data if needed
+                    submaker.create_sub(
+                        (chunk["offset"], chunk["duration"]), chunk["text"]
+                    )
+                    with open(temp_vtt.name, "w", encoding="utf-8") as f:
+                        f.write(submaker.generate_subs())
 
-                temp_audio.flush()
-                audio = AudioSegment.from_file(temp_audio.name)
+            temp_audio.flush()
+            temp_audio.close()  # Close file before reading
+            audio = AudioSegment.from_file(temp_audio.name)
 
-                # Read VTT content
-                with open(temp_vtt.name, "r", encoding="utf-8") as f:
-                    vtt_content = f.read()
+            # Read VTT content
+            with open(temp_vtt.name, "r", encoding="utf-8") as f:
+                vtt_content = f.read()
 
-                # Create permanent VTT file if needed
-                vtt_file = None
-                if vtt_content.strip():
-                    vtt_file = f"{temp_audio.name}.vtt"
-                    with open(vtt_file, "w", encoding="utf-8") as f:
-                        f.write(vtt_content)
+            # Create permanent VTT file if needed
+            vtt_file = None
+            if vtt_content.strip():
+                vtt_file = temp_vtt.name
+                temp_vtt = None  # Don't delete the VTT file since we're using it
 
-                return audio, vtt_file
+            return audio, vtt_file
+            
+        finally:
+            # Clean up temp files
+            try:
+                if temp_audio:
+                    temp_audio.close()
+                    os.unlink(temp_audio.name)
+            except Exception as e:
+                logger.warning(f"Failed to delete temp audio file: {e}")
+                
+            try:
+                if temp_vtt:  # Only delete if we didn't keep it as vtt_file
+                    temp_vtt.close()
+                    os.unlink(temp_vtt.name)
+            except Exception as e:
+                logger.warning(f"Failed to delete temp VTT file: {e}")
 
 
 class F5TTSEngine(TTSEngine):

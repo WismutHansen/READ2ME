@@ -80,19 +80,37 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
   const [taskCount, setTaskCount] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+  const [previousTaskCount, setPreviousTaskCount] = useState<number | null>(null);
   const { toast } = useToast();
 
   const fetchQueueStatus = async () => {
-    setLoading(true);
+    // Only show loading on initial fetch
+    if (!initialized) {
+      setLoading(true);
+    }
+    
     const { serverUrl, ttsEngine } = getSettings();
     try {
       const response = await fetch(`${serverUrl}/v1/queue/status`);
       if (!response.ok) throw new Error("Failed to fetch queue status");
       const data = await response.json();
-      console.log('Queue status data:', data);
-      console.log('Tasks:', data.tasks);
-      setTaskCount(data.task_count);
-      setTasks(data.tasks || []);
+      
+      // Only update state if there are actual changes
+      const tasksChanged = JSON.stringify(data.tasks) !== JSON.stringify(tasks);
+      const countChanged = data.task_count !== taskCount;
+      
+      if (tasksChanged || countChanged) {
+        // If task count decreased and we had a previous count, it means a task completed
+        if (previousTaskCount !== null && data.task_count < previousTaskCount) {
+          // Refresh the article list since a task completed
+          await refreshArticles();
+        }
+        
+        setTaskCount(data.task_count);
+        setPreviousTaskCount(data.task_count);
+        setTasks(data.tasks || []);
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -100,6 +118,7 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
       });
     } finally {
       setLoading(false);
+      setInitialized(true);
     }
   };
 
