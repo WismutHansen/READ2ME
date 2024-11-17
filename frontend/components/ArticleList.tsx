@@ -88,7 +88,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       } else if (article.content_type === 'podcast') {
         endpoint = `${settings.serverUrl}/v1/podcast/${article.id}`;
       } else if (article.content_type === 'text') {
-        endpoint = `${settings.serverUrl}/v1/texts/${article.id}`;
+        endpoint = `${settings.serverUrl}/v1/text/${article.id}`;
       } else {
         console.warn(`Unknown type for article with ID ${article.id}:`, article.content_type || 'undefined');
         throw new Error(`Unknown article type: ${article.content_type || 'undefined'}`);

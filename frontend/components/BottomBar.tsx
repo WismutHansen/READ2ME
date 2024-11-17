@@ -44,7 +44,7 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
         } else if (type === 'podcast') {
           endpoint = `${settings.serverUrl}/v1/podcast/${articleId}`;
         } else if (type === 'text') {
-          endpoint = `${settings.serverUrl}/v1/texts/${articleId}`;
+          endpoint = `${settings.serverUrl}/v1/text/${articleId}`;
         } else {
           console.warn(`Unknown type: ${type}`);
           throw new Error(`Unknown type: ${type}`);

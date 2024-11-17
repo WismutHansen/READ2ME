@@ -29,7 +29,7 @@ export default function ArticlePage({ params }: { params: { id: string; type: st
       // Determine the URL based on the content type
       const endpoint = params.type === 'podcast'
         ? `/api/article/${params.id}`
-        : `/api/texts/${params.id}`;
+        : `/api/text/${params.id}`;
 
       const response = await fetch(endpoint);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
