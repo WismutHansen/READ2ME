@@ -52,7 +52,13 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
 
       const data = await response.json();
       console.log('Fetched articles:', data); // Log all fetched articles
-      setArticles(data);
+      // Sort articles by date (most recent first)
+      const sortedArticles = data.sort((a: Article, b: Article) => {
+        const dateA = new Date(a.date_published || a.date_added);
+        const dateB = new Date(b.date_published || b.date_added);
+        return dateB.getTime() - dateA.getTime();
+      });
+      setArticles(sortedArticles);
     } catch (error: any) {
       console.error('Error fetching articles:', error.message);
       setError(`Failed to load articles: ${error.message}`);
