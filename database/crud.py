@@ -220,6 +220,7 @@ def get_articles(skip: int = 0, limit: int = 100):
 
 def get_article(article_id: str):
     conn = create_connection()
+    conn.row_factory = sqlite3.Row  # Enable dictionary-like access to rows
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -229,7 +230,7 @@ def get_article(article_id: str):
     )
     article = cursor.fetchone()
     conn.close()
-    return article
+    return dict(article) if article else None  # Convert Row to dict if article exists
 
 
 def get_total_articles():
@@ -368,16 +369,17 @@ def update_text(text_id: int, updated_fields: TextData):
 
 def get_text(text_id: str):
     conn = create_connection()
+    conn.row_factory = sqlite3.Row  # Enable dictionary-like access to rows
     cursor = conn.cursor()
     cursor.execute(
         """
         SELECT * FROM texts WHERE id = ?
-        """,
-        (int(text_id),),  # Convert ID to integer
+    """,
+        (text_id,),
     )
     text = cursor.fetchone()
     conn.close()
-    return text
+    return dict(text) if text else None  # Convert Row to dict if text exists
 
 
 def create_podcast_db_entry(
@@ -454,16 +456,17 @@ def update_podcast(podcast_id: int, updated_fields: PodcastData):
 
 def get_podcast(podcast_id: str):
     conn = create_connection()
+    conn.row_factory = sqlite3.Row  # Enable dictionary-like access to rows
     cursor = conn.cursor()
     cursor.execute(
         """
         SELECT * FROM podcasts WHERE id = ?
-        """,
-        (int(podcast_id),),  # Convert ID to integer
+    """,
+        (podcast_id,),
     )
     podcast = cursor.fetchone()
     conn.close()
-    return podcast
+    return dict(podcast) if podcast else None  # Convert Row to dict if podcast exists
 
 
 def generate_hash(value: str) -> str:

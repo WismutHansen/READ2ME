@@ -548,34 +548,28 @@ async def get_articles(request: Request, page: int = 1, limit: int = 20):
 @app.get("/v1/article/{article_id}")
 async def get_article_from_db(article_id: str):
     try:
-        article = get_article(
-            article_id
-        )  # Function to retrieve article from the database
-
+        article = get_article(article_id)
         if not article:
             raise HTTPException(status_code=404, detail="Article not found")
 
-        # Get the audio file path and format it correctly
-        audio_file = article[9]  # Adjust index based on database structure
+        # Format the audio file path
+        audio_file = article.get("audio_file")
         if audio_file:
-            # Remove any leading slashes and ensure proper path structure
             audio_file = audio_file.lstrip("/")
-            # Don't include 'static' in the response - it will be added by the frontend
             audio_file = (
                 audio_file
                 if audio_file.startswith("Output/")
                 else f"Output/{audio_file}"
             )
 
-        # Parse the article details
         content = {
             "id": article_id,
-            "title": article[2],
-            "date": article[3],
-            "audio_file": audio_file,  # This should be like "Output/20241102/file.mp3"
-            "content": article[6],
+            "title": article.get("title"),
+            "date": article.get("date_published"),
+            "audio_file": audio_file,
+            "content": article.get("plain_text"),
+            "tl_dr": article.get("tl_dr"),
         }
-
         return JSONResponse(content=content)
     except Exception as e:
         logging.error(f"Error fetching article {article_id}: {str(e)}")
@@ -588,15 +582,12 @@ async def get_article_from_db(article_id: str):
 @app.get("/v1/podcast/{podcast_id}")
 async def get_podcast_from_db(podcast_id: str):
     try:
-        podcast = get_podcast(
-            podcast_id
-        )  # Function to retrieve podcast from the database
-
+        podcast = get_podcast(podcast_id)
         if not podcast:
             raise HTTPException(status_code=404, detail="Podcast not found")
 
         # Format the audio file path
-        audio_file = podcast[5]  # Adjust index based on database structure
+        audio_file = podcast.get("audio_file")
         if audio_file:
             audio_file = audio_file.lstrip("/")
             audio_file = (
@@ -605,15 +596,13 @@ async def get_podcast_from_db(podcast_id: str):
                 else f"Output/{audio_file}"
             )
 
-        # Parse the podcast details
         content = {
             "id": podcast_id,
-            "title": podcast[1],  # Adjust index for title
-            "date_added": podcast[3],  # Adjust index for date
+            "title": podcast.get("title"),
+            "date": podcast.get("date_added"),
             "audio_file": audio_file,
-            "content": podcast[2],  # Adjust index for text/content
+            "content": podcast.get("text"),
         }
-
         return JSONResponse(content=content)
     except Exception as e:
         logging.error(f"Error fetching podcast {podcast_id}: {str(e)}")
@@ -623,16 +612,15 @@ async def get_podcast_from_db(podcast_id: str):
         )
 
 
-@app.get("/v1/texts/{text_id}")
+@app.get("/v1/text/{text_id}")
 async def get_text_from_db(text_id: str):
     try:
-        text = get_text(text_id)  # Function to retrieve text from the database
-
+        text = get_text(text_id)
         if not text:
             raise HTTPException(status_code=404, detail="Text not found")
 
         # Format the audio file path
-        audio_file = text[6]  # Adjust index based on database structure
+        audio_file = text.get("audio_file")
         if audio_file:
             audio_file = audio_file.lstrip("/")
             audio_file = (
@@ -641,15 +629,14 @@ async def get_text_from_db(text_id: str):
                 else f"Output/{audio_file}"
             )
 
-        # Parse the text details
         content = {
             "id": text_id,
-            "title": text[2],  # Adjust index for title
-            "date_added": text[3],  # Adjust index for date
+            "title": text.get("title"),
+            "date": text.get("date_added"),
             "audio_file": audio_file,
-            "content": text[1],  # Adjust index for the main text content
+            "content": text.get("text"),
+            "tl_dr": text.get("tl_dr"),
         }
-
         return JSONResponse(content=content)
     except Exception as e:
         logging.error(f"Error fetching text {text_id}: {str(e)}")
