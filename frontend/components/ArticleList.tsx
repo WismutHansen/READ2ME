@@ -143,16 +143,16 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
 
             <div className="absolute inset-0 bg-black bg-opacity-40 p-4 flex flex-col">
               <div className="flex-1 min-h-0">
-                <h3 className="text-white font-bold text-lg line-clamp-3">{article.title || 'Untitled'}</h3>
+                <h3 className="text-white font-bold text-lg line-clamp-2 mb-auto">{article.title || 'Untitled'}</h3>
               </div>
-              <div className="flex justify-between items-end mt-2">
-                <span className="text-white text-sm">
-                  {formatDate(article.date_published || article.date_added)}
+              <div className="flex items-start justify-between mt-2 text-white text-sm">
+                <div className="flex flex-col min-w-0">
+                  <span className="whitespace-nowrap">{formatDate(article.date_published || article.date_added)}</span>
                   {article.url && (
-                    <span className="ml-2 opacity-75">| {getSourceDomain(article.url)}</span>
+                    <span className="opacity-75 truncate">{getSourceDomain(article.url)}</span>
                   )}
-                </span>
-                <span className="text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
+                </div>
+                <span className="bg-black bg-opacity-50 px-2 py-1 rounded ml-2 flex-shrink-0">
                   {article.content_type}
                 </span>
               </div>
