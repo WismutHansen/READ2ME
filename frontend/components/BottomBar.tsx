@@ -5,6 +5,8 @@ import AudioPlayer from './AudioPlayer';
 import { getSettings } from '@/lib/settings';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface Article {
   id: string;
@@ -12,16 +14,19 @@ interface Article {
   date: string;
   audio_file: string;
   content?: string;
+  tldr?: string;
+  type?: string;
 }
 
 interface BottomBarProps {
   articleId: string;
-  type: string; // Add type to props
+  type: string;
 }
 
 export default function BottomBar({ articleId, type }: BottomBarProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showTldr, setShowTldr] = useState(false);
 
   const toggleExpanded = () => {
     setIsExpanded((prev) => !prev);
@@ -32,14 +37,14 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
       if (!articleId || !type) return;
 
       try {
-        // Determine the endpoint based on the type
+        const settings = getSettings();
         let endpoint;
         if (type === 'article') {
-          endpoint = `${process.env.NEXT_PUBLIC_API_URL}/v1/article/${articleId}`;
+          endpoint = `${settings.serverUrl}/v1/article/${articleId}`;
         } else if (type === 'podcast') {
-          endpoint = `${process.env.NEXT_PUBLIC_API_URL}/v1/podcast/${articleId}`;
+          endpoint = `${settings.serverUrl}/v1/podcast/${articleId}`;
         } else if (type === 'text') {
-          endpoint = `${process.env.NEXT_PUBLIC_API_URL}/v1/texts/${articleId}`;
+          endpoint = `${settings.serverUrl}/v1/texts/${articleId}`;
         } else {
           console.warn(`Unknown type: ${type}`);
           throw new Error(`Unknown type: ${type}`);
@@ -52,7 +57,9 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
 
         const data = await response.json();
         console.log('Fetched article data:', data);
-        setArticle(data);
+        console.log('Article type:', type);
+        console.log('Has TLDR:', !!data.tldr);
+        setArticle({ ...data, type });
       } catch (error) {
         console.error('Error fetching article:', error);
       }
@@ -62,6 +69,17 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
   }, [articleId, type]);
 
   if (!article) return null;
+
+  const shouldShowToggle = (type === 'article' || type === 'text') && article.tldr;
+  const content = showTldr && article.tldr ? article.tldr : article.content;
+
+  // Construct the full audio URL
+  const audioUrl = article.audio_file.startsWith('http') 
+    ? article.audio_file 
+    : `${getSettings().serverUrl}/${article.audio_file}`;
+
+  console.log('Should show toggle:', shouldShowToggle);
+  console.log('Audio URL:', audioUrl);
 
   return (
     <div className={`fixed bottom-0 left-0 right-0 bg-background border-t z-50 ${isExpanded ? 'h-[80vh] overflow-y-auto' : ''}`}>
@@ -79,15 +97,27 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
               )}
             </div>
 
-            {/* Center - Audio Player */}
-            <div className="flex-shrink-0">
+            {/* Center - Controls */}
+            <div className="flex items-center gap-4">
+              {/* Audio Player */}
               {article.audio_file && (
-                <>
-                  {console.log('Audio file path:', article.audio_file)}
-                  <AudioPlayer
-                    audioUrl={`${process.env.NEXT_PUBLIC_API_URL}/${article.audio_file}`}
+                <AudioPlayer
+                  audioUrl={audioUrl}
+                />
+              )}
+              
+              {/* TL;DR Toggle */}
+              {shouldShowToggle && (
+                <div className="flex items-center space-x-2 bg-muted p-2 rounded-lg">
+                  <Label htmlFor="tldr-mode" className="text-sm">
+                    TL;DR
+                  </Label>
+                  <Switch
+                    id="tldr-mode"
+                    checked={showTldr}
+                    onCheckedChange={setShowTldr}
                   />
-                </>
+                </div>
               )}
             </div>
 
@@ -113,7 +143,7 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
         {isExpanded && (
           <div className="py-4">
             <div className="prose dark:prose-invert max-w-none">
-              {article.content}
+              {content}
             </div>
           </div>
         )}
