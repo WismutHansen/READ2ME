@@ -146,14 +146,14 @@ export default function TodayFeedList() {
           <DialogHeader>
             <DialogTitle>Add "{selectedEntry?.title}" to Queue</DialogTitle>
           </DialogHeader>
-          <DialogFooter className="flex justify-around">
-            <Button onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/full')}>
+          <DialogFooter className="flex flex-row gap-2 justify-center sm:justify-around flex-nowrap">
+            <Button className="flex-1" onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/full')}>
               Full Text
             </Button>
-            <Button onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/summary')}>
+            <Button className="flex-1" onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/summary')}>
               TL;DR
             </Button>
-            <Button onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/podcast')}>
+            <Button className="flex-1" onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/podcast')}>
               Podcast
             </Button>
           </DialogFooter>

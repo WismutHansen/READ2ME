@@ -5,7 +5,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  serverUrl: 'http://localhost:7777'
+  serverUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7777'
 };
 
 export function getSettings(): Settings {
