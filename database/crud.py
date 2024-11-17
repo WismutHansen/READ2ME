@@ -145,26 +145,44 @@ def fetch_available_media():
 
 
 def create_article(article_data: ArticleData, authors: Optional[List[Author]] = None):
+    """Create a new article in the database."""
     conn = create_connection()
     cursor = conn.cursor()
 
-    # Ensure date_published has a default if None
-    date_published = article_data.date_published or datetime.today().strftime(
-        "%Y-%m-%d"
-    )
-    # Generate the article ID from the URL
-    article_id = generate_hash(str(article_data.url))
+    # Generate a unique ID for the article
+    article_id = generate_hash(f"{article_data.url}{datetime.now().isoformat()}")
+
+    # Convert absolute paths to relative paths for storage
+    if article_data.audio_file:
+        article_data.audio_file = os.path.relpath(
+            article_data.audio_file,
+            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+        )
+    if article_data.markdown_file:
+        article_data.markdown_file = os.path.relpath(
+            article_data.markdown_file,
+            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+        )
+    if article_data.vtt_file:
+        article_data.vtt_file = os.path.relpath(
+            article_data.vtt_file,
+            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+        )
+
     try:
         cursor.execute(
             """
-            INSERT INTO articles (id, url, title, date_published, date_added, language, plain_text, markdown_text, tl_dr, audio_file, markdown_file, vtt_file, img_file)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO articles (
+                id, url, title, date_published, date_added,
+                language, plain_text, markdown_text, tl_dr,
+                audio_file, markdown_file, vtt_file, img_file
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 article_id,
-                str(article_data.url),
+                str(article_data.url) if article_data.url else None,
                 article_data.title,
-                date_published,
+                article_data.date_published,
                 article_data.date_added,
                 article_data.language,
                 article_data.plain_text,
@@ -176,12 +194,24 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
                 article_data.img_file,
             ),
         )
+
+        # Add authors if provided
+        if authors:
+            for author in authors:
+                add_author(author)
+                cursor.execute(
+                    "INSERT INTO article_author (article_id, author_id) VALUES (?, ?)",
+                    (article_id, author.id),
+                )
+
         conn.commit()
+        return article_id
     except sqlite3.Error as e:
-        print(f"Couldn't add article data to database: {e}")
+        print(f"Error creating article: {e}")
+        conn.rollback()
+        raise
     finally:
         conn.close()
-    return article_id
 
 
 def update_article(article_id: str, updated_fields: ArticleData):
@@ -314,6 +344,18 @@ def create_text(text_data: TextData) -> str:
         # Generate a unique text ID for the text entry
         text_id = generate_hash(f"{text_data.title or ''}{text_data.text or ''}{datetime.now().isoformat()}")
 
+        # Convert absolute paths to relative paths for storage
+        if text_data.audio_file:
+            text_data.audio_file = os.path.relpath(
+                text_data.audio_file,
+                os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+            )
+        if text_data.markdown_file:
+            text_data.markdown_file = os.path.relpath(
+                text_data.markdown_file,
+                os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+            )
+
         cursor.execute(
             """
             INSERT INTO texts (id, title, text, date_added, language, tl_dr, audio_file, markdown_file, img_file)
@@ -396,6 +438,18 @@ def create_podcast_db_entry(
 
     # Generate a unique text ID for the podcast
     podcast_id = generate_hash(f"{podcast_data.title or ''}{podcast_data.text or ''}{datetime.now().isoformat()}")
+
+    # Convert absolute paths to relative paths for storage
+    if podcast_data.audio_file:
+        podcast_data.audio_file = os.path.relpath(
+            podcast_data.audio_file,
+            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+        )
+    if podcast_data.markdown_file:
+        podcast_data.markdown_file = os.path.relpath(
+            podcast_data.markdown_file,
+            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+        )
 
     # Insert the podcast data with the generated ID
     cursor.execute(
