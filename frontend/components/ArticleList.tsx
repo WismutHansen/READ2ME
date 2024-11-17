@@ -3,6 +3,15 @@
 import { forwardRef, useEffect, useState, useImperativeHandle } from "react";
 import { getSettings } from "@/lib/settings";
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 interface Article {
   id: string;
   title: string | null;
@@ -121,7 +130,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
               </div>
               <div className="flex justify-between items-end mt-2">
                 <span className="text-white text-sm">
-                  {article.date_published || article.date_added}
+                  {formatDate(article.date_published || article.date_added)}
                 </span>
                 <span className="text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
                   {article.content_type}
