@@ -111,15 +111,15 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
           <div
             key={article.id}
             onClick={() => handleArticleClick(article)}
-            className="relative aspect-video cursor-pointer group overflow-hidden rounded-lg border"
+            className="relative h-[150px] md:h-auto md:aspect-video cursor-pointer group overflow-hidden rounded-lg border"
           >
             <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
 
-            <div className="absolute inset-0 bg-black bg-opacity-40 p-4 flex flex-col justify-between">
-              <div>
-                <h3 className="text-white font-bold text-lg">{article.title || 'Untitled'}</h3>
+            <div className="absolute inset-0 bg-black bg-opacity-40 p-4 flex flex-col">
+              <div className="flex-1 min-h-0">
+                <h3 className="text-white font-bold text-lg line-clamp-3">{article.title || 'Untitled'}</h3>
               </div>
-              <div className="flex justify-between items-end">
+              <div className="flex justify-between items-end mt-2">
                 <span className="text-white text-sm">
                   {article.date_published || article.date_added}
                 </span>
