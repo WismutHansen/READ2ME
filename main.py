@@ -176,8 +176,23 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-app.mount("/Output", StaticFiles(directory="Output"), name="static")
+# Mount the output directory using the absolute path from environment
+output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+app.mount("/Output", StaticFiles(directory=output_dir), name="static")
 
+# Helper function to convert absolute paths to relative paths for the frontend
+def get_relative_path(absolute_path: str) -> str:
+    try:
+        return os.path.relpath(absolute_path, output_dir)
+    except ValueError:
+        # If the paths are on different drives or invalid
+        return absolute_path
+
+# Helper function to convert relative paths to absolute paths for the backend
+def get_absolute_path(relative_path: str) -> str:
+    if os.path.isabs(relative_path):
+        return relative_path
+    return os.path.join(output_dir, relative_path)
 
 @app.get("/v1/queue/status")
 async def get_queue_status():
@@ -402,21 +417,29 @@ async def get_audio_files(request: Request, page: int = 1, limit: int = 20):
 
 @app.get("/v1/audio/{file_path:path}")
 async def get_audio(file_path: str):
-    full_path = os.path.join(output_dir, file_path)
+    full_path = get_absolute_path(file_path)
     if not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="Audio file not found")
     return FileResponse(full_path, media_type="audio/mpeg")
 
 
-@app.get("/v1/audio-file/{file_name}")
-async def get_audio_file(file_name: str):
-    output_dir = os.getenv("OUTPUT_DIR", "Output")
-    md_file_path = os.path.join("", f"{file_name}.md")
-    if not os.path.exists(md_file_path):
-        raise HTTPException(status_code=404, detail="File not found")
-    with open(md_file_path, "r", encoding="utf-8") as file:
-        text_content = file.read()
-    return JSONResponse(content={"text": text_content})
+@app.get("/v1/audio-file/{file_path:path}")
+async def get_audio_file_text(file_path: str):
+    # Normalize the file path to use the correct directory separator
+    file_path = os.path.normpath(file_path)
+    
+    # Get the absolute path for the text file
+    text_file_path = get_absolute_path(f"{file_path}.md")
+    
+    if not os.path.isfile(text_file_path):
+        raise HTTPException(status_code=404, detail=f"Text file not found: {text_file_path}")
+    
+    try:
+        with open(text_file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+        return {"text": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
 
 # @app.get("/v1/audio-file/{title}")
@@ -440,7 +463,7 @@ async def get_audio_file_text(file_path: str):
 
     # Construct the full path to the text file
     output_dir = os.getenv("OUTPUT_DIR", "Output")
-    text_file_path = os.path.join(output_dir, f"{file_path}.md")
+    text_file_path = get_absolute_path(f"{file_path}.md")
 
     if not os.path.isfile(text_file_path):
         raise HTTPException(
@@ -469,7 +492,7 @@ async def get_vtt_file(file_path: str):
 
     # Construct the full path to the VTT file
     output_dir = os.getenv("OUTPUT_DIR", "Output")
-    vtt_file_path = os.path.join(output_dir, f"{file_path}.vtt")
+    vtt_file_path = get_absolute_path(f"{file_path}.vtt")
 
     if not os.path.isfile(vtt_file_path):
         raise HTTPException(
