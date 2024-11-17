@@ -162,18 +162,21 @@ app = FastAPI(
     version="0.1.2",
 )
 
-# Update this line to use an absolute path
-# output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
-
-app.mount("/Output", StaticFiles(directory="Output"), name="static")
-
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=[
+        "http://localhost:3001",
+        "http://localhost:3000",
+        "http://192.168.1.*",  # HTTP for all IPs in 192.168.1.x range
+        "https://192.168.1.*"  # HTTPS for all IPs in 192.168.1.x range
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
+
+app.mount("/Output", StaticFiles(directory="Output"), name="static")
 
 
 @app.get("/v1/queue/status")
