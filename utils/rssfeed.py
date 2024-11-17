@@ -34,19 +34,33 @@ def get_articles_from_feed(url, category):
     # We use tldextract to extract the main domain name from a URL
     domainname = tldextract.extract(url)
     main_domain = f"{domainname.domain}.{domainname.suffix}"
-    today_entries = [
-        {
-            "title": entry.title,
-            "link": entry.link,
-            "published": datetime(
-                *entry.published_parsed[:6], tzinfo=pytz.utc
-            ).isoformat(),
-            "category": category,
-            "source": main_domain,
-        }
-        for entry in feed.entries
-        if datetime(*entry.published_parsed[:6], tzinfo=pytz.utc).date() == today
-    ]
+    
+    today_entries = []
+    for entry in feed.entries:
+        try:
+            # Try different date fields that feeds might use
+            date_tuple = None
+            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                date_tuple = entry.published_parsed
+            elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                date_tuple = entry.updated_parsed
+            elif hasattr(entry, 'created_parsed') and entry.created_parsed:
+                date_tuple = entry.created_parsed
+            
+            if date_tuple and len(date_tuple) >= 6:
+                entry_date = datetime(*date_tuple[:6], tzinfo=pytz.utc).date()
+                if entry_date == today:
+                    today_entries.append({
+                        "title": entry.title,
+                        "link": entry.link,
+                        "published": datetime(*date_tuple[:6], tzinfo=pytz.utc).isoformat(),
+                        "category": category,
+                        "source": main_domain,
+                    })
+        except (AttributeError, TypeError, ValueError) as e:
+            logging.warning(f"Error processing entry from {url}: {str(e)}")
+            continue
+    
     return today_entries
 
 
@@ -103,7 +117,7 @@ if __name__ == "__main__":
 
     for feed_url in feeds:
         print(f"Checking feed: {feed_url}")
-        todays_articles = get_articles_from_feed(feed_url)
+        todays_articles = get_articles_from_feed(feed_url["url"], feed_url["category"])
         all_todays_articles.extend(todays_articles)
 
     if all_todays_articles:
