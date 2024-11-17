@@ -185,10 +185,10 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
                     <span className="text-sm font-medium">Task {index + 1}</span>
                     {task.type && (
                       <>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${getSourceColor(parseTaskType(task.type).source)}`}>
+                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getSourceColor(parseTaskType(task.type).source)}`}>
                           {getSourceLabel(parseTaskType(task.type).source)}
                         </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${getActionColor(parseTaskType(task.type).action)}`}>
+                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getActionColor(parseTaskType(task.type).action)}`}>
                           {getActionLabel(parseTaskType(task.type).action)}
                         </span>
                       </>

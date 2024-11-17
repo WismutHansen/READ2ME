@@ -39,6 +39,56 @@
       "category": "Sports",
       "name": "Sky Sports",
       "url": "https://www.skysports.com/rss/12040"
+    },
+    {
+      "category": "News",
+      "name": "Reuters",
+      "url": "https://www.reutersagency.com/feed/"
+    },
+    {
+      "category": "News",
+      "name": "BBC News",
+      "url": "http://feeds.bbci.co.uk/news/rss.xml"
+    },
+    {
+      "category": "Science",
+      "name": "Nature",
+      "url": "https://www.nature.com/nature.rss"
+    },
+    {
+      "category": "Science",
+      "name": "Scientific American",
+      "url": "https://www.scientificamerican.com/rss/feed/"
+    },
+    {
+      "category": "Business",
+      "name": "Financial Times",
+      "url": "https://www.ft.com/rss/home"
+    },
+    {
+      "category": "Business",
+      "name": "Bloomberg",
+      "url": "https://www.bloomberg.com/feeds/sitemap_news.xml"
+    },
+    {
+      "category": "Entertainment",
+      "name": "Variety",
+      "url": "https://variety.com/feed/"
+    },
+    {
+      "category": "Entertainment",
+      "name": "Hollywood Reporter",
+      "url": "https://www.hollywoodreporter.com/feed"
+    },
+    {
+      "category": "Health",
+      "name": "WebMD",
+      "url": "https://rssfeeds.webmd.com/rss/rss.aspx?RSSSource=RSS_PUBLIC"
+    },
+    {
+      "category": "Health",
+      "name": "Medical News Today",
+      "url": "https://www.medicalnewstoday.com/newsfeeds/rss/medical_news_today.xml"
     }
   ]
 }
