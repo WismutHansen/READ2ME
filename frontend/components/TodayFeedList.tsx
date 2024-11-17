@@ -9,16 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { handleAddUrl } from '@/components/addHandlers';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { useAddHandlers } from '@/components/addHandlers';
 
 interface FeedEntry {
   title: string | null;
@@ -36,28 +27,18 @@ export default function TodayFeedList() {
   const [selectedEntry, setSelectedEntry] = useState<FeedEntry | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [url, setUrl] = useState('');
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const { handleAddUrl } = useAddHandlers();
 
   // Custom handler for URL actions
   const handleUrlAction = async (link: string, endpoint: string) => {
     try {
-      await handleAddUrl(
-        link,
-        endpoint,
-        setUrl,
-        setAlertMessage,
-        setMessageType,
-        setModalOpen,
-        () => { } // We're not using setAlertDialogOpen anymore
-      );
+      await handleAddUrl(link, endpoint, () => {});
 
-      // Show toast instead of alert dialog
+      // Show toast for success
       toast({
-        title: messageType === 'success' ? "Success" : "Error",
-        description: alertMessage || "Operation completed",
-        variant: messageType === 'success' ? "default" : "destructive",
+        title: "Success",
+        description: "Article added successfully",
+        variant: "default",
       });
 
       // Close the modal after successful action

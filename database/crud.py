@@ -5,6 +5,7 @@ import sqlite3
 from datetime import datetime, date
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional
+import argparse
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(SCRIPT_DIR, "read2me.db")
@@ -31,8 +32,8 @@ class ArticleData(BaseModel):
 
 
 class TextData(BaseModel):
-    text: Optional[str] = None
     title: Optional[str] = None
+    text: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
     language: Optional[str] = None
     tl_dr: Optional[str] = None
@@ -69,54 +70,70 @@ class AvailableMedia(BaseModel):
 
 def fetch_available_media():
     conn = create_connection()
+    conn.row_factory = sqlite3.Row  # Enable dictionary-like access to rows
     cursor = conn.cursor()
     media = []
 
     # Fetch articles with audio
     cursor.execute("""
-        SELECT articles.id, articles.title, articles.date_added, articles.date_published,
-               group_concat(authors.name), articles.audio_file, 'article'
+        SELECT 
+            articles.id,
+            articles.title,
+            articles.date_added,
+            articles.date_published,
+            GROUP_CONCAT(authors.name) as authors,
+            articles.audio_file,
+            'article' as content_type
         FROM articles
         LEFT JOIN article_author ON articles.id = article_author.article_id
         LEFT JOIN authors ON article_author.author_id = authors.id
         WHERE articles.audio_file IS NOT NULL
         GROUP BY articles.id
     """)
-    articles = cursor.fetchall()
-    media.extend(articles)
+    media.extend(cursor.fetchall())
 
     # Fetch podcasts with audio
     cursor.execute("""
-        SELECT podcasts.id, podcasts.title, podcasts.date_added, NULL, NULL,
-               podcasts.audio_file, 'podcast'
+        SELECT 
+            id,
+            title,
+            date_added,
+            NULL as date_published,
+            NULL as authors,
+            audio_file,
+            'podcast' as content_type
         FROM podcasts
-        WHERE podcasts.audio_file IS NOT NULL
+        WHERE audio_file IS NOT NULL
     """)
-    podcasts = cursor.fetchall()
-    media.extend(podcasts)
+    media.extend(cursor.fetchall())
 
     # Fetch texts with audio
     cursor.execute("""
-        SELECT texts.id, texts.title, texts.date_added, NULL, NULL,
-               texts.audio_file, 'text'
+        SELECT 
+            id,
+            title,
+            date_added,
+            NULL as date_published,
+            NULL as authors,
+            audio_file,
+            'text' as content_type
         FROM texts
-        WHERE texts.audio_file IS NOT NULL
+        WHERE audio_file IS NOT NULL
     """)
-    texts = cursor.fetchall()
-    media.extend(texts)
+    media.extend(cursor.fetchall())
 
     conn.close()
 
     # Format combined media records
     return [
         AvailableMedia(
-            id=str(row[0]),  # Convert ID to string
-            title=row[1],
-            date_added=row[2],
-            date_published=row[3],
-            authors=row[4].split(",") if row[4] else [],
-            audio_file=row[5],
-            content_type=row[6],
+            id=str(dict(row)["id"]),  # Convert Row to dict for consistent access
+            title=row["title"],
+            date_added=row["date_added"],
+            date_published=row["date_published"],
+            authors=row["authors"].split(",") if row["authors"] else [],
+            audio_file=row["audio_file"],
+            content_type=row["content_type"],
         )
         for row in media
     ]
@@ -428,7 +445,7 @@ def update_podcast(podcast_id: int, updated_fields: PodcastData):
     conn.commit()
     conn.close()
 
-    print(f"Text with id '{podcast_id}' has been updated.")
+    print(f"Podcast with id '{podcast_id}' has been updated.")
 
     return (
         cursor.rowcount
@@ -488,45 +505,143 @@ def get_author(author_id: str) -> Optional[Author]:
 
 
 def main():
-    url = input("Please enter the article URL: ")
-    article_id = generate_hash(url)
-    if article_exists(article_id):
-        print("An article with this URL already exists in the database.")
-        return
-
-    title = input("Please enter the article title: ")
-    date_published = (
-        input("Please enter the publication date (YYYY-MM-DD, optional): ") or None
-    )
-    language = input("Please enter the language of the article: ")
-    plain_text = input("Please enter the plain text content of the article: ")
-    markdown_text = (
-        input("Please enter the markdown version of the article (optional): ") or None
-    )
-    tl_dr = input("Please enter a TL;DR summary (optional): ") or None
-    audio_file = input("Please enter the path to the audio file (optional): ") or None
-    markdown_file = (
-        input("Please enter the path to the markdown file (optional): ") or None
-    )
-    vtt_file = input("Please enter the path to the VTT file (optional): ") or None
-
-    # Create the article data dictionary
-    article_data = ArticleData(
-        url=url,
-        title=title,
-        date_published=date_published,
-        language=language,
-        plain_text=plain_text,
-        markdown_text=markdown_text,
-        tl_dr=tl_dr,
-        audio_file=audio_file,
-        markdown_file=markdown_file,
-        vtt_file=vtt_file,
+    parser = argparse.ArgumentParser(
+        description="Create or update articles, podcasts, and texts in the database."
     )
 
-    create_article(article_data)
-    print(f"Article '{title}' has been successfully added to the database.")
+    parser.add_argument(
+        "action",
+        choices=[
+            "create_article",
+            "update_article",
+            "create_text",
+            "update_text",
+            "create_podcast",
+        ],
+        help="The action to perform.",
+    )
+    parser.add_argument(
+        "--url",
+        type=str,
+        required=False,
+        help="The URL of the article (for create/update article).",
+    )
+    parser.add_argument(
+        "--title",
+        type=str,
+        required=False,
+        help="The title of the content (article, text, or podcast).",
+    )
+    parser.add_argument(
+        "--date-published",
+        type=str,
+        required=False,
+        help="The publication date of the content (YYYY-MM-DD).",
+    )
+    parser.add_argument(
+        "--language", type=str, required=False, help="The language of the content."
+    )
+    parser.add_argument(
+        "--plain-text", type=str, required=False, help="The plain text content."
+    )
+    parser.add_argument(
+        "--markdown-text", type=str, required=False, help="The Markdown content."
+    )
+    parser.add_argument("--tl-dr", type=str, required=False, help="The TL;DR summary.")
+    parser.add_argument(
+        "--audio-file", type=str, required=False, help="The path to the audio file."
+    )
+    parser.add_argument(
+        "--markdown-file",
+        type=str,
+        required=False,
+        help="The path to the Markdown file.",
+    )
+    parser.add_argument(
+        "--vtt-file", type=str, required=False, help="The path to the VTT file."
+    )
+    parser.add_argument(
+        "--text",
+        type=str,
+        required=False,
+        help="The text content (for create/update text).",
+    )
+    parser.add_argument(
+        "--id", type=str, required=False, help="The ID of the content to update."
+    )
+
+    args = parser.parse_args()
+
+    if args.action == "create_article":
+        create_article(
+            ArticleData(
+                url=args.url,
+                title=args.title,
+                date_published=args.date_published,
+                language=args.language,
+                plain_text=args.plain_text,
+                markdown_text=args.markdown_text,
+                tl_dr=args.tl_dr,
+                audio_file=args.audio_file,
+                markdown_file=args.markdown_file,
+                vtt_file=args.vtt_file,
+            )
+        )
+    elif args.action == "update_article":
+        update_article(
+            args.id,
+            ArticleData(
+                url=args.url,
+                title=args.title,
+                date_published=args.date_published,
+                language=args.language,
+                plain_text=args.plain_text,
+                markdown_text=args.markdown_text,
+                tl_dr=args.tl_dr,
+                audio_file=args.audio_file,
+                markdown_file=args.markdown_file,
+                vtt_file=args.vtt_file,
+            ),
+        )
+    elif args.action == "create_text":
+        create_text(
+            TextData(
+                title=args.title,
+                text=args.text,
+                language=args.language,
+                tl_dr=args.tl_dr,
+                audio_file=args.audio_file,
+                markdown_file=args.markdown_file,
+                img_file=args.vtt_file,
+            )
+        )
+    elif args.action == "update_text":
+        update_text(
+            args.id,
+            TextData(
+                title=args.title,
+                text=args.text,
+                language=args.language,
+                tl_dr=args.tl_dr,
+                audio_file=args.audio_file,
+                markdown_file=args.markdown_file,
+                img_file=args.vtt_file,
+            ),
+        )
+    elif args.action == "create_podcast":
+        create_podcast_db_entry(
+            PodcastData(
+                title=args.title,
+                text=args.text,
+                language=args.language,
+                audio_file=args.audio_file,
+                markdown_file=args.markdown_file,
+                img_file=args.vtt_file,
+            )
+        )
+    else:
+        print("Invalid action. Please choose one of the available actions.")
 
 
 if __name__ == "__main__":
-    print(fetch_available_media())
+    main()

@@ -91,14 +91,14 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="container mx-auto px-4 py-8 mb-24">
-      <div className="flex justify-between items-center mb-8">
-        <div className="h-8 relative">
+    <main className="container mx-auto p-4 mb-24">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-[30px] sm:gap-4 mb-8">
+        <div className="relative mx-auto sm:mx-0">
           <a
             href="https://github.com/WismutHansen/READ2ME"
             target="_blank"
             rel="noopener noreferrer"
-            className="h-8 relative"
+            className="h-8 relative block"
           >
             <Image
               src="/Black.svg"
@@ -118,7 +118,7 @@ export default function Home() {
             />
           </a>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-4">
           <TaskQueueStatus refreshArticles={refreshArticles} />
           <Button
             variant="outline"

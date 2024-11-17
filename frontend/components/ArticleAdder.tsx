@@ -11,12 +11,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { handleAddUrl, handleAddText } from '@/components/addHandlers';
+import { useAddHandlers } from '@/components/addHandlers';
+
 export default function ArticleAdder() {
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const { handleAddUrl, handleAddText, alertMessage, messageType, alertDialogOpen, setAlertDialogOpen } = useAddHandlers();
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -26,7 +26,6 @@ export default function ArticleAdder() {
       return false;
     }
   };
-
 
   return (
     <div className="space-y-4">
@@ -40,9 +39,9 @@ export default function ArticleAdder() {
           onChange={(e) => setUrl(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => handleAddUrl(url, 'url/full', setUrl, setAlertMessage, setMessageType)}>Full Text</Button>
-          <Button onClick={() => handleAddUrl(url, 'url/summary', setUrl, setAlertMessage, setMessageType)}>Summary</Button>
-          <Button onClick={() => handleAddUrl(url, 'url/podcast', setUrl, setAlertMessage, setMessageType)}>Podcast</Button>
+          <Button onClick={() => handleAddUrl(url, 'url/full', setUrl)}>Full Text</Button>
+          <Button onClick={() => handleAddUrl(url, 'url/summary', setUrl)}>Summary</Button>
+          <Button onClick={() => handleAddUrl(url, 'url/podcast', setUrl)}>Podcast</Button>
         </div>
       </div>
 
@@ -55,14 +54,14 @@ export default function ArticleAdder() {
           onChange={(e) => setText(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => handleAddText(text, 'text/full', setText, setAlertMessage, setMessageType)}>Full Text</Button>
-          <Button onClick={() => handleAddText(text, 'text/summary', setText, setAlertMessage, setMessageType)}>Summary</Button>
-          <Button onClick={() => handleAddText(text, 'text/podcast', setText, setAlertMessage, setMessageType)}>Podcast</Button>
+          <Button onClick={() => handleAddText(text, 'text/full', setText)}>Full Text</Button>
+          <Button onClick={() => handleAddText(text, 'text/summary', setText)}>Summary</Button>
+          <Button onClick={() => handleAddText(text, 'text/podcast', setText)}>Podcast</Button>
         </div>
       </div>
 
       {/* AlertDialog for Messages */}
-      <AlertDialog open={!!alertMessage} onOpenChange={() => setAlertMessage(null)}>
+      <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -73,7 +72,7 @@ export default function ArticleAdder() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setAlertMessage(null)}>Ok</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setAlertDialogOpen(false)}>Ok</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
