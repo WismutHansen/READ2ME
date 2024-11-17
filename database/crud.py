@@ -66,6 +66,7 @@ class AvailableMedia(BaseModel):
     authors: Optional[List[str]] = []
     audio_file: Optional[str]
     content_type: str
+    url: Optional[str] = None
 
 
 def fetch_available_media():
@@ -83,6 +84,7 @@ def fetch_available_media():
             articles.date_published,
             GROUP_CONCAT(authors.name) as authors,
             articles.audio_file,
+            articles.url,
             'article' as content_type
         FROM articles
         LEFT JOIN article_author ON articles.id = article_author.article_id
@@ -101,6 +103,7 @@ def fetch_available_media():
             NULL as date_published,
             NULL as authors,
             audio_file,
+            NULL as url,
             'podcast' as content_type
         FROM podcasts
         WHERE audio_file IS NOT NULL
@@ -116,6 +119,7 @@ def fetch_available_media():
             NULL as date_published,
             NULL as authors,
             audio_file,
+            NULL as url,
             'text' as content_type
         FROM texts
         WHERE audio_file IS NOT NULL
@@ -127,13 +131,14 @@ def fetch_available_media():
     # Format combined media records
     return [
         AvailableMedia(
-            id=str(dict(row)["id"]),  # Convert Row to dict for consistent access
+            id=str(dict(row)["id"]),
             title=row["title"],
             date_added=row["date_added"],
             date_published=row["date_published"],
             authors=row["authors"].split(",") if row["authors"] else [],
             audio_file=row["audio_file"],
             content_type=row["content_type"],
+            url=row["url"]
         )
         for row in media
     ]

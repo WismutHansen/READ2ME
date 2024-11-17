@@ -19,6 +19,7 @@ interface Article {
   date_published?: string;
   audio_file: string;
   content_type: string;
+  url?: string;
 }
 
 interface ArticleListProps {
@@ -113,6 +114,16 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
     }
   };
 
+  const getSourceDomain = (url: string | undefined) => {
+    if (!url) return null;
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
+  };
+
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
@@ -137,6 +148,9 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
               <div className="flex justify-between items-end mt-2">
                 <span className="text-white text-sm">
                   {formatDate(article.date_published || article.date_added)}
+                  {article.url && (
+                    <span className="ml-2 opacity-75">| {getSourceDomain(article.url)}</span>
+                  )}
                 </span>
                 <span className="text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
                   {article.content_type}
