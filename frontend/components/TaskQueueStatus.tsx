@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, ListOrdered } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings } from "@/lib/settings";
 
@@ -15,6 +16,62 @@ interface Task {
   content: string;
   tts_engine: string;
 }
+
+const parseTaskType = (type: string) => {
+  const [source, action] = type.split('/');
+  return {
+    source: source || '',
+    action: action || ''
+  };
+};
+
+const getSourceLabel = (source: string) => {
+  switch (source) {
+    case 'url':
+      return 'URL';
+    case 'text':
+      return 'Text';
+    default:
+      return source;
+  }
+};
+
+const getActionLabel = (action: string) => {
+  switch (action) {
+    case 'full':
+      return 'Full Text';
+    case 'summary':
+      return 'TL;DR';
+    case 'podcast':
+      return 'Podcast';
+    default:
+      return action;
+  }
+};
+
+const getSourceColor = (source: string) => {
+  switch (source) {
+    case 'url':
+      return 'bg-orange-100 text-orange-800';
+    case 'text':
+      return 'bg-pink-100 text-pink-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getActionColor = (action: string) => {
+  switch (action) {
+    case 'full':
+      return 'bg-blue-100 text-blue-800';
+    case 'summary':
+      return 'bg-green-100 text-green-800';
+    case 'podcast':
+      return 'bg-purple-100 text-purple-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
 
 const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
   refreshInterval = 5000,
@@ -32,6 +89,8 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
       const response = await fetch(`${serverUrl}/v1/queue/status`);
       if (!response.ok) throw new Error("Failed to fetch queue status");
       const data = await response.json();
+      console.log('Queue status data:', data);
+      console.log('Tasks:', data.tasks);
       setTaskCount(data.task_count);
       setTasks(data.tasks || []);
     } catch (error) {
@@ -79,33 +138,53 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
-        <div className="flex items-center space-x-2">
+        <Button
+          variant="outline"
+          size="default"
+          className="flex items-center gap-2"
+        >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <span>
-              {taskCount !== null ? `${taskCount} tasks in queue` : "No tasks"}
-            </span>
+            <>
+              <ListOrdered className="h-4 w-4" />
+              <span>
+                {taskCount !== null ? `${taskCount} ` : "No tasks"}
+              </span>
+            </>
           )}
-        </div>
+        </Button>
       </HoverCardTrigger>
-      <HoverCardContent className="w-80 p-4">
+      <HoverCardContent className="w-96 p-4">
         <div className="space-y-3">
           <h4 className="font-semibold">Task List</h4>
           {tasks.length > 0 ? (
             tasks.map((task, index) => (
-              <div key={index} className="p-2 border-b last:border-0 flex justify-between items-center">
-                <div>
-                  <p className="text-sm font-medium">Task {index + 1}</p>
-                  <p className="text-xs text-gray-500">Type: {task.type}</p>
-                  <p className="text-xs text-gray-500">
-                    Content: <a href={task.content} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">{task.content}</a>
+              <div key={index} className="p-2 border-b last:border-0 flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">Task {index + 1}</span>
+                    {task.type && (
+                      <>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${getSourceColor(parseTaskType(task.type).source)}`}>
+                          {getSourceLabel(parseTaskType(task.type).source)}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${getActionColor(parseTaskType(task.type).action)}`}>
+                          {getActionLabel(parseTaskType(task.type).action)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 truncate hover:text-clip hover:whitespace-normal">
+                    <a href={task.content} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                      {task.content}
+                    </a>
                   </p>
-                  <p className="text-xs text-gray-500">TTS Engine: {task.tts_engine}</p>
+                  <p className="text-xs text-gray-500">TTS: {task.tts_engine}</p>
                 </div>
                 <button
                   onClick={() => removeTask(task)}
-                  className="text-gray-500 hover:text-red-500"
+                  className="text-gray-500 hover:text-red-500 flex-shrink-0"
                   aria-label="Remove task"
                 >
                   <X className="h-4 w-4" />

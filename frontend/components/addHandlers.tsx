@@ -1,106 +1,109 @@
+import { useState } from 'react';
 import { getSettings } from '@/lib/settings';
 
-export const isValidUrl = (url: string): boolean => {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-};
+type MessageType = 'success' | 'error';
 
-export const handleAddUrl = async (
-  url: string,
-  endpoint: string,
-  setUrl: (url: string) => void,
-  setAlertMessage: (message: string | null) => void,
-  setMessageType: (type: 'success' | 'error') => void,
-  setModalOpen: (open: boolean) => void,
-  setAlertDialogOpen: (open: boolean) => void  // Alert dialog control
-) => {
-  if (!isValidUrl(url)) {
-    setMessageType('error');
-    setAlertMessage('Please enter a valid URL');
+interface AddHandlersReturn {
+  handleAddUrl: (url: string, endpoint: string, setUrl: (url: string) => void) => Promise<void>;
+  handleAddText: (text: string, endpoint: string, setText: (text: string) => void) => Promise<void>;
+  alertDialogOpen: boolean;
+  setAlertDialogOpen: (open: boolean) => void;
+  alertMessage: string | null;
+  messageType: MessageType;
+}
+
+export const useAddHandlers = (): AddHandlersReturn => {
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<MessageType>('success');
+
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const showAlert = (message: string, type: MessageType) => {
+    setMessageType(type);
+    setAlertMessage(message);
     setAlertDialogOpen(true);
-    setTimeout(() => {
-      setAlertDialogOpen(false); // Close the alert dialog after 2 seconds
-    }, 2000);
-    return;
-  }
+  };
 
-  const { serverUrl, ttsEngine } = getSettings();
-  try {
-    const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url, tts_engine: ttsEngine }),
-    });
-    if (!response.ok) throw new Error(`Failed to add URL to ${endpoint}`);
+  const handleAddUrl = async (
+    url: string,
+    endpoint: string,
+    setUrl: (url: string) => void
+  ): Promise<void> => {
+    if (!isValidUrl(url)) {
+      showAlert('Please enter a valid URL', 'error');
+      return;
+    }
 
-    setUrl('');
-    setMessageType('success');
-    setAlertMessage('URL added successfully');
-    setAlertDialogOpen(true);
+    const { serverUrl, ttsEngine } = getSettings();
 
-    setTimeout(() => {
-      setAlertDialogOpen(false);  // Close the alert dialog
-      setModalOpen(false);        // Close the main modal
-    }, 2000);
+    try {
+      const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, tts_engine: ttsEngine }),
+      });
 
-  } catch (error) {
-    console.error(`Error adding URL to ${endpoint}:`, error);
-    setMessageType('error');
-    setAlertMessage(`Failed to add URL to ${endpoint}`);
-    setAlertDialogOpen(true);
+      if (!response.ok) {
+        throw new Error(`Failed to add URL to ${endpoint}`);
+      }
 
-    setTimeout(() => {
-      setAlertDialogOpen(false); // Close the alert dialog
-    }, 2000);
-  }
-};
+      setUrl('');
+      showAlert('URL added successfully', 'success');
+    } catch (error) {
+      console.error(`Error adding URL to ${endpoint}:`, error);
+      showAlert(`Failed to add URL to ${endpoint}`, 'error');
+    }
+  };
 
-// Repeat similar changes for handleAddText function
+  const handleAddText = async (
+    text: string,
+    endpoint: string,
+    setText: (text: string) => void
+  ): Promise<void> => {
+    if (!text?.trim()) {
+      showAlert('Please provide valid text', 'error');
+      return;
+    }
 
-export const handleAddText = async (
-  text: string,
-  endpoint: string,
-  setText: (text: string) => void,
-  setAlertMessage: (message: string | null) => void,
-  setMessageType: (type: 'success' | 'error') => void,
-  setModalOpen: (open: boolean) => void,
-  setAlertDialogOpen: (open: boolean) => void  // Alert dialog control
-) => {
-  const { serverUrl, ttsEngine } = getSettings();
-  try {
-    const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text, tts_engine: ttsEngine }),
-    });
-    if (!response.ok) throw new Error(`Failed to add text to ${endpoint}`);
+    const { serverUrl, ttsEngine } = getSettings();
 
-    setText('');
-    setMessageType('success');
-    setAlertMessage('Text added successfully');
-    setAlertDialogOpen(true);
+    try {
+      const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, tts_engine: ttsEngine }),
+      });
 
-    setTimeout(() => {
-      setAlertDialogOpen(false);  // Close the alert dialog
-      setModalOpen(false);        // Close the main modal
-    }, 2000);
+      if (!response.ok) {
+        throw new Error(`Failed to add text to ${endpoint}`);
+      }
 
-  } catch (error) {
-    console.error(`Error adding text to ${endpoint}:`, error);
-    setMessageType('error');
-    setAlertMessage(`Failed to add text to ${endpoint}`);
-    setAlertDialogOpen(true);
+      setText('');
+      showAlert('Text added successfully', 'success');
+    } catch (error) {
+      console.error(`Error adding text to ${endpoint}:`, error);
+      showAlert(`Failed to add text to ${endpoint}`, 'error');
+    }
+  };
 
-    setTimeout(() => {
-      setAlertDialogOpen(false); // Close the alert dialog
-    }, 2000);
-  }
+  return {
+    handleAddUrl,
+    handleAddText,
+    alertDialogOpen,
+    setAlertDialogOpen,
+    alertMessage,
+    messageType,
+  };
 };
