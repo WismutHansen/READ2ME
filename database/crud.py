@@ -463,7 +463,7 @@ def create_podcast_db_entry(
             podcast_id,
             podcast_data.title,
             podcast_data.text,
-            podcast_data.date_added or datetime.today().strftime("%Y-%m-%d"),
+            podcast_data.date_added,
             podcast_data.language,
             podcast_data.audio_file,
             podcast_data.markdown_file,
