@@ -21,7 +21,7 @@ This is a currently a beta version but I plan to extend it to support other cont
 
 ## Requirements
 
-- Python 3.7 or higher
+- Python 3.10 or higher
 - Dependencies listed in `requirements.txt` for edge-tts, separate requirements for F5 and StyleTTS2.
 
 ## Installation
@@ -52,19 +52,19 @@ This is a currently a beta version but I plan to extend it to support other cont
 3. **Install dependencies:**
 
    ```sh
-   pip install -r requirements.txt
+   pip install -r requirements.txt (or uv pip install -r requirements.txt)
    ```
 
-   if you want to use the local F5-TTS model, please also install the additional dependencies:
+   For the local styleTTS2 text-to-speech model, please also install the additional dependencies:
 
    ```sh
-   pip install -r requirements_F5.txt
+   pip install -r requirements_stts2.txt (or uv pip install -r requirements_stts2.txt)
    ```
 
-   if you want to use the local styleTTS2 text-to-speech model, please also install the additional dependencies:
+   For the F5-TTS model, please also install the additional dependencies:
 
    ```sh
-   pip install -r requirements_stts2.txt
+   pip install -r requirements_F5.txt (or uv pip install -r requirements_F5.txt)
    ```
 
    Install playwright
@@ -73,10 +73,16 @@ This is a currently a beta version but I plan to extend it to support other cont
    playwright install
    ```
 
-  if you want to use piper, run the piperinstal file:
+   If using uv please also install:
+
+   ```sh
+   uv pip install pip
+   ```
+
+  For local piperTTS support:
 
   ```sh
-  python3 -m TTS.piper_tts.instalpipertts
+  python3 -m TTS.piper_tts.instalpipertts (MacOS and Linux) or python -m TTS.piper_tts.instalpipertts (on Windows)
   ```
 
    **Note:** [ffmpeg](https://www.ffmpeg.org/) is required when using either StyleTTS2 or PiperTTS for converting wav files into mp3. StyleTTS also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
@@ -97,6 +103,35 @@ This is a currently a beta version but I plan to extend it to support other cont
    ```
 
    You can use either Ollama or any OpenAI compatible API for title and podcast script generation (summary function also coming soon)
+
+### Docker Installation
+
+1. **Clone the repository:**
+
+   ```sh
+   git clone https://github.com/WismutHansen/READ2ME.git
+   cd read2me
+   ```
+
+2. **Copy the .env.example to .env and edit the contents:**
+    Important: When using a local LLM-engine e.g. ollama, the url needs to follow this format "host.docker.internal:11434" (for Ollama) or "host.docker.internal:1234" (for LMStudio)
+
+3. **Build the docker container**
+
+   ```sh
+    docker build -t read2me . 
+   cd read2me
+   ```
+
+    Note: build time takes a long time, be patient
+
+4. **Run the docker container**
+
+   ```sh
+    docker run -p 7777:7777 -d read2me
+    ```
+
+    Note: build time takes a long time, be patient
 
 ## Usage
 
@@ -168,6 +203,29 @@ Create a file called `sources.json` in your current working directory with URLs 
 
 Location of both files is configurable in .env file.
 
+## Frontend
+
+To use the next.js frontend, make sure you have node.js installed on your system. Note: Frontend is currently in an early experimental stage so expect lots of bugs:
+First, switch into the frontend directory
+
+```bash
+cd frontend
+```
+
+then install the required node dependencies:
+
+```bash
+npm install
+```
+
+then to start the frontend run:
+
+```bash
+npm run dev
+```
+
+you can access the frontend on <http://localhost:3000>
+
 ## API Endpoints
 
 - **POST /v1/url/full**
@@ -200,8 +258,10 @@ Location of both files is configurable in .env file.
 - **main.py**: The main FastAPI application file.
 - **requirements.txt**: List of dependencies.
 - **.env**: Environment variables file.
-- **utils/**: Directory with helper functions for task handling, text extraction, speech synthesis etc.
-- **Output/**: Directory where the output files (MP3 and MD) are saved.
+- database/: Directory containing the sqlite database and all database-related code
+- TTS/: Directory containing the code for all of the TTS-engines
+- **utils/**: Directory with helper functions for task handling, text extraction etc.
+- **Output/**: Directory where the output files (MP3 and MD) are saved unless you specified a different directory int the .env file.
 
 ## Dependencies
 
@@ -218,6 +278,7 @@ Location of both files is configurable in .env file.
 - **newspaper4k**: Library for extracting articles from news websites.
 - **wikipedia**: Library for extracting information from Wikipedia articles.
 - **schedule**: Library for scheduling tasks. Used to schedule automatic news retrieval twice a day.
+- and many more but I plan on reducing the dependencies a bit by removing redundancies etc.
 
 ## Contributing
 
