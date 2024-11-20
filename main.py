@@ -140,6 +140,7 @@ async def lifespan(app: FastAPI):
     stop_event.clear()  # Ensure the event is clear before starting the thread
     thread = start_task_processor(stop_event)
     scheduler_task = asyncio.create_task(schedule_fetch_articles())
+    articles_cache_task = asyncio.create_task(start_articles_cache_refresh())
     try:
         yield
     except Exception as e:
@@ -148,10 +149,13 @@ async def lifespan(app: FastAPI):
         stop_event.set()  # Signal the thread to stop
         thread.join()  # Wait for the thread to finish
         scheduler_task.cancel()  # Cancel the scheduler task
+        articles_cache_task.cancel()  # Cancel the articles cache refresh task
         try:
             await scheduler_task  # Wait for the scheduler task to finish
+            await articles_cache_task  # Wait for the articles cache refresh task to finish
         except asyncio.CancelledError:
             logging.info("Scheduler task cancelled.")
+            logging.info("Articles cache refresh task cancelled.")
         logging.info("Clean shutdown completed.")
 
 
@@ -738,6 +742,47 @@ async def schedule_fetch_articles():
             break
 
 
+# Cache for today's articles
+articles_cache = {
+    "last_updated": None,
+    "articles": []
+}
+
+async def refresh_articles_cache():
+    """Background task to refresh the articles cache."""
+    global articles_cache
+    
+    feeds = load_feeds_from_json("my_feeds.json")
+    all_todays_articles = []
+
+    for feed in feeds:
+        feed_url = feed["url"]
+        category = feed["category"]
+        todays_articles = get_articles_from_feed(feed_url, category)
+        all_todays_articles.extend(todays_articles)
+
+    articles_cache["articles"] = all_todays_articles
+    articles_cache["last_updated"] = datetime.now()
+    logging.info(f"Articles cache refreshed at {articles_cache['last_updated']}")
+
+async def start_articles_cache_refresh():
+    """Start the background task to refresh articles cache every 5 minutes."""
+    while not stop_event.is_set():
+        try:
+            await refresh_articles_cache()
+            await asyncio.sleep(300)  # 5 minutes
+        except asyncio.CancelledError:
+            logging.info("Articles cache refresh task cancelled.")
+            break
+        except Exception as e:
+            logging.error(f"Error refreshing articles cache: {e}")
+            await asyncio.sleep(60)  # Wait a minute before retrying if there's an error
+
+@app.on_event("startup")
+async def startup_event():
+    # Start the background task for refreshing articles cache
+    asyncio.create_task(start_articles_cache_refresh())
+
 @app.get("/v1/feeds/get")
 async def get_feeds():
     """API endpoint to return the contents of my_feeds.json."""
@@ -753,19 +798,14 @@ async def get_feeds():
 @app.get("/v1/feeds/get_todays_articles")
 async def get_todays_articles():
     """API endpoint to return today's articles from all feeds with categories."""
-    feeds = load_feeds_from_json("my_feeds.json")
-    all_todays_articles = []
+    global articles_cache
 
-    for feed in feeds:
-        feed_url = feed["url"]
-        category = feed["category"]
+    if not articles_cache["articles"]:
+        # Initial fetch if cache is empty
+        await refresh_articles_cache()
 
-        # Fetch today's articles and include category
-        todays_articles = get_articles_from_feed(feed_url, category)
-        all_todays_articles.extend(todays_articles)
-
-    if all_todays_articles:
-        return JSONResponse(content={"articles": all_todays_articles})
+    if articles_cache["articles"]:
+        return JSONResponse(content={"articles": articles_cache["articles"]})
     else:
         return JSONResponse(
             content={"message": "No articles published today across all feeds."},
