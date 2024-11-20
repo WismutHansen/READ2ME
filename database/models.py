@@ -42,7 +42,7 @@ def create_or_update_tables():
             ("name", "TEXT UNIQUE"),
         ],
         "texts": [
-            ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+            ("id", "TEXT PRIMARY KEY"),
             ("text", "TEXT"),
             ("title", "TEXT"),
             ("date_added", "DATE DEFAULT CURRENT_DATE"),
@@ -68,7 +68,7 @@ def create_or_update_tables():
             ("author_id", "TEXT"),
         ],
         "podcasts": [
-            ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+            ("id", "TEXT PRIMARY KEY AUTOINCREMENT"),
             ("title", "TEXT"),
             ("text", "TEXT"),
             ("date_added", "DATE DEFAULT CURRENT_DATE"),
