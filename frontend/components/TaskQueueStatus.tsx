@@ -15,13 +15,13 @@ interface Task {
   type: string;
   content: string;
   tts_engine: string;
+  task: string | null;
 }
 
-const parseTaskType = (type: string) => {
-  const [source, action] = type.split('/');
+const parseTaskType = (task: Task) => {
   return {
-    source: source || '',
-    action: action || ''
+    source: task.type,
+    action: task.task || '',
   };
 };
 
@@ -185,11 +185,11 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
                     <span className="text-sm font-medium">Task {index + 1}</span>
                     {task.type && (
                       <>
-                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getSourceColor(parseTaskType(task.type).source)}`}>
-                          {getSourceLabel(parseTaskType(task.type).source)}
+                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getSourceColor(parseTaskType(task).source)}`}>
+                          {getSourceLabel(parseTaskType(task).source)}
                         </span>
-                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getActionColor(parseTaskType(task.type).action)}`}>
-                          {getActionLabel(parseTaskType(task.type).action)}
+                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getActionColor(parseTaskType(task).action)}`}>
+                          {getActionLabel(parseTaskType(task).action)}
                         </span>
                       </>
                     )}
