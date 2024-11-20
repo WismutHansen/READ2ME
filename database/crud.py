@@ -438,7 +438,9 @@ def create_podcast_db_entry(
     cursor = conn.cursor()
 
     # Generate a unique text ID for the podcast
-    podcast_id = generate_hash(f"{datetime.now().isoformat()}")
+    podcast_id = generate_hash(
+        f"{podcast_data.title or ''}{podcast_data.text or ''}{datetime.now().isoformat()}"
+    )
 
     # Convert absolute paths to relative paths for storage
     if podcast_data.audio_file:
