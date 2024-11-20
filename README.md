@@ -106,11 +106,10 @@ This is a currently a beta version but I plan to extend it to support other cont
 
 ### Docker Installation
 
-1. **Clone the repository:**
+1. **Clone the repository and switch into it :**
 
    ```sh
-   git clone https://github.com/WismutHansen/READ2ME.git
-   cd read2me
+   git clone https://github.com/WismutHansen/READ2ME.git && cd read2me
    ```
 
 2. **Copy the .env.example to .env and edit the contents:**
@@ -120,7 +119,6 @@ This is a currently a beta version but I plan to extend it to support other cont
 
    ```sh
     docker build -t read2me . 
-   cd read2me
    ```
 
     Note: build time takes a long time, be patient
