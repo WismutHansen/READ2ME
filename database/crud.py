@@ -138,7 +138,7 @@ def fetch_available_media():
             authors=row["authors"].split(",") if row["authors"] else [],
             audio_file=row["audio_file"],
             content_type=row["content_type"],
-            url=row["url"]
+            url=row["url"],
         )
         for row in media
     ]
@@ -155,18 +155,16 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
     # Convert absolute paths to relative paths for storage
     if article_data.audio_file:
         article_data.audio_file = os.path.relpath(
-            article_data.audio_file,
-            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+            article_data.audio_file, os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
         )
     if article_data.markdown_file:
         article_data.markdown_file = os.path.relpath(
             article_data.markdown_file,
-            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+            os.path.abspath(os.getenv("OUTPUT_DIR", "Output")),
         )
     if article_data.vtt_file:
         article_data.vtt_file = os.path.relpath(
-            article_data.vtt_file,
-            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+            article_data.vtt_file, os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
         )
 
     try:
@@ -342,18 +340,19 @@ def create_text(text_data: TextData) -> str:
 
     try:
         # Generate a unique text ID for the text entry
-        text_id = generate_hash(f"{text_data.title or ''}{text_data.text or ''}{datetime.now().isoformat()}")
+        text_id = generate_hash(
+            f"{text_data.title or ''}{text_data.text or ''}{datetime.now().isoformat()}"
+        )
 
         # Convert absolute paths to relative paths for storage
         if text_data.audio_file:
             text_data.audio_file = os.path.relpath(
-                text_data.audio_file,
-                os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+                text_data.audio_file, os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
             )
         if text_data.markdown_file:
             text_data.markdown_file = os.path.relpath(
                 text_data.markdown_file,
-                os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+                os.path.abspath(os.getenv("OUTPUT_DIR", "Output")),
             )
 
         cursor.execute(
@@ -376,7 +375,9 @@ def create_text(text_data: TextData) -> str:
         conn.commit()
     except sqlite3.IntegrityError as e:
         print(f"Could not add text data to the database: {e}")
-        text_id = None  # Handle error by setting text_id to None or other error handling
+        text_id = (
+            None  # Handle error by setting text_id to None or other error handling
+        )
     finally:
         conn.close()
 
@@ -437,18 +438,17 @@ def create_podcast_db_entry(
     cursor = conn.cursor()
 
     # Generate a unique text ID for the podcast
-    podcast_id = generate_hash(f"{podcast_data.title or ''}{podcast_data.text or ''}{datetime.now().isoformat()}")
+    podcast_id = generate_hash(f"{datetime.now().isoformat()}")
 
     # Convert absolute paths to relative paths for storage
     if podcast_data.audio_file:
         podcast_data.audio_file = os.path.relpath(
-            podcast_data.audio_file,
-            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+            podcast_data.audio_file, os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
         )
     if podcast_data.markdown_file:
         podcast_data.markdown_file = os.path.relpath(
             podcast_data.markdown_file,
-            os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
+            os.path.abspath(os.getenv("OUTPUT_DIR", "Output")),
         )
 
     # Insert the podcast data with the generated ID
