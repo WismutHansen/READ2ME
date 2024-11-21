@@ -463,6 +463,7 @@ async def extract_text(
             try:
                 new_article = ArticleData(
                     title=title,
+                    source=main_domain,
                     date_published=date_str if date_str else "",
                     language=language,
                     plain_text=article_content,

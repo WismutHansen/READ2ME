@@ -18,6 +18,7 @@ def create_connection():
 
 class ArticleData(BaseModel):
     url: Optional[HttpUrl] = None
+    source: Optional[str] = None
     title: Optional[str] = None
     date_published: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
@@ -83,6 +84,7 @@ def fetch_available_media():
     cursor.execute("""
         SELECT 
             articles.id,
+            articles.source,
             articles.title,
             articles.date_added,
             articles.time_added,
@@ -179,14 +181,15 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
         cursor.execute(
             """
             INSERT INTO articles (
-                id, url, title, date_published, date_added, time_added,
+                id, url, source, title, date_published, date_added, time_added,
                 language, plain_text, markdown_text, tl_dr,
                 audio_file, markdown_file, vtt_file, img_file
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 article_id,
                 str(article_data.url) if article_data.url else None,
+                article_data.source,
                 article_data.title,
                 article_data.date_published,
                 article_data.date_added,

@@ -27,7 +27,7 @@ interface Article {
   date_published?: string;
   audio_file: string;
   content?: string;
-  type: string;
+  content_type: string;
 }
 
 interface FeedEntry {
@@ -119,19 +119,7 @@ export default function Home() {
   const handleSelectArticle = (article: Article) => {
     console.log("Selected article:", article);
     setCurrentArticle(article);
-    
-    // Get the audio file path directly from the article
-    if (article.audio_file) {
-      // If it's a full URL, extract the path portion
-      if (article.audio_file.startsWith('http')) {
-        const url = new URL(article.audio_file);
-        const audioPath = decodeURIComponent(url.pathname.split('/v1/audio/').pop() || '');
-        setSelectedArticleId(audioPath);
-      } else {
-        // If it's just a path, use it directly
-        setSelectedArticleId(article.audio_file);
-      }
-    }
+    setSelectedArticleId(article.id);
   };
 
   return (
@@ -215,7 +203,7 @@ export default function Home() {
 
       {/* Conditionally render the BottomBar based on the selectedArticleId */}
       {selectedArticleId && currentArticle && (
-        <BottomBar articleId={selectedArticleId} type={currentArticle.type || 'article'} key={selectedArticleId} />
+        <BottomBar articleId={selectedArticleId} type={currentArticle.content_type || 'article'} key={selectedArticleId} />
       )}
     </main>
   );
