@@ -767,21 +767,13 @@ async def refresh_articles_cache():
 
 async def start_articles_cache_refresh():
     """Start the background task to refresh articles cache every 5 minutes."""
-    while not stop_event.is_set():
+    while True:
         try:
             await refresh_articles_cache()
-            await asyncio.sleep(300)  # 5 minutes
-        except asyncio.CancelledError:
-            logging.info("Articles cache refresh task cancelled.")
-            break
+            await asyncio.sleep(300)  # Sleep for 5 minutes
         except Exception as e:
             logging.error(f"Error refreshing articles cache: {e}")
             await asyncio.sleep(60)  # Wait a minute before retrying if there's an error
-
-@app.on_event("startup")
-async def startup_event():
-    # Start the background task for refreshing articles cache
-    asyncio.create_task(start_articles_cache_refresh())
 
 @app.get("/v1/feeds/get")
 async def get_feeds():

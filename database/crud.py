@@ -60,7 +60,7 @@ class Author(BaseModel):
 class AvailableMedia(BaseModel):
     id: str
     title: Optional[str] = None
-    date_added: str
+    date_added: Optional[str] = None
     date_published: Optional[str] = None
     language: Optional[str] = None
     authors: Optional[List[str]] = []
