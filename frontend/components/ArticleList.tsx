@@ -15,6 +15,7 @@ const formatDate = (dateString: string) => {
 interface Article {
   id: string;
   title: string | null;
+  source: string | null;
   date_added: string;
   date_published?: string;
   audio_file: string;
@@ -54,7 +55,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       }
 
       const data = await response.json();
-      
+
       // Validate and transform the response data
       const validArticles = data.map((item: any) => {
         if (!item.id || !item.content_type || !['article', 'podcast', 'text'].includes(item.content_type)) {
@@ -65,6 +66,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
         return {
           id: item.id,
           title: item.title,
+          source: item.source,
           date_added: item.date_added,
           date_published: item.date_published,
           audio_file: item.audio_file,

@@ -24,6 +24,7 @@ from database.crud import (
     get_text,
     get_podcast,
 )
+from database.models import create_or_update_tables
 from utils.env import setup_env
 from utils.history_handler import add_to_history
 from utils.source_manager import read_sources, update_sources
@@ -810,6 +811,7 @@ async def get_todays_articles():
 if __name__ == "__main__":
     import uvicorn
 
+    create_or_update_tables()
     try:
         uvicorn.run(app, host="0.0.0.0", port=7777, log_config=None)
     except Exception as e:
