@@ -48,23 +48,17 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
         onEnded={() => setIsPlaying(false)}
         onError={handleError}
         preload="metadata"
-        crossOrigin="anonymous"
       />
       <Button 
-        onClick={togglePlayPause}
-        variant="outline"
+        variant="outline" 
         size="icon"
-        className="w-10 h-10"
+        onClick={togglePlayPause}
         disabled={!!error}
       >
-        {isPlaying ? (
-          <Pause className="h-5 w-5" />
-        ) : (
-          <Play className="h-5 w-5" />
-        )}
+        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </Button>
       {error && (
-        <span className="text-sm text-destructive">{error}</span>
+        <span className="text-sm text-red-500">{error}</span>
       )}
     </div>
   );

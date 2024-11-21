@@ -152,7 +152,9 @@ async def lifespan(app: FastAPI):
         articles_cache_task.cancel()  # Cancel the articles cache refresh task
         try:
             await scheduler_task  # Wait for the scheduler task to finish
-            await articles_cache_task  # Wait for the articles cache refresh task to finish
+            await (
+                articles_cache_task
+            )  # Wait for the articles cache refresh task to finish
         except asyncio.CancelledError:
             logging.info("Scheduler task cancelled.")
             logging.info("Articles cache refresh task cancelled.")
@@ -173,30 +175,41 @@ app.add_middleware(
         "http://localhost:3001",
         "http://localhost:3000",
         "http://192.168.1.*",  # HTTP for all IPs in 192.168.1.x range
-        "https://192.168.1.*"  # HTTPS for all IPs in 192.168.1.x range
+        "https://192.168.1.*",  # HTTPS for all IPs in 192.168.1.x range
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
 
+# Get the output directory from environment variable
+output_dir = os.getenv("OUTPUT_DIR", "Output")
+
 # Mount the output directory using the absolute path from environment
-output_dir = os.path.abspath(os.getenv("OUTPUT_DIR", "Output"))
 app.mount("/Output", StaticFiles(directory=output_dir), name="static")
+
 
 # Helper function to convert absolute paths to relative paths for the frontend
 def get_relative_path(absolute_path: str) -> str:
     try:
-        return os.path.relpath(absolute_path, output_dir)
+        # Remove any "Output/" prefix from the path
+        if absolute_path.startswith(output_dir + os.path.sep):
+            return absolute_path[len(output_dir + os.path.sep) :]
+        return absolute_path
     except ValueError:
         # If the paths are on different drives or invalid
         return absolute_path
+
 
 # Helper function to convert relative paths to absolute paths for the backend
 def get_absolute_path(relative_path: str) -> str:
     if os.path.isabs(relative_path):
         return relative_path
+    # Remove any "Output/" prefix if it exists
+    if relative_path.startswith(output_dir + os.path.sep):
+        relative_path = relative_path[len(output_dir + os.path.sep) :]
     return os.path.join(output_dir, relative_path)
+
 
 @app.get("/v1/queue/status")
 async def get_queue_status():
@@ -391,9 +404,7 @@ async def get_audio_files(request: Request, page: int = 1, limit: int = 20):
             if file.endswith(".mp3"):
                 total_files += 1
                 if (page - 1) * limit <= len(audio_files) < page * limit:
-                    relative_path = os.path.relpath(
-                        os.path.join(root, file), output_dir
-                    )
+                    relative_path = get_relative_path(os.path.join(root, file))
                     audio_url = f"/v1/audio/{relative_path}"
                     audio_files.append(
                         {
@@ -428,48 +439,32 @@ async def get_audio(file_path: str):
 
 
 @app.get("/v1/audio-file/{file_path:path}")
-async def get_audio_file_text(file_path: str):
+async def get_audio_file_text(file_path: str, type: str = None):
+    logging.info(f"Received request for file_path: {file_path}, type: {type}")
+
     # Normalize the file path to use the correct directory separator
     file_path = os.path.normpath(file_path)
-    
-    # Get the absolute path for the text file
-    text_file_path = get_absolute_path(f"{file_path}.md")
-    
-    if not os.path.isfile(text_file_path):
-        raise HTTPException(status_code=404, detail=f"Text file not found: {text_file_path}")
-    
-    try:
-        with open(text_file_path, "r", encoding="utf-8") as file:
-            text = file.read()
-        return {"text": text}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+    logging.info(f"Normalized path: {file_path}")
 
+    # Remove any extensions from the file path
+    base_path = os.path.splitext(file_path)[0]
+    logging.info(f"Base path: {base_path}")
 
-# @app.get("/v1/audio-file/{title}")
-# async def get_audio_file_text(title: str):
-#    # Assuming the text files are stored in the Output directory with the same name as the title
-#    text_file_path = os.path.join("", f"{title}.md")
-#
-#    if not os.path.isfile(text_file_path):
-#        raise HTTPException(status_code=404, detail="Text file not found")
-#
-#    with open(text_file_path, "r") as file:
-#        text = file.read()
-#
-#    return {"text": text}
+    if type == "audio":
+        # Return the audio file
+        audio_file_path = get_absolute_path(f"{base_path}.mp3")
+        logging.info(f"Audio file path: {audio_file_path}")
+        if not os.path.isfile(audio_file_path):
+            logging.error(f"Audio file not found at: {audio_file_path}")
+            raise HTTPException(status_code=404, detail="Audio file not found")
+        return FileResponse(audio_file_path, media_type="audio/mpeg")
 
-
-@app.get("/v1/audio-file/{file_path:path}")
-async def get_audio_file_text(file_path: str):
-    # Normalize the file path to use the correct directory separator
-    file_path = os.path.normpath(file_path)
-
-    # Construct the full path to the text file
-    output_dir = os.getenv("OUTPUT_DIR", "Output")
-    text_file_path = get_absolute_path(f"{file_path}.md")
+    # Default to returning text content
+    text_file_path = get_absolute_path(f"{base_path}.md")
+    logging.info(f"Text file path: {text_file_path}")
 
     if not os.path.isfile(text_file_path):
+        logging.error(f"Text file not found at: {text_file_path}")
         raise HTTPException(
             status_code=404, detail=f"Text file not found: {text_file_path}"
         )
@@ -477,14 +472,19 @@ async def get_audio_file_text(file_path: str):
     try:
         with open(text_file_path, "r", encoding="utf-8") as file:
             text = file.read()
+
+        relative_audio_path = get_relative_path(f"{base_path}.mp3")
+        logging.info(f"Returning relative audio path: {relative_audio_path}")
+
         return JSONResponse(
             content={
                 "text": text,
-                "title": os.path.basename(file_path),
-                "audio_file": f"{file_path}.mp3",
+                "title": os.path.basename(base_path).replace("_", " "),
+                "audio_file": relative_audio_path,
             }
         )
     except Exception as e:
+        logging.error(f"Error reading file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
 
@@ -530,49 +530,49 @@ def generate_article_id(date_folder, mp3_filename):
     return f"{date_folder}_000"  # Fallback if no digits found
 
 
-@app.get("/v1/articles")
-async def get_articles(request: Request, page: int = 1, limit: int = 20):
-    articles = []
-    total_articles = 0
-
-    for root, dirs, files in os.walk(output_dir, topdown=False):
-        date_folder = os.path.basename(root)
-        if not date_folder.isdigit() or len(date_folder) != 8:
-            continue  # Skip if not a date folder
-
-        for file in files:
-            if file.endswith(".mp3"):
-                total_articles += 1
-                if (page - 1) * limit <= len(articles) < page * limit:
-                    article_id = generate_article_id(date_folder, file)
-                    relative_path = os.path.relpath(
-                        os.path.join(root, file), output_dir
-                    )
-                    audio_url = f"/v1/audio/{relative_path}"
-                    articles.append(
-                        {
-                            "id": article_id,
-                            "date": date_folder,
-                            "audio_file": audio_url,
-                            "title": os.path.splitext(file)[0].replace("_", " "),
-                        }
-                    )
-
-                if len(articles) >= limit:
-                    break
-
-        if len(articles) >= limit:
-            break
-
-    return JSONResponse(
-        content={
-            "articles": articles,
-            "total_articles": total_articles,
-            "page": page,
-            "limit": limit,
-            "total_pages": (total_articles + limit - 1) // limit,
-        }
-    )
+# @app.get("/v1/articles")
+# async def get_articles(request: Request, page: int = 1, limit: int = 20):
+#    articles = []
+#    total_articles = 0
+#
+#    for root, dirs, files in os.walk(output_dir, topdown=False):
+#        date_folder = os.path.basename(root)
+#        if not date_folder.isdigit() or len(date_folder) != 8:
+#            continue  # Skip if not a date folder
+#
+#        for file in files:
+#            if file.endswith(".mp3"):
+#                total_articles += 1
+#                if (page - 1) * limit <= len(articles) < page * limit:
+#                    article_id = generate_article_id(date_folder, file)
+#                    relative_path = get_relative_path(
+#                        os.path.join(root, file)
+#                    )
+#                    audio_url = f"/v1/audio/{relative_path}"
+#                    articles.append(
+#                        {
+#                            "id": article_id,
+#                            "date": date_folder,
+#                            "audio_file": audio_url,
+#                            "title": os.path.splitext(file)[0].replace("_", " "),
+#                        }
+#                    )
+#
+#                if len(articles) >= limit:
+#                    break
+#
+#        if len(articles) >= limit:
+#            break
+#
+#    return JSONResponse(
+#        content={
+#            "articles": articles,
+#            "total_articles": total_articles,
+#            "page": page,
+#            "limit": limit,
+#            "total_pages": (total_articles + limit - 1) // limit,
+#        }
+#    )
 
 
 @app.get("/v1/article/{article_id}")
@@ -580,6 +580,8 @@ async def get_article_from_db(article_id: str):
     try:
         article = get_article(article_id)
         if not article:
+            # Log the article ID that wasn't found
+            logging.error(f"Article not found in database: {article_id}")
             raise HTTPException(status_code=404, detail="Article not found")
 
         # Format the audio file path
@@ -592,10 +594,13 @@ async def get_article_from_db(article_id: str):
                 else f"Output/{audio_file}"
             )
 
+        # Log the article data being returned
+        logging.info(f"Returning article data: {article}")
+
         content = {
             "id": article_id,
             "title": article.get("title"),
-            "date": article.get("date_published"),
+            "date": article.get("date_published") or article.get("date_added"),
             "audio_file": audio_file,
             "content": article.get("plain_text"),
             "tl_dr": article.get("tl_dr"),
@@ -603,6 +608,8 @@ async def get_article_from_db(article_id: str):
         return JSONResponse(content=content)
     except Exception as e:
         logging.error(f"Error fetching article {article_id}: {str(e)}")
+        if isinstance(e, HTTPException):
+            raise
         raise HTTPException(
             status_code=500,
             detail={"message": "Failed to fetch article", "error": str(e)},
@@ -676,19 +683,14 @@ async def get_text_from_db(text_id: str):
         )
 
 
-@app.get("/v1/available-media", response_model=List[AvailableMedia])
+@app.get("/v1/available-media")
 async def get_available_media():
-    media = fetch_available_media()
-    if not media:
-        raise HTTPException(
-            status_code=404, detail="No available media with audio found."
-        )
-    return media
-
-
-@app.get("/v1/server/status")
-async def get_status():
-    return {"message": "Endpoint not yet implemented"}
+    try:
+        media = fetch_available_media()
+        return media
+    except Exception as e:
+        logging.error(f"Error in get_available_media: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 async def schedule_fetch_articles():
@@ -743,15 +745,13 @@ async def schedule_fetch_articles():
 
 
 # Cache for today's articles
-articles_cache = {
-    "last_updated": None,
-    "articles": []
-}
+articles_cache = {"last_updated": None, "articles": []}
+
 
 async def refresh_articles_cache():
     """Background task to refresh the articles cache."""
     global articles_cache
-    
+
     feeds = load_feeds_from_json("my_feeds.json")
     all_todays_articles = []
 
@@ -765,6 +765,7 @@ async def refresh_articles_cache():
     articles_cache["last_updated"] = datetime.now()
     logging.info(f"Articles cache refreshed at {articles_cache['last_updated']}")
 
+
 async def start_articles_cache_refresh():
     """Start the background task to refresh articles cache every 5 minutes."""
     while True:
@@ -774,6 +775,7 @@ async def start_articles_cache_refresh():
         except Exception as e:
             logging.error(f"Error refreshing articles cache: {e}")
             await asyncio.sleep(60)  # Wait a minute before retrying if there's an error
+
 
 @app.get("/v1/feeds/get")
 async def get_feeds():

@@ -15,18 +15,19 @@ interface Article {
   audio_file: string;
   content?: string;
   tldr?: string;
-  type?: string;
+  content_type: string;
 }
 
 interface BottomBarProps {
   articleId: string;
-  type: string;
+  content_type: string;
 }
 
-export default function BottomBar({ articleId, type }: BottomBarProps) {
+export default function BottomBar({ articleId, content_type }: BottomBarProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showTldr, setShowTldr] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleExpanded = () => {
     setIsExpanded((prev) => !prev);
@@ -34,56 +35,76 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
 
   useEffect(() => {
     async function fetchArticle() {
-      if (!articleId || !type) return;
+      if (!articleId || !content_type) return;
 
       try {
         const settings = getSettings();
-        let endpoint;
-        if (type === 'article') {
-          endpoint = `${settings.serverUrl}/v1/article/${articleId}`;
-        } else if (type === 'podcast') {
-          endpoint = `${settings.serverUrl}/v1/podcast/${articleId}`;
-        } else if (type === 'text') {
-          endpoint = `${settings.serverUrl}/v1/text/${articleId}`;
-        } else {
-          console.warn(`Unknown type: ${type}`);
-          throw new Error(`Unknown type: ${type}`);
-        }
+        const endpoint = `${settings.serverUrl}/v1/${content_type}/${encodeURIComponent(articleId)}`;
+        
+        console.log('Fetching from endpoint:', endpoint);
 
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
         const data = await response.json();
         console.log('Fetched article data:', data);
-        console.log('Article type:', type);
-        console.log('Has TLDR:', !!data.tldr);
-        setArticle({ ...data, type });
+
+        // Construct full audio URL with fallback
+        const audioUrl = data.audio_file
+          ? (data.audio_file.startsWith('http')
+            ? data.audio_file
+            : `${settings.serverUrl}/${data.audio_file}`)
+          : null;
+
+        console.log("Constructed audio URL:", audioUrl);
+
+        setArticle({
+          ...data,
+          content_type,
+          audio_file: audioUrl || '',
+          date: data.date || data.date_published || data.date_added,
+          tldr: data.tl_dr
+        });
+        
+        setError(null);
       } catch (error) {
         console.error('Error fetching article:', error);
+        setError(error instanceof Error ? error.message : 'An unknown error occurred');
       }
     }
 
     fetchArticle();
-  }, [articleId, type]);
+  }, [articleId, content_type]);
+
+  // Error handling render
+  if (error) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-red-100 text-red-800 p-4 z-50">
+        <p>Error loading content: {error}</p>
+        <p>Article ID: {articleId}</p>
+        <p>Content Type: {content_type}</p>
+      </div>
+    );
+  }
 
   if (!article) return null;
 
-  const shouldShowToggle = (type === 'article' || type === 'text') && article.tldr;
+  const shouldShowToggle = (content_type === 'article' || content_type === 'text') && article.tldr;
   const content = showTldr && article.tldr ? article.tldr : article.content;
 
-  // Construct the full audio URL
-  const audioUrl = article.audio_file.startsWith('http') 
-    ? article.audio_file 
-    : `${getSettings().serverUrl}/${article.audio_file}`;
-
-  console.log('Should show toggle:', shouldShowToggle);
-  console.log('Audio URL:', audioUrl);
-
   return (
-    <div className={`fixed bottom-0 left-0 right-0 bg-background border-t z-50 ${isExpanded ? 'h-[80vh] overflow-y-auto' : ''}`}>
-      <div className="container mx-auto px-4">
+    <div className={`fixed bottom-0 left-0 right-0 bg-background border-t z-50 transition-all duration-300 ${isExpanded ? 'h-[80vh] overflow-y-auto' : 'h-24'}`}>
+      <div className="container mx-auto px-4 h-full">
         {/* Header section with controls */}
         <div className="sticky top-0 bg-background py-4">
           <div className="flex items-center justify-between">
@@ -102,10 +123,10 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
               {/* Audio Player */}
               {article.audio_file && (
                 <AudioPlayer
-                  audioUrl={audioUrl}
+                  audioUrl={article.audio_file}
                 />
               )}
-              
+
               {/* TL;DR Toggle */}
               {shouldShowToggle && (
                 <div className="flex items-center space-x-2 bg-muted p-2 rounded-lg">

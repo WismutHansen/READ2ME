@@ -4,7 +4,7 @@ import { getSettings } from '@/lib/settings';
 type MessageType = 'success' | 'error';
 
 interface AddHandlersReturn {
-  handleAddUrl: (url: string, endpoint: string, setUrl: (url: string) => void) => Promise<void>;
+  handleAddUrl: (url: string, endpoint: string, setUrl: (url: string) => void, onSuccess?: () => void) => Promise<void>;
   handleAddText: (text: string, endpoint: string, setText: (text: string) => void) => Promise<void>;
   alertDialogOpen: boolean;
   setAlertDialogOpen: (open: boolean) => void;
@@ -35,7 +35,8 @@ export const useAddHandlers = (): AddHandlersReturn => {
   const handleAddUrl = async (
     url: string,
     endpoint: string,
-    setUrl: (url: string) => void
+    setUrl: (url: string) => void,
+    onSuccess?: () => void
   ): Promise<void> => {
     if (!isValidUrl(url)) {
       showAlert('Please enter a valid URL', 'error');
@@ -43,9 +44,11 @@ export const useAddHandlers = (): AddHandlersReturn => {
     }
 
     const { serverUrl, ttsEngine } = getSettings();
+    const fullUrl = `${serverUrl}/v1/${endpoint}`;
+    console.log('Making request to:', fullUrl);
 
     try {
-      const response = await fetch(`${serverUrl}/v1/${endpoint}`, {
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,10 +57,16 @@ export const useAddHandlers = (): AddHandlersReturn => {
       });
 
       if (!response.ok) {
+        console.error('Response not ok:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`Failed to add URL to ${endpoint}`);
       }
 
       setUrl('');
+      if (onSuccess) {
+        onSuccess();
+      }
       showAlert('URL added successfully', 'success');
     } catch (error) {
       console.error(`Error adding URL to ${endpoint}:`, error);
