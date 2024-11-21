@@ -21,6 +21,7 @@ class ArticleData(BaseModel):
     title: Optional[str] = None
     date_published: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
+    time_added: Optional[str] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     language: Optional[str] = None
     plain_text: Optional[str] = None
     markdown_text: Optional[str] = None
@@ -35,6 +36,7 @@ class TextData(BaseModel):
     title: Optional[str] = None
     text: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
+    time_added: Optional[str] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     language: Optional[str] = None
     tl_dr: Optional[str] = None
     audio_file: Optional[str] = None
@@ -46,6 +48,7 @@ class PodcastData(BaseModel):
     title: Optional[str] = None
     text: Optional[str] = None
     date_added: Optional[str] = date.today().strftime("%Y-%m-%d")
+    time_added: Optional[str] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     language: Optional[str] = None
     audio_file: Optional[str] = None
     markdown_file: Optional[str] = None
@@ -61,6 +64,7 @@ class AvailableMedia(BaseModel):
     id: str
     title: Optional[str] = None
     date_added: Optional[str] = None
+    time_added: Optional[str] = None
     date_published: Optional[str] = None
     language: Optional[str] = None
     authors: Optional[List[str]] = []
@@ -81,6 +85,7 @@ def fetch_available_media():
             articles.id,
             articles.title,
             articles.date_added,
+            articles.time_added,
             articles.date_published,
             GROUP_CONCAT(authors.name) as authors,
             articles.audio_file,
@@ -100,6 +105,7 @@ def fetch_available_media():
             id,
             title,
             date_added,
+            time_added,
             NULL as date_published,
             NULL as authors,
             audio_file,
@@ -115,7 +121,8 @@ def fetch_available_media():
         SELECT 
             id,
             title,
-            date_added,
+            COALESCE(date_added, strftime('%Y-%m-%d', 'now')) as date_added,
+            COALESCE(time_added, strftime('%Y-%m-%d %H:%M:%S', 'now')) as time_added,
             NULL as date_published,
             NULL as authors,
             audio_file,
@@ -134,6 +141,7 @@ def fetch_available_media():
             id=dict(row)["id"],
             title=row["title"],
             date_added=row["date_added"],
+            time_added=row["time_added"],
             date_published=row["date_published"],
             authors=row["authors"].split(",") if row["authors"] else [],
             audio_file=row["audio_file"],
@@ -171,10 +179,10 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
         cursor.execute(
             """
             INSERT INTO articles (
-                id, url, title, date_published, date_added,
+                id, url, title, date_published, date_added, time_added,
                 language, plain_text, markdown_text, tl_dr,
                 audio_file, markdown_file, vtt_file, img_file
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 article_id,
@@ -182,6 +190,7 @@ def create_article(article_data: ArticleData, authors: Optional[List[Author]] = 
                 article_data.title,
                 article_data.date_published,
                 article_data.date_added,
+                article_data.time_added,
                 article_data.language,
                 article_data.plain_text,
                 article_data.markdown_text,
@@ -357,14 +366,15 @@ def create_text(text_data: TextData) -> str:
 
         cursor.execute(
             """
-            INSERT INTO texts (id, title, text, date_added, language, tl_dr, audio_file, markdown_file, img_file)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO texts (id, title, text, date_added, time_added, language, tl_dr, audio_file, markdown_file, img_file)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 text_id,
                 text_data.title,
                 text_data.text,
                 text_data.date_added or datetime.today().strftime("%Y-%m-%d"),
+                text_data.time_added or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 text_data.language,
                 text_data.tl_dr,
                 text_data.audio_file,
@@ -456,14 +466,15 @@ def create_podcast_db_entry(
     # Insert the podcast data with the generated ID
     cursor.execute(
         """
-        INSERT INTO podcasts (id, title, text, date_added, language, audio_file, markdown_file, img_file)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO podcasts (id, title, text, date_added, time_added, language, audio_file, markdown_file, img_file)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             podcast_id,
             podcast_data.title,
             podcast_data.text,
             podcast_data.date_added,
+            podcast_data.time_added,
             podcast_data.language,
             podcast_data.audio_file,
             podcast_data.markdown_file,
