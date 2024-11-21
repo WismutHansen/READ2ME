@@ -77,34 +77,43 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
 
   // Process all selected articles
   const processSelectedArticles = async (mode: 'full' | 'summary' | 'podcast') => {
-    const endpoint = mode === 'full' ? 'articles/add' : `articles/${mode}`;
-    let successCount = 0;
-    let failCount = 0;
+    try {
+      const links = Array.from(selectedArticles);
+      const response = await fetch(`${serverUrl}/v1/articles/batch`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          urls: links,
+          mode: mode
+        })
+      });
 
-    for (const link of selectedArticles) {
-      try {
-        await handleAddUrl(link, endpoint, () => { });
-        successCount++;
-      } catch (error) {
-        console.error('Error processing article:', error);
-        failCount++;
+      if (!response.ok) {
+        throw new Error('Failed to process articles');
       }
-    }
 
-    // Show result toast
-    if (successCount > 0) {
       toast({
         title: "Success",
-        description: `Added ${successCount} articles to task list${failCount > 0 ? ` (${failCount} failed)` : ''}`,
+        description: `Added ${links.length} articles to task list`,
         variant: "default",
       });
 
       // Refresh the feed entries after successful additions
       fetchFeedEntries();
+      
+      // Clear selections after processing
+      setSelectedArticles(new Set());
+    } catch (error) {
+      console.error('Error processing articles:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process articles",
+        variant: "destructive",
+      });
     }
-
-    // Clear selections after processing
-    setSelectedArticles(new Set());
   };
 
   // Fetch feed entries

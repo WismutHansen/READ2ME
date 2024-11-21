@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 from logging.handlers import TimedRotatingFileHandler
 from threading import Event
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Literal
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -134,6 +134,12 @@ class TaskRemoveRequest(BaseModel):
     content: str
     tts_engine: str
     task: Union[str, dict, None] = None
+
+
+class BatchArticlesRequest(BaseModel):
+    urls: List[str]
+    mode: Literal['full', 'summary', 'podcast']
+    tts_engine: str = "edge"
 
 
 @asynccontextmanager
@@ -806,6 +812,41 @@ async def get_todays_articles():
             content={"message": "No articles published today across all feeds."},
             status_code=204,
         )
+
+
+@app.post("/v1/articles/batch")
+async def process_articles_batch(request: BatchArticlesRequest):
+    """
+    Process multiple articles in batch mode.
+    """
+    try:
+        results = []
+        for url in request.urls:
+            url_request = URLRequest(url=url, tts_engine=request.tts_engine)
+            
+            try:
+                if request.mode == 'full':
+                    await url_audio_full(url_request)
+                elif request.mode == 'summary':
+                    await url_audio_summary(url_request)
+                elif request.mode == 'podcast':
+                    await url_podcast(url_request)
+                
+                results.append({"url": url, "status": "success"})
+            except Exception as e:
+                results.append({"url": url, "status": "error", "error": str(e)})
+                logging.error(f"Error processing URL {url}: {str(e)}")
+        
+        success_count = sum(1 for r in results if r["status"] == "success")
+        error_count = len(results) - success_count
+        
+        return {
+            "message": f"Processed {len(results)} articles: {success_count} successful, {error_count} failed",
+            "results": results
+        }
+    except Exception as e:
+        logging.error(f"Batch processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
