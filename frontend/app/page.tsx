@@ -45,14 +45,8 @@ export default function Home() {
   const articleListRef = useRef<ArticleListRef>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null); // Stores the ID of the selected article
   const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
-
-  const handleSelectArticle = (article: Article) => {
-    console.log("Selected article:", article);
-    console.log("Selected Article ID:", selectedArticleId);
-    console.log("Selected Article Type:", currentArticle?.type);
-    setCurrentArticle(article);
-    setSelectedArticleId(article.id);
-  };
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [hasContent, setHasContent] = useState(true); // Track content state
 
   // Function to refresh articles list via ArticleListRef
   const refreshArticles = async () => {
@@ -68,6 +62,28 @@ export default function Home() {
       });
     }
   };
+
+  // Update content state when ArticleList updates
+  const handleContentStateChange = (hasArticles: boolean) => {
+    setHasContent(hasArticles);
+  };
+
+  // Fetch articles
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const response = await fetch('/api/articles');
+        if (!response.ok) {
+          throw new Error('Failed to fetch articles');
+        }
+        const data = await response.json();
+        setArticles(data);
+      } catch (error) {
+        console.error('Error fetching articles:', error);
+      }
+    };
+    fetchArticles();
+  }, []);
 
   useEffect(() => {
     const { serverUrl } = getSettings();
@@ -89,6 +105,14 @@ export default function Home() {
     }
     fetchFeedEntries();
   }, []);
+
+  const handleSelectArticle = (article: Article) => {
+    console.log("Selected article:", article);
+    console.log("Selected Article ID:", selectedArticleId);
+    console.log("Selected Article Type:", currentArticle?.type);
+    setCurrentArticle(article);
+    setSelectedArticleId(article.id);
+  };
 
   return (
     <main className="container mx-auto p-4 mb-24">
@@ -129,6 +153,7 @@ export default function Home() {
           <Button
             variant="outline"
             onClick={() => setArticleAdderOpen(true)}
+            className={!hasContent ? 'animate-breathing-outline' : ''}
           >
             Add Content
           </Button>
@@ -155,8 +180,12 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* Pass handleSelectArticle to ArticleList */}
-      <ArticleList ref={articleListRef} onSelectArticle={handleSelectArticle} />
+      {/* Pass handleSelectArticle and content state handler to ArticleList */}
+      <ArticleList 
+        ref={articleListRef} 
+        onSelectArticle={handleSelectArticle}
+        onContentStateChange={handleContentStateChange}
+      />
 
       {/* Display Today's Feed Entries */}
       <TodayFeedList feedEntries={feedEntries} />
