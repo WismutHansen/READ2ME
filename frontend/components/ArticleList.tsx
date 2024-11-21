@@ -24,13 +24,14 @@ interface Article {
 
 interface ArticleListProps {
   onSelectArticle: (article: Article) => void;
+  onContentStateChange: (hasArticles: boolean) => void;
 }
 
 export interface ArticleListRef {
   refresh: () => Promise<void>;
 }
 
-const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArticle }, ref) => {
+const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArticle, onContentStateChange }, ref) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,8 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
         return dateB.getTime() - dateA.getTime();
       });
       setArticles(sortedArticles);
+      // Notify parent about content state
+      onContentStateChange(sortedArticles.length > 0);
     } catch (error: any) {
       console.error('Error fetching articles:', error.message);
       setError(`Failed to load articles: ${error.message}`);
@@ -128,10 +131,26 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
     return <div className="text-red-500">{error}</div>;
   }
 
+  if (isLoading) {
+    return <div className="text-gray-500">Loading...</div>;
+  }
+
+  if (articles.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-medium mb-4">
+          Welcome to READ2ME
+        </h2>
+        <p className="text-lg text-gray-600">
+          There is currently no content in your audio library,<br />
+          try adding something via Add Content or from the article feed.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
-      {isLoading && <div>Loading...</div>}
-
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {articles.map((article) => (
           <div
@@ -160,10 +179,6 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
           </div>
         ))}
       </div>
-
-      {articles.length === 0 && !isLoading && (
-        <div className="text-center py-8">No articles found</div>
-      )}
     </div>
   );
 });
