@@ -10,6 +10,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useAddHandlers } from '@/components/addHandlers';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface FeedEntry {
   title: string | null;
@@ -19,69 +27,117 @@ interface FeedEntry {
   source: string;
 }
 
-export default function TodayFeedList() {
+interface TodayFeedListProps {
+  onSelectArticle?: (article: any) => void;
+}
+
+export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
   const { toast } = useToast();
   const { serverUrl } = getSettings();
   const today = new Date().toISOString().split('T')[0];
   const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<FeedEntry | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
   const { handleAddUrl } = useAddHandlers();
 
   // Custom handler for URL actions
-  const handleUrlAction = async (link: string, endpoint: string) => {
+  const handleUrlAction = async (link: string, mode?: string) => {
     try {
-      await handleAddUrl(link, endpoint, () => {});
+      // Map the mode to the correct endpoint
+      let endpoint;
+      switch (mode) {
+        case 'summary':
+          endpoint = 'url/summary';
+          break;
+        case 'podcast':
+          endpoint = 'url/podcast';
+          break;
+        default:
+          endpoint = 'url/full';
+      }
 
-      // Show toast for success
+      await handleAddUrl(link, endpoint, fetchFeedEntries);
+
       toast({
         title: "Success",
-        description: "Article added successfully",
-        variant: "default",
+        description: "Article added to processing queue",
       });
-
-      // Close the modal after successful action
-      setModalOpen(false);
     } catch (error) {
-      console.error('Error handling URL action:', error);
+      console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to process the request",
+        description: "Failed to add article",
         variant: "destructive",
       });
     }
   };
 
-  useEffect(() => {
-    async function fetchFeedEntries() {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${serverUrl}/v1/feeds/get_todays_articles`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
+  // Process all selected articles
+  const processSelectedArticles = async (mode: 'full' | 'summary' | 'podcast') => {
+    const endpoint = mode === 'full' ? 'articles/add' : `articles/${mode}`;
+    let successCount = 0;
+    let failCount = 0;
 
-        if (data && Array.isArray(data.articles)) {
-          setFeedEntries(data.articles);
-        } else {
-          throw new Error("Invalid API response format");
-        }
+    for (const link of selectedArticles) {
+      try {
+        await handleAddUrl(link, endpoint, () => {});
+        successCount++;
       } catch (error) {
-        console.error("Failed to fetch feed entries:", error);
-        toast({
-          title: "Error fetching articles",
-          description: error instanceof Error ? error.message : "An unexpected error occurred",
-          variant: "destructive",
-        });
-        setFeedEntries([]);
-      } finally {
-        setIsLoading(false);
+        console.error('Error processing article:', error);
+        failCount++;
       }
     }
+
+    // Show result toast
+    if (successCount > 0) {
+      toast({
+        title: "Success",
+        description: `Added ${successCount} articles to task list${failCount > 0 ? ` (${failCount} failed)` : ''}`,
+        variant: "default",
+      });
+
+      // Refresh the feed entries after successful additions
+      fetchFeedEntries();
+    }
+
+    // Clear selections after processing
+    setSelectedArticles(new Set());
+  };
+
+  // Fetch feed entries
+  const fetchFeedEntries = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${serverUrl}/v1/feeds/get_todays_articles`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch feed entries');
+      }
+      
+      const data = await response.json();
+      setFeedEntries(data.articles || []);
+    } catch (error) {
+      console.error('Error fetching feed entries:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch feed entries",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchFeedEntries();
-  }, [serverUrl, toast]);
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchFeedEntries, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Group feed entries by category
   const groupedFeedEntries = feedEntries.reduce((groups, entry) => {
@@ -93,72 +149,151 @@ export default function TodayFeedList() {
     return groups;
   }, {} as Record<string, FeedEntry[]>);
 
+  // Get all unique categories
+  const categories = ["all", ...Object.keys(groupedFeedEntries)].filter(
+    (category) => category !== "Uncategorized"
+  );
+
+  // Filter entries based on active category
+  const getFilteredEntries = () => {
+    if (activeCategory === "all") {
+      return feedEntries;
+    }
+    return feedEntries.filter(entry => entry.category === activeCategory);
+  };
+
+  // Handle checkbox selection
+  const toggleArticleSelection = (link: string) => {
+    const newSelected = new Set(selectedArticles);
+    if (newSelected.has(link)) {
+      newSelected.delete(link);
+    } else {
+      newSelected.add(link);
+    }
+    setSelectedArticles(newSelected);
+  };
+
   return (
     <div className="space-y-4 pt-8 pl-2">
-      <h2 className="text-xl font-bold">Today's News</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Today's News</h2>
+        {selectedArticles.size > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                Add {selectedArticles.size} Selected
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[280px]">
+              <DropdownMenuItem
+                onClick={() => processSelectedArticles('full')}
+                className="flex flex-col items-start py-2"
+              >
+                <span className="font-semibold">Full Text</span>
+                <span className="text-xs text-muted-foreground">Turn complete text into speech</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => processSelectedArticles('summary')}
+                className="flex flex-col items-start py-2"
+              >
+                <span className="font-semibold">TL;DR</span>
+                <span className="text-xs text-muted-foreground">Generate a summary and turn it into speech</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => processSelectedArticles('podcast')}
+                className="flex flex-col items-start py-2"
+              >
+                <span className="font-semibold">Podcast</span>
+                <span className="text-xs text-muted-foreground">Turn the article into a podcast</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
       {Object.keys(groupedFeedEntries).length === 0 ? (
         <div className="text-gray-500">
           {isLoading ? "Fetching today's entries..." : "No entries for today"}
         </div>
       ) : (
-        Object.entries(groupedFeedEntries).map(([category, entries]) => (
-          <div key={category} className="space-y-2">
-            <h3 className="text-lg font-semibold">{category}</h3>
-            <ul className="space-y-2">
-              {entries
-                .filter(entry => {
-                  const entryDate = new Date(entry.published)
-                    .toISOString()
-                    .split('T')[0];
-                  return entryDate === today;
-                })
-                .map((entry, index) => (
-                  <li key={index} className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <h4 className="text-lg">{entry.title || "Untitled"}</h4>
-                      <p className="text-sm text-gray-500">
-                        {entry.source || "Unknown Source"} - {
-                          new Date(entry.published).toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        }
-                      </p>
-                    </div>
+        <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
+          <TabsList className="mb-4">
+            {categories.map((category) => (
+              <TabsTrigger
+                key={category}
+                value={category}
+                className="capitalize"
+              >
+                {category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value={activeCategory} className="mt-0">
+            <div className="space-y-4">
+              {getFilteredEntries().map((entry, index) => (
+                <div
+                  key={index}
+                  className="flex items-center p-4 bg-card rounded-lg shadow-sm"
+                >
+                  <Checkbox
+                    id={`article-${index}`}
+                    checked={selectedArticles.has(entry.link)}
+                    onCheckedChange={() => toggleArticleSelection(entry.link)}
+                    className="mr-4"
+                  />
+                  <div className="flex-1 min-w-0 mr-4">
+                    <h3 className="text-sm font-medium truncate">
+                      {entry.title || "Untitled"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {entry.source} • {new Date(entry.published).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          Add to Tasks
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[280px]">
+                        <DropdownMenuItem
+                          onClick={() => handleUrlAction(entry.link)}
+                          className="flex flex-col items-start py-2"
+                        >
+                          <span className="font-semibold">Full Text</span>
+                          <span className="text-xs text-muted-foreground">Turn complete text into speech</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleUrlAction(entry.link, 'summary')}
+                          className="flex flex-col items-start py-2"
+                        >
+                          <span className="font-semibold">TL;DR</span>
+                          <span className="text-xs text-muted-foreground">Generate a summary and turn it into speech</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleUrlAction(entry.link, 'podcast')}
+                          className="flex flex-col items-start py-2"
+                        >
+                          <span className="font-semibold">Podcast</span>
+                          <span className="text-xs text-muted-foreground">Turn the article into a podcast</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        setSelectedEntry(entry);
-                        setModalOpen(true);
-                      }}
+                      size="sm"
+                      onClick={() => window.open(entry.link, '_blank')}
                     >
-                      Add to Queue
+                      View Source
                     </Button>
-                  </li>
-                ))}
-            </ul>
-          </div>
-        ))
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
-
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add "{selectedEntry?.title}" to Queue</DialogTitle>
-          </DialogHeader>
-          <DialogFooter className="flex flex-row gap-2 justify-center sm:justify-around flex-nowrap">
-            <Button className="flex-1" onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/full')}>
-              Full Text
-            </Button>
-            <Button className="flex-1" onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/summary')}>
-              TL;DR
-            </Button>
-            <Button className="flex-1" onClick={() => selectedEntry?.link && handleUrlAction(selectedEntry.link, 'url/podcast')}>
-              Podcast
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

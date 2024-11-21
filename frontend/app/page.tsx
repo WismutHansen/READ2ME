@@ -72,10 +72,15 @@ export default function Home() {
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        const response = await fetch('/api/articles');
+        const { serverUrl } = getSettings();
+        const response = await fetch(`${serverUrl}/v1/available-media`, {
+          credentials: 'include'
+        });
+        
         if (!response.ok) {
           throw new Error('Failed to fetch articles');
         }
+        
         const data = await response.json();
         setArticles(data);
       } catch (error) {
@@ -89,12 +94,17 @@ export default function Home() {
     const { serverUrl } = getSettings();
     async function fetchFeedEntries() {
       try {
-        const response = await fetch(`${serverUrl}/v1/feeds/get_todays_articles`);
+        const response = await fetch(`${serverUrl}/v1/feeds/get_todays_articles`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch feed entries');
+        }
+        
         const data = await response.json();
-
-        // Ensure data is an array before setting it
-        if (Array.isArray(data)) {
-          setFeedEntries(data);
+        if (data.articles) {
+          setFeedEntries(data.articles);
         } else {
           console.error("Unexpected data format:", data);
           setFeedEntries([]);
@@ -108,10 +118,20 @@ export default function Home() {
 
   const handleSelectArticle = (article: Article) => {
     console.log("Selected article:", article);
-    console.log("Selected Article ID:", selectedArticleId);
-    console.log("Selected Article Type:", currentArticle?.type);
     setCurrentArticle(article);
-    setSelectedArticleId(article.id);
+    
+    // Get the audio file path directly from the article
+    if (article.audio_file) {
+      // If it's a full URL, extract the path portion
+      if (article.audio_file.startsWith('http')) {
+        const url = new URL(article.audio_file);
+        const audioPath = decodeURIComponent(url.pathname.split('/v1/audio/').pop() || '');
+        setSelectedArticleId(audioPath);
+      } else {
+        // If it's just a path, use it directly
+        setSelectedArticleId(article.audio_file);
+      }
+    }
   };
 
   return (
@@ -188,11 +208,14 @@ export default function Home() {
       />
 
       {/* Display Today's Feed Entries */}
-      <TodayFeedList feedEntries={feedEntries} />
+      <TodayFeedList 
+        onSelectArticle={handleSelectArticle}
+        feedEntries={feedEntries} 
+      />
 
       {/* Conditionally render the BottomBar based on the selectedArticleId */}
       {selectedArticleId && currentArticle && (
-        <BottomBar articleId={selectedArticleId} type={currentArticle.type} key={selectedArticleId} />
+        <BottomBar articleId={selectedArticleId} type={currentArticle.type || 'article'} key={selectedArticleId} />
       )}
     </main>
   );

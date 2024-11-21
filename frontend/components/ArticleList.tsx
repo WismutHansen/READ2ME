@@ -18,20 +18,23 @@ interface Article {
   date_added: string;
   date_published?: string;
   audio_file: string;
-  content_type: string;
+  content_type: 'article' | 'podcast' | 'text';
   url?: string;
+  text?: string;
+  date?: string;
+  audioUrl?: string;
+  tlDr?: string;
 }
 
 interface ArticleListProps {
   onSelectArticle: (article: Article) => void;
-  onContentStateChange: (hasArticles: boolean) => void;
 }
 
 export interface ArticleListRef {
   refresh: () => Promise<void>;
 }
 
-const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArticle, onContentStateChange }, ref) => {
+const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArticle }, ref) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,33 +42,48 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   const fetchArticles = async () => {
     setIsLoading(true);
     setError(null);
+
     try {
       const settings = getSettings();
       const response = await fetch(`${settings.serverUrl}/v1/available-media`, {
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to fetch articles: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Fetched articles:', data); // Log all fetched articles
-      // Sort articles by date (most recent first)
-      const sortedArticles = data.sort((a: Article, b: Article) => {
+      
+      // Validate and transform the response data
+      const validArticles = data.map((item: any) => {
+        if (!item.id || !item.content_type || !['article', 'podcast', 'text'].includes(item.content_type)) {
+          console.warn('Invalid article data:', item);
+          return null;
+        }
+
+        return {
+          id: item.id,
+          title: item.title,
+          date_added: item.date_added,
+          date_published: item.date_published,
+          audio_file: item.audio_file,
+          content_type: item.content_type,
+          url: item.url
+        };
+      }).filter(Boolean);
+
+      // Sort articles by date, most recent first
+      const sortedArticles = validArticles.sort((a, b) => {
         const dateA = new Date(a.date_published || a.date_added);
         const dateB = new Date(b.date_published || b.date_added);
         return dateB.getTime() - dateA.getTime();
       });
+
       setArticles(sortedArticles);
-      // Notify parent about content state
-      onContentStateChange(sortedArticles.length > 0);
-    } catch (error: any) {
-      console.error('Error fetching articles:', error.message);
-      setError(`Failed to load articles: ${error.message}`);
+    } catch (err) {
+      console.error('Error fetching articles:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load articles');
     } finally {
       setIsLoading(false);
     }
@@ -80,40 +98,11 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   }));
 
   const handleArticleClick = async (article: Article) => {
-    console.log('Article clicked:', article);
-
     try {
-      const settings = getSettings();
-      let endpoint;
-
-      if (article.content_type === 'article') {
-        endpoint = `${settings.serverUrl}/v1/article/${article.id}`;
-      } else if (article.content_type === 'podcast') {
-        endpoint = `${settings.serverUrl}/v1/podcast/${article.id}`;
-      } else if (article.content_type === 'text') {
-        endpoint = `${settings.serverUrl}/v1/text/${article.id}`;
-      } else {
-        console.warn(`Unknown type for article with ID ${article.id}:`, article.content_type || 'undefined');
-        throw new Error(`Unknown article type: ${article.content_type || 'undefined'}`);
-      }
-
-      const response = await fetch(endpoint, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch data for type ${article.content_type}`);
-      }
-
-      const articleData = await response.json();
-      articleData.type = article.content_type; // Ensure type is added to the fetched data
-      onSelectArticle(articleData);
-    } catch (error: any) {
-      console.error('Error fetching article data:', error.message);
-      setError(`Failed to load data for type ${article.content_type || 'unknown'}: ${error.message}`);
+      onSelectArticle(article);
+    } catch (err) {
+      console.error('Error handling article click:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load article');
     }
   };
 
@@ -131,26 +120,10 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
     return <div className="text-red-500">{error}</div>;
   }
 
-  if (isLoading) {
-    return <div className="text-gray-500">Loading...</div>;
-  }
-
-  if (articles.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-medium mb-4">
-          Welcome to READ2ME
-        </h2>
-        <p className="text-lg text-gray-600">
-          There is currently no content in your audio library,<br />
-          try adding something via Add Content or from the article feed.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div>
+      {isLoading && <div>Loading...</div>}
+
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {articles.map((article) => (
           <div
@@ -179,6 +152,10 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
           </div>
         ))}
       </div>
+
+      {articles.length === 0 && !isLoading && (
+        <div className="text-center py-8">No articles found</div>
+      )}
     </div>
   );
 });
