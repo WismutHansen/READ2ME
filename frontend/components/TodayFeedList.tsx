@@ -103,7 +103,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
 
       // Refresh the feed entries after successful additions
       fetchFeedEntries();
-      
+
       // Clear selections after processing
       setSelectedArticles(new Set());
     } catch (error) {
@@ -255,7 +255,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                 placeholder="Search articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                className="px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
               />
             </div>
           </div>
