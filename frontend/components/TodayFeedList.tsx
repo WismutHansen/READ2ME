@@ -40,6 +40,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState<string>(''); // Added state for search query
   const { handleAddUrl } = useAddHandlers();
 
   // Custom handler for URL actions
@@ -82,7 +83,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
 
     for (const link of selectedArticles) {
       try {
-        await handleAddUrl(link, endpoint, () => {});
+        await handleAddUrl(link, endpoint, () => { });
         successCount++;
       } catch (error) {
         console.error('Error processing article:', error);
@@ -113,11 +114,11 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
       const response = await fetch(`${serverUrl}/v1/feeds/get_todays_articles`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch feed entries');
       }
-      
+
       const data = await response.json();
       setFeedEntries(data.articles || []);
     } catch (error) {
@@ -154,12 +155,23 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
     (category) => category !== "Uncategorized"
   );
 
-  // Filter entries based on active category
+  // Function to filter feed entries based on search query
+  const filterFeedEntries = (entries: FeedEntry[], query: string) => {
+    if (!query) return entries;
+    const lowerQuery = query.toLowerCase();
+    return entries.filter(entry =>
+      (entry.title && entry.title.toLowerCase().includes(lowerQuery)) ||
+      (entry.source && entry.source.toLowerCase().includes(lowerQuery))
+    );
+  };
+
+  // Filter entries based on active category and search query
   const getFilteredEntries = () => {
-    if (activeCategory === "all") {
-      return feedEntries;
+    let filtered = feedEntries;
+    if (activeCategory !== "all") {
+      filtered = filtered.filter(entry => entry.category === activeCategory);
     }
-    return feedEntries.filter(entry => entry.category === activeCategory);
+    return filterFeedEntries(filtered, searchQuery);
   };
 
   // Handle checkbox selection
@@ -216,17 +228,28 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
         </div>
       ) : (
         <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
-          <TabsList className="mb-4">
-            {categories.map((category) => (
-              <TabsTrigger
-                key={category}
-                value={category}
-                className="capitalize"
-              >
-                {category}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="flex items-center justify-between mb-4">
+            <TabsList className="grow">
+              {categories.map((category) => (
+                <TabsTrigger
+                  key={category}
+                  value={category}
+                  className="capitalize"
+                >
+                  {category}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <div className="ml-4">
+              <input
+                type="text"
+                placeholder="Search articles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
 
           <TabsContent value={activeCategory} className="mt-0">
             <div className="space-y-4">
