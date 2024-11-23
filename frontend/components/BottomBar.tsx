@@ -21,9 +21,10 @@ interface Article {
 interface BottomBarProps {
   articleId: string;
   type: string;
+  audioFile?: string;
 }
 
-export default function BottomBar({ articleId, type }: BottomBarProps) {
+export default function BottomBar({ articleId, type, audioFile }: BottomBarProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showTldr, setShowTldr] = useState(false);
@@ -51,7 +52,9 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
         setArticle({
           ...data,
           id: articleId,
-          audio_file: `${settings.serverUrl}/v1/audio/${encodeURIComponent(data.audio_file)}`,
+          audio_file: audioFile 
+            ? `${settings.serverUrl}/v1/audio/${encodeURIComponent(audioFile)}` 
+            : `${settings.serverUrl}/v1/audio/${encodeURIComponent(data.audio_file)}`,
           type: type
         });
       } catch (error) {
@@ -60,7 +63,7 @@ export default function BottomBar({ articleId, type }: BottomBarProps) {
     }
 
     fetchArticle();
-  }, [articleId, type]);
+  }, [articleId, type, audioFile]);
 
   if (!article) {
     return null;
