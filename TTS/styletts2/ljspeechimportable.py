@@ -3,7 +3,7 @@ import os
 import phonemizer
 import torch
 from cached_path import cached_path
-
+from typing import Optional
 from TTS.espeak_util import set_espeak_library
 
 torch.manual_seed(0)
@@ -177,7 +177,9 @@ sampler = DiffusionSampler(
 )
 
 
-def inference(text, noise, diffusion_steps=5, embedding_scale=1):
+def inference(
+    text, noise, diffusion_steps=5, embedding_scale=1, speed: Optional[float] = 1.3
+):
     text = text.strip()
     text = text.replace('"', "")
     ps = global_phonemizer.phonemize([text])
@@ -216,7 +218,7 @@ def inference(text, noise, diffusion_steps=5, embedding_scale=1):
         x, _ = model.predictor.lstm(d)
         duration = model.predictor.duration_proj(x)
         duration = (
-            torch.sigmoid(duration).sum(axis=-1) / 1.3
+            torch.sigmoid(duration).sum(axis=-1) / speed
         )  # adjust speed by dividing through a number e.g. 1.25 = 25& faster
         pred_dur = torch.round(duration.squeeze()).clamp(min=1)
 
