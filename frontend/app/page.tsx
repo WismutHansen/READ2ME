@@ -206,7 +206,12 @@ export default function Home() {
 
       {/* Conditionally render the BottomBar based on the selectedArticleId */}
       {selectedArticleId && currentArticle && (
-        <BottomBar articleId={selectedArticleId} type={currentArticle.content_type || 'article'} key={selectedArticleId} />
+        <BottomBar 
+          articleId={selectedArticleId} 
+          type={currentArticle.content_type || 'article'} 
+          audioFile={currentArticle.audio_file}
+          key={selectedArticleId} 
+        />
       )}
     </main>
   );

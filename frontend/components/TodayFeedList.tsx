@@ -195,7 +195,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
   };
 
   return (
-    <div className="space-y-2 pt-8 pl-2">
+    <div className="space-y-2 pt-6 pl-2">
       <div className="flex flex-col md:flex-row justify-between items-center">
         <h2 className="text-xl font-bold">Today's News</h2>
         {selectedArticles.size > 0 && (
