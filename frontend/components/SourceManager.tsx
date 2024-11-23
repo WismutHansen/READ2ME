@@ -3,6 +3,14 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -13,9 +21,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const DEFAULT_CATEGORIES = [
+  "General",
+  "News",
+  "Technology",
+  "Business",
+  "Science",
+  "Health",
+  "Entertainment",
+  "Sports",
+  "Custom"
+];
+
 export default function SourceManager() {
   const [url, setUrl] = useState('');
   const [keywords, setKeywords] = useState('');
+  const [fetchAll, setFetchAll] = useState(false);
+  const [category, setCategory] = useState('General');
+  const [customCategory, setCustomCategory] = useState('');
   const [urlError, setUrlError] = useState('');
   const [dialogMessage, setDialogMessage] = useState<string | null>(null);
   const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
@@ -67,9 +90,10 @@ export default function SourceManager() {
         body: JSON.stringify({
           sources: [{
             url,
-            keywords: keywords.split(',')
+            keywords: fetchAll ? ["*"] : keywords.split(',')
               .map(k => k.trim())
-              .filter(k => k.length > 0)
+              .filter(k => k.length > 0),
+            category: category === 'Custom' ? customCategory : category
           }]
         }),
       });
@@ -78,6 +102,9 @@ export default function SourceManager() {
 
       setUrl('');
       setKeywords('');
+      setFetchAll(false);
+      setCategory('General');
+      setCustomCategory('');
       setDialogType('success');
       setDialogMessage('Source added successfully');
     } catch (error) {
@@ -123,12 +150,65 @@ export default function SourceManager() {
             </Alert>
           )}
         </div>
+        
+        <div className="space-y-2">
+          <div className="opacity-75">Select a category for this source</div>
+          <Select
+            value={category}
+            onValueChange={(value) => {
+              setCategory(value);
+              if (value !== 'Custom') {
+                setCustomCategory('');
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEFAULT_CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {category === 'Custom' && (
+            <Input
+              type="text"
+              placeholder="Enter custom category"
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value)}
+            />
+          )}
+        </div>
+
         <div className="opacity-75">You can specify keywords that are applied to the source (optional). New articles will then only be added if one or more keywords are found. This does not influence the RSS news feed on the main page.</div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="fetchAll"
+            checked={fetchAll}
+            onCheckedChange={(checked) => {
+              setFetchAll(checked === true);
+              if (checked) {
+                setKeywords('');
+              }
+            }}
+          />
+          <label
+            htmlFor="fetchAll"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Fetch all articles (ignore keywords)
+          </label>
+        </div>
         <Input
           type="text"
           placeholder="Keywords (comma-separated)"
           value={keywords}
           onChange={(e) => setKeywords(e.target.value)}
+          disabled={fetchAll}
         />
         <div className="flex space-x-2">
           <Button
