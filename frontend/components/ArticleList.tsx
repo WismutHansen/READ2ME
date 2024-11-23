@@ -128,29 +128,31 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
 
 
       <h2 className="text-xl font-bold mb-2">READ2ME Audio Library</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {articles.map((article) => (
           <div
             key={article.id}
             onClick={() => handleArticleClick(article)}
-            className="relative h-[150px] md:h-auto md:aspect-[21/9] cursor-pointer group overflow-hidden rounded-lg border"
+            className="relative h-[150px] md:min-h-32 md:gap-2 md:h-auto md:aspect-[21/9] cursor-pointer group overflow-hidden rounded-lg border"
           >
             <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
 
             <div className="absolute inset-0 bg-black bg-opacity-40 p-4 flex flex-col">
               <div className="flex-1 min-h-0">
-                <h3 className="text-white font-bold text-lg line-clamp-2 mb-auto">{article.title || 'Untitled'}</h3>
+                <h3 className="text-white font-bold text-lg line-clamp-2 mb-auto text-pretty">{article.title || 'Untitled'}</h3>
               </div>
               <div className="flex items-start justify-between mt-2 text-white text-sm">
-                <div className="flex flex-col min-w-0">
-                  <span className="whitespace-nowrap">{formatDate(article.date_published || article.date_added)}</span>
-                  {article.url && (
-                    <span className="opacity-75 truncate">{getSourceDomain(article.url)}</span>
-                  )}
+                <div className="flex cols-1">
+                  <div className="min-w-0">
+                    <div className="whitespace-wrap">{formatDate(article.date_published || article.date_added)}</div>
+                    {article.url && (
+                      <div className="opacity-75 truncate">{getSourceDomain(article.url)}</div>
+                    )}
+                  </div>
                 </div>
-                <span className="bg-black bg-opacity-50 px-2 py-1 rounded ml-2 flex-shrink-0">
+                <div className="bg-black bg-opacity-50 px-2 py-1 rounded flex-shrink-0">
                   {article.content_type}
-                </span>
+                </div>
               </div>
             </div>
           </div>
