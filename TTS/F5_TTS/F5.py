@@ -131,7 +131,7 @@ def infer(
     model,
     remove_silence,
     cross_fade_duration=0.15,
-    speed=1,
+    speed: float = 1.0,
 ):
     ref_audio, ref_text = preprocess_ref_audio_text(ref_audio_orig, ref_text)
 

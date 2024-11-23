@@ -52,8 +52,8 @@ export default function BottomBar({ articleId, type, audioFile }: BottomBarProps
         setArticle({
           ...data,
           id: articleId,
-          audio_file: audioFile 
-            ? `${settings.serverUrl}/v1/audio/${encodeURIComponent(audioFile)}` 
+          audio_file: audioFile
+            ? `${settings.serverUrl}/v1/audio/${encodeURIComponent(audioFile)}`
             : `${settings.serverUrl}/v1/audio/${encodeURIComponent(data.audio_file)}`,
           type: type
         });
@@ -79,12 +79,12 @@ export default function BottomBar({ articleId, type, audioFile }: BottomBarProps
           <div className="flex items-center gap-4">
             <AudioPlayer audioUrl={article.audio_file} />
             <div className="flex items-center space-x-2">
-              <Switch
-                id="tldr-mode"
-                checked={showTldr}
-                onCheckedChange={setShowTldr}
-              />
-              <Label htmlFor="tldr-mode">TL;DR</Label>
+              {/* <Switch */}
+              {/*   id="tldr-mode" */}
+              {/*   checked={showTldr} */}
+              {/*   onCheckedChange={setShowTldr} */}
+              {/* /> */}
+              {/* <Label htmlFor="tldr-mode">TL;DR</Label> */}
             </div>
             <Button
               variant="ghost"

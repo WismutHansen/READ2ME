@@ -27,6 +27,8 @@ from database.crud import (
     update_podcast,
     update_text,
 )
+
+from TTS.tts_utils import format_percentage
 from llm.LLM_calls import generate_title
 from TTS.F5_TTS.F5 import get_available_voices as f5_get_voices
 from TTS.F5_TTS.F5 import infer, load_transcript
@@ -39,16 +41,16 @@ from utils.env import setup_env
 from scipy.io import wavfile
 import queue
 import soundfile as sf
-#from TTS.fish_speech.tools.llama.generate import (
+# from TTS.fish_speech.tools.llama.generate import (
 #    GenerateRequest,
 #    GenerateResponse,
 #    WrappedGenerateResponse,
-#)
-#from TTS.fish_speech.tools.api import encode_reference, decode_vq_tokens
-#from TTS.fish_speech.tools.llama.generate import generate_long
-#from TTS.fish_speech.tools.vqgan.inference import (
+# )
+# from TTS.fish_speech.tools.api import encode_reference, decode_vq_tokens
+# from TTS.fish_speech.tools.llama.generate import generate_long
+# from TTS.fish_speech.tools.vqgan.inference import (
 #    load_model as load_decoder_model,
-#)
+# )
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +60,7 @@ output_dir, task_file, img_pth, sources_file = setup_env()
 class TTSEngine(ABC):
     @abstractmethod
     async def generate_audio(
-        self, text: str, voice_id: str
+        self, text: str, voice_id: str, speed: Optional[float]
     ) -> Tuple[AudioSegment, Optional[str]]:
         """
         Generate audio for given text using specified voice.
@@ -109,8 +111,8 @@ class TTSEngine(ABC):
         vtt_temp_file: Optional[str] = None,
         audio_type: Optional[str] = None,
         article_id: Optional[str] = None,
-        text_id: Optional[int] = None,
-        podcast_id: Optional[int] = None,
+        text_id: Optional[str] = None,
+        podcast_id: Optional[str] = None,
     ) -> str:
         """Export audio, convert to MP3 if needed, and add metadata"""
         try:
@@ -191,17 +193,22 @@ class EdgeTTSEngine(TTSEngine):
         ]
 
     async def generate_audio(
-        self, text: str, voice_id: str
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0
     ) -> Tuple[AudioSegment, Optional[str]]:
         # Create temp files but don't use context manager
         temp_audio = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
         temp_vtt = tempfile.NamedTemporaryFile(suffix=".vtt", delete=False)
-        
+
         try:
+            # Convert the floating point speed value to str e.g. "+10%"
+            if not speed:
+                speed = 1.0
+            rate = format_percentage(speed)
+
             # Create communicate object
-            communicate = Communicate(text, voice_id)
+            communicate = Communicate(text, voice_id, rate=rate)
             submaker = SubMaker()
-            
+
             # Generate audio and save to temp file
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
@@ -229,7 +236,7 @@ class EdgeTTSEngine(TTSEngine):
                 temp_vtt = None  # Don't delete the VTT file since we're using it
 
             return audio, vtt_file
-            
+
         finally:
             # Clean up temp files
             try:
@@ -238,7 +245,7 @@ class EdgeTTSEngine(TTSEngine):
                     os.unlink(temp_audio.name)
             except Exception as e:
                 logger.warning(f"Failed to delete temp audio file: {e}")
-                
+
             try:
                 if temp_vtt:  # Only delete if we didn't keep it as vtt_file
                     temp_vtt.close()
@@ -262,9 +269,11 @@ class F5TTSEngine(TTSEngine):
             raise
 
     async def generate_audio(
-        self, text: str, voice_id: str
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0
     ) -> Tuple[AudioSegment, None]:
         try:
+            if not speed:
+                speed = 1.0
             audio_path = os.path.join(self.voice_dir, voice_id)
             self.logger.info(f"Generating audio using voice: {audio_path}")
             ref_text = load_transcript(voice_id, self.voice_dir)
@@ -274,7 +283,7 @@ class F5TTSEngine(TTSEngine):
                 text,
                 model="F5-TTS",
                 remove_silence=True,
-                speed=1.1,
+                speed=speed,
             )
 
             sr, audio_data = audio
@@ -336,7 +345,7 @@ class PiperTTSEngine(TTSEngine):
         return voice_ids
 
     async def generate_audio(
-        self, text: str, voice_id: str
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0
     ) -> Tuple[AudioSegment, None]:
         try:
             # Determine the path to the Piper binary based on the operating system
@@ -390,7 +399,7 @@ class PiperTTSEngine(TTSEngine):
                 "-s",
                 "0",  # Example: using voice index 0 for multi-voice models
                 "--length_scale",
-                "1.0",  # Set length scale (speed of speech)
+                f"{speed}",  # Set length scale (speed of speech)
             ]
 
             process = subprocess.run(
@@ -427,7 +436,7 @@ class StyleTTS2Engine(TTSEngine):
         return ["styletts2_default_voice", "styletts2_dummy_voice"]
 
     async def generate_audio(
-        self, text: str, voice_id: str
+        self, text: str, voice_id: str, speed: Optional[float] = 1.3
     ) -> Tuple[AudioSegment, None]:
         from .styletts2.ljspeechimportable import inference
 
@@ -450,7 +459,11 @@ class StyleTTS2Engine(TTSEngine):
 
             for t in tqdm(texts, desc="Synthesizing with StyleTTS2"):
                 audio_segment = inference(
-                    t, noise, diffusion_steps=5, embedding_scale=1
+                    t,
+                    noise,
+                    diffusion_steps=5,
+                    embedding_scale=1,
+                    speed=speed if speed else 1.3,
                 )
                 if audio_segment is not None:
                     audios.append(audio_segment)
@@ -473,7 +486,7 @@ class StyleTTS2Engine(TTSEngine):
             self.logger.error(f"Error generating audio with StyleTTS2: {e}")
 
 
-#class FishTTSEngine(TTSEngine):
+# class FishTTSEngine(TTSEngine):
 #    def __init__(
 #        self,
 #        model_repo: str,

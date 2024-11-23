@@ -582,6 +582,33 @@ def get_author(author_id: str) -> Optional[Author]:
         return None
 
 
+def delete_audio(content_type: str, item_id: str) -> bool:
+    """Delete audio file entry from database for given content type and id.
+    
+    Args:
+        content_type: Type of content ("article", "text", or "podcast")
+        item_id: ID of the item
+        
+    Returns:
+        bool: True if update was successful, False otherwise
+    """
+    conn = create_connection()
+    cursor = conn.cursor()
+    
+    table_name = f"{content_type}s"  # articles, texts, podcasts
+    fields_to_update = ["audio_file = NULL"]
+    if content_type == "article":
+        fields_to_update.append("vtt_file = NULL")
+        
+    query = f"UPDATE {table_name} SET {', '.join(fields_to_update)} WHERE id = ?"
+    cursor.execute(query, (item_id,))
+    conn.commit()
+    success = cursor.rowcount > 0
+    conn.close()
+    
+    return success
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Create or update articles, podcasts, and texts in the database."

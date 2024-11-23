@@ -19,10 +19,10 @@ from tzlocal import get_localzone
 
 from database.crud import (
     fetch_available_media,
-    AvailableMedia,
     get_article,
     get_text,
     get_podcast,
+    delete_audio,
 )
 from database.models import create_or_update_tables
 from utils.env import setup_env
@@ -138,8 +138,17 @@ class TaskRemoveRequest(BaseModel):
 
 class BatchArticlesRequest(BaseModel):
     urls: List[str]
-    mode: Literal['full', 'summary', 'podcast']
+    mode: Literal["full", "summary", "podcast"]
     tts_engine: str = "edge"
+
+
+class RemoveAudioItem(BaseModel):
+    content_type: Literal["article", "text", "podcast"]
+    id: str
+
+
+class RemoveAudioRequest(BaseModel):
+    items: List[RemoveAudioItem]
 
 
 @asynccontextmanager
@@ -823,30 +832,97 @@ async def process_articles_batch(request: BatchArticlesRequest):
         results = []
         for url in request.urls:
             url_request = URLRequest(url=url, tts_engine=request.tts_engine)
-            
+
             try:
-                if request.mode == 'full':
+                if request.mode == "full":
                     await url_audio_full(url_request)
-                elif request.mode == 'summary':
+                elif request.mode == "summary":
                     await url_audio_summary(url_request)
-                elif request.mode == 'podcast':
+                elif request.mode == "podcast":
                     await url_podcast(url_request)
-                
+
                 results.append({"url": url, "status": "success"})
             except Exception as e:
                 results.append({"url": url, "status": "error", "error": str(e)})
                 logging.error(f"Error processing URL {url}: {str(e)}")
-        
+
         success_count = sum(1 for r in results if r["status"] == "success")
         error_count = len(results) - success_count
-        
+
         return {
             "message": f"Processed {len(results)} articles: {success_count} successful, {error_count} failed",
-            "results": results
+            "results": results,
         }
     except Exception as e:
         logging.error(f"Batch processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/v1/audio")
+async def remove_audio_files(request: RemoveAudioRequest):
+    removed_items = []
+    errors = []
+
+    for item in request.items:
+        try:
+            # Get the item from the appropriate table
+            if item.content_type == "article":
+                db_item = get_article(item.id)
+            elif item.content_type == "text":
+                db_item = get_text(item.id)
+            else:  # podcast
+                db_item = get_podcast(item.id)
+
+            if not db_item or "audio_file" not in db_item or not db_item["audio_file"]:
+                errors.append(
+                    {
+                        "id": item.id,
+                        "error": f"{item.content_type} not found or has no audio file",
+                    }
+                )
+                continue
+
+            audio_file_path = db_item["audio_file"]
+
+            # Get absolute path for file operations
+            abs_audio_file_path = os.path.abspath(audio_file_path)
+
+            logging.info(f"Attempting to delete audio file: {abs_audio_file_path}")
+            # Remove the audio file if it exists
+            if os.path.exists(abs_audio_file_path):
+                logging.info(f"Found audio file, deleting: {abs_audio_file_path}")
+                os.remove(abs_audio_file_path)
+
+                # Also remove the VTT file if it exists for articles
+                if item.content_type == "article":
+                    vtt_file_path = abs_audio_file_path.replace(".mp3", ".vtt")
+                    if os.path.exists(vtt_file_path):
+                        logging.info(f"Found VTT file, deleting: {vtt_file_path}")
+                        os.remove(vtt_file_path)
+            else:
+                logging.warning(f"Audio file not found at path: {abs_audio_file_path}")
+
+            # Update database to remove audio file reference
+            if delete_audio(item.content_type, item.id):
+                removed_items.append({"id": item.id, "content_type": item.content_type})
+                logging.info(
+                    f"Successfully processed deletion for {item.content_type} with id {item.id}"
+                )
+            else:
+                errors.append(
+                    {
+                        "id": item.id,
+                        "error": f"Failed to update {item.content_type} in database",
+                    }
+                )
+
+        except Exception as e:
+            logging.error(
+                f"Error deleting {item.content_type} with id {item.id}: {str(e)}"
+            )
+            errors.append({"id": item.id, "error": str(e)})
+
+    return {"removed": removed_items, "errors": errors}
 
 
 if __name__ == "__main__":
