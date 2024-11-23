@@ -240,12 +240,12 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
       ) : (
         <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
           <div className="flex flex-col md:flex-row items-center justify-center mb-2">
-            <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow dark:bg-slate-700 gap-1 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto p-1">
               {categories.map((category) => (
                 <TabsTrigger
                   key={category}
                   value={category}
-                  className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900"
+                  className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
                 >
                   {category}
                 </TabsTrigger>
