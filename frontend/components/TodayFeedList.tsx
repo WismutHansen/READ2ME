@@ -249,7 +249,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="w-full md:ml-2">
+            <div className="w-full md:w-56 md:ml-2">
               <input
                 type="text"
                 placeholder="Search articles..."
@@ -281,7 +281,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                       {entry.source} • {new Date(entry.published).toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex flex-col md:flex-row gap-2">
+                  <div className="flex flex-col md:flex-row md:max-w-52 gap-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button className="w-20" variant="outline" size="sm">
