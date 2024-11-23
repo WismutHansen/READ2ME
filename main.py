@@ -122,6 +122,7 @@ class TextRequest(BaseModel):
 class Source(BaseModel):
     url: str
     keywords: List[str]
+    category: str = "General"
 
 
 class SourceUpdate(BaseModel):
@@ -381,19 +382,21 @@ async def fetch_sources(request: Request):
 
 @app.post("/v1/sources/add")
 async def api_update_sources(update: SourceUpdate):
-    try:
-        sources = (
-            [
-                {"url": source.url, "keywords": source.keywords}
-                for source in update.sources
-            ]
-            if update.sources
-            else None
-        )
-        updated_data = update_sources(update.global_keywords, sources)
-        return {"message": "Sources updated successfully", "data": updated_data}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Update sources and optionally refresh the articles cache if new RSS feeds were added."""
+    # Update the sources and get back if we need to refresh
+    data, needs_refresh = update_sources(
+        global_keywords=update.global_keywords,
+        sources=update.sources,
+    )
+    
+    # If we added new RSS feeds, refresh the cache
+    if needs_refresh:
+        try:
+            await refresh_articles_cache()
+        except Exception as e:
+            logging.error(f"Error refreshing articles cache: {e}")
+    
+    return data
 
 
 @app.get("/v1/sources/get")

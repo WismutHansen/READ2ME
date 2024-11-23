@@ -3,34 +3,34 @@
 @tailwind components;
 @tailwind utilities;
 @layer base {
-  :root {
-    --background: 50 50% 95%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 50 20% 95%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --button-outline-color: rgba(0, 0, 0, 0.2);
-  }
+:root {
+  --background: 220 100% 98%; /* Light pastel background */
+  --foreground: 210 10% 23%; /* Dark gray for text */
+  --card: 0 0% 100%; /* White card background */
+  --card-foreground: 210 10% 23%; /* Same as text for consistency */
+  --popover: 220 80% 96%; /* Slightly tinted background for popovers */
+  --popover-foreground: 210 10% 23%;
+  --primary: 204 70% 53%; /* Vibrant blue */
+  --primary-foreground: 210 40% 98%; /* Light text on blue */
+  --secondary: 34 77% 89%; /* Soft green */
+  --secondary-foreground: 210 10% 23%; /* Dark gray text on green */
+  --muted: 210 33% 95%; /* Light gray */
+  --muted-foreground: 210 10% 46%; /* Medium gray */
+  --accent: 34 77% 89%; /* Reuse the green as an accent */
+  --accent-foreground: 210 10% 23%; /* Dark gray text on green */
+  --destructive: 0 84% 63%; /* Bright red for destructive actions */
+  --destructive-foreground: 210 40% 98%; /* White text on red */
+  --border: 210 16% 86%; /* Light gray border */
+  --input: 210 16% 86%; /* Match input background to borders */
+  --ring: 204 70% 53%; /* Blue ring for focus/hover */
+  --radius: 0.5rem; /* Keep the radius consistent */
+  --chart-1: 200 80% 55%; /* Deep blue for charts */
+  --chart-2: 160 60% 45%; /* Teal green */
+  --chart-3: 50 70% 65%; /* Yellow */
+  --chart-4: 10 85% 65%; /* Bright red */
+  --chart-5: 280 65% 60%; /* Purple */
+  --button-outline-color: rgba(0, 0, 0, 0.15); /* Subtle outline for buttons */
+}
 
   .dark {
     --background: 0 0% 0%;

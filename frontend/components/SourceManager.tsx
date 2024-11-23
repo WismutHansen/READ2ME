@@ -106,6 +106,7 @@ export default function SourceManager() {
   return (
     <div className="space-y-4">
       <h3 className="text">Add sources by url</h3>
+      <div className="opacity-75">You can add a source for automatic fetching of new articles. If an RSS feed is found at the url, the source is also added to the Feed List. Sources are periodically scanned for new content and articles are automatically added to the audio library.</div>
       <div className="flex flex-col space-y-4">
         <div className="space-y-2">
           <Input
@@ -122,7 +123,7 @@ export default function SourceManager() {
             </Alert>
           )}
         </div>
-        <h3 className="text">You can specify keywords that are applied to the source (optional)</h3>
+        <div className="opacity-75">You can specify keywords that are applied to the source (optional). New articles will then only be added if one or more keywords are found. This does not influence the RSS news feed on the main page.</div>
         <Input
           type="text"
           placeholder="Keywords (comma-separated)"
