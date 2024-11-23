@@ -10,7 +10,7 @@ interface Article {
   id: string;
   title: string;
   content: string;
-  tldr?: string;
+  tl_dr?: string;
   audio_file: string;
   type: string;
   content_type?: string;
@@ -19,6 +19,7 @@ interface Article {
 export default function ArticlePage({ params }: { params: { id: string; type: string } }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [showTldr, setShowTldr] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchArticle();
@@ -26,31 +27,47 @@ export default function ArticlePage({ params }: { params: { id: string; type: st
 
   const fetchArticle = async () => {
     try {
+      setIsLoading(true);
       // Determine the URL based on the content type
       const endpoint = params.type === 'podcast'
         ? `/api/article/${params.id}`
         : `/api/text/${params.id}`;
 
+      console.log('Fetching from endpoint:', endpoint);
       const response = await fetch(endpoint);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const data = await response.json();
-      console.log('Fetched article data:', data); // Debug log
-      setArticle(data); // Ensure type is set
+      console.log('Raw API Response:', data);
+      console.log('TL;DR content:', data.tl_dr);
+      
+      // Reset TLDR state when loading new article
+      setShowTldr(false);
+      setArticle(data);
     } catch (error) {
       console.error('Error fetching article:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (!article) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  const shouldShowToggle = (article.type === 'article' || article.type === 'text') && article.tldr;
-  const content = showTldr && article.tldr ? article.tldr : article.content;
+  if (!article) {
+    return <div>Article not found</div>;
+  }
 
-  console.log('Article:', article); // Debug log
-  console.log('Should show toggle:', shouldShowToggle); // Debug log
+  console.log('Current article state:', article);
+  console.log('TL;DR available:', Boolean(article.tl_dr));
+  console.log('Show TLDR state:', showTldr);
+
+  const shouldShowToggle = (article.type === 'article' || article.type === 'text') && Boolean(article.tl_dr);
+  const content = showTldr && article.tl_dr ? article.tl_dr : article.content;
+
+  console.log('Should show toggle:', shouldShowToggle);
+  console.log('Content length being displayed:', content?.length);
 
   return (
     <div className="container mx-auto px-4 py-8 relative min-h-screen pb-24">
@@ -72,7 +89,10 @@ export default function ArticlePage({ params }: { params: { id: string; type: st
                 <Switch
                   id="tldr-mode"
                   checked={showTldr}
-                  onCheckedChange={setShowTldr}
+                  onCheckedChange={(checked) => {
+                    console.log('Switch toggled to:', checked);
+                    setShowTldr(checked);
+                  }}
                 />
               </div>
             )}

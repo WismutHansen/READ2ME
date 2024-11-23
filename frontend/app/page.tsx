@@ -76,11 +76,11 @@ export default function Home() {
         const response = await fetch(`${serverUrl}/v1/available-media`, {
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch articles');
         }
-        
+
         const data = await response.json();
         setArticles(data);
       } catch (error) {
@@ -97,11 +97,11 @@ export default function Home() {
         const response = await fetch(`${serverUrl}/v1/feeds/get_todays_articles`, {
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch feed entries');
         }
-        
+
         const data = await response.json();
         if (data.articles) {
           setFeedEntries(data.articles);
@@ -151,25 +151,28 @@ export default function Home() {
           </a>
         </div>
         <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-4">
-          <TaskQueueStatus refreshArticles={refreshArticles} />
-          <Button
-            variant="outline"
-            onClick={() => setSourceManagerOpen(true)}
-          >
-            Manage Sources
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setArticleAdderOpen(true)}
-            className={!hasContent ? 'animate-breathing-outline' : ''}
-          >
-            Add Content
-          </Button>
-          <SettingsManager variant="outline" />
-          <ModeToggle />
+          <div className="flex items-center sm:justify-end gap-2 sm:gap-4">
+            <TaskQueueStatus refreshArticles={refreshArticles} />
+            <Button
+              variant="outline"
+              onClick={() => setSourceManagerOpen(true)}
+            >
+              Manage Sources
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setArticleAdderOpen(true)}
+              className={!hasContent ? 'animate-breathing-outline' : ''}
+            >
+              Add Content
+            </Button>
+          </div>
+          <div className="flex items-center sm:justify-end gap-2 sm:gap-4">
+            <SettingsManager variant="outline" />
+            <ModeToggle />
+          </div>
         </div>
       </div>
-
       <Dialog open={sourceManagerOpen} onOpenChange={setSourceManagerOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
@@ -189,16 +192,16 @@ export default function Home() {
       </Dialog>
 
       {/* Pass handleSelectArticle and content state handler to ArticleList */}
-      <ArticleList 
-        ref={articleListRef} 
+      <ArticleList
+        ref={articleListRef}
         onSelectArticle={handleSelectArticle}
         onContentStateChange={handleContentStateChange}
       />
 
       {/* Display Today's Feed Entries */}
-      <TodayFeedList 
+      <TodayFeedList
         onSelectArticle={handleSelectArticle}
-        feedEntries={feedEntries} 
+        feedEntries={feedEntries}
       />
 
       {/* Conditionally render the BottomBar based on the selectedArticleId */}

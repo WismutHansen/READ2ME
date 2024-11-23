@@ -131,7 +131,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
           <div
             key={article.id}
             onClick={() => handleArticleClick(article)}
-            className="relative h-[150px] md:h-auto md:aspect-video cursor-pointer group overflow-hidden rounded-lg border"
+            className="relative h-[150px] md:h-auto md:aspect-[21/9] cursor-pointer group overflow-hidden rounded-lg border"
           >
             <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
 

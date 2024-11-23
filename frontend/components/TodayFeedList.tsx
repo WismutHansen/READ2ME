@@ -195,8 +195,8 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
   };
 
   return (
-    <div className="space-y-4 pt-8 pl-2">
-      <div className="flex justify-between items-center">
+    <div className="space-y-2 pt-8 pl-2">
+      <div className="flex flex-col md:flex-row justify-between items-center">
         <h2 className="text-xl font-bold">Today's News</h2>
         {selectedArticles.size > 0 && (
           <DropdownMenu>
@@ -237,35 +237,35 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
         </div>
       ) : (
         <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
-          <div className="flex items-center justify-between mb-4">
-            <TabsList className="grow">
+          <div className="flex flex-col md:flex-row items-center justify-center mb-2">
+            <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow dark:bg-slate-700 gap-1 h-auto p-1">
               {categories.map((category) => (
                 <TabsTrigger
                   key={category}
                   value={category}
-                  className="capitalize"
+                  className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900"
                 >
                   {category}
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="ml-4">
+            <div className="w-full md:ml-2">
               <input
                 type="text"
                 placeholder="Search articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"
+                className="w-full grow mt-2 md:mt-0 px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
               />
             </div>
           </div>
 
           <TabsContent value={activeCategory} className="mt-0">
-            <div className="space-y-4">
+            <div className="space-y-2">
               {getFilteredEntries().map((entry, index) => (
                 <div
                   key={index}
-                  className="flex items-center p-4 bg-card rounded-lg shadow-sm"
+                  className="flex items-center p-2 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
                 >
                   <Checkbox
                     id={`article-${index}`}
@@ -281,11 +281,11 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                       {entry.source} • {new Date(entry.published).toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col md:flex-row gap-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          Add to Tasks
+                        <Button className="w-20" variant="outline" size="sm">
+                          read2me
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[280px]">
@@ -313,11 +313,12 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Button
+                      className='w-20'
                       variant="outline"
                       size="sm"
                       onClick={() => window.open(entry.link, '_blank')}
                     >
-                      View Source
+                      Source
                     </Button>
                   </div>
                 </div>
