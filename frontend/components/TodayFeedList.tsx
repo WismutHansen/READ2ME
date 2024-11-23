@@ -79,6 +79,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
   const processSelectedArticles = async (mode: 'full' | 'summary' | 'podcast') => {
     try {
       const links = Array.from(selectedArticles);
+      const { serverUrl, ttsEngine } = getSettings();
       const response = await fetch(`${serverUrl}/v1/articles/batch`, {
         method: 'POST',
         credentials: 'include',
@@ -87,7 +88,8 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
         },
         body: JSON.stringify({
           urls: links,
-          mode: mode
+          mode: mode,
+          tts_engine: ttsEngine,
         })
       });
 
