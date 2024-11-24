@@ -52,7 +52,7 @@ Output/
 /TTS/styletts2/Utils/ASR/epoch_00080.pth
 # RVC models
 /TTS/rvc/Models/Female_1/*
-/utils/rvc/Models/Male_1/*
+/TTS/rvc/Models/Male_1/*
 # Podcast Output
 /utils/podcast/*.mp3
 /utils/podcast/*.wav
