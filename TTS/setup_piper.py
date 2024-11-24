@@ -57,9 +57,9 @@ def download_voice_files():
             "model_card_url": "https://huggingface.co/rhasspy/piper-voices/raw/v1.0.0/en/en_US/hfc_female/medium/MODEL_CARD"
         },
         "default_en_US_male_voice": {
-            "url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech_low/medium/en_US-ljspeech_low-medium.onnx",
-            "config_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech_low/medium/en_US-ljspeech_low-medium.onnx.json",
-            "model_card_url": "https://huggingface.co/rhasspy/piper-voices/raw/v1.0.0/en/en_US/ljspeech_low/medium/MODEL_CARD"
+            "url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/high/en_US-ryan-high.onnx",
+            "config_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/high/en_US-ryan-high.onnx.json",
+            "model_card_url": "https://huggingface.co/rhasspy/piper-voices/raw/v1.0.0/en/en_US/ryan/high/MODEL_CARD"
         }
     }
     

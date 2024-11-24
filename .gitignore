@@ -42,8 +42,6 @@ Output/
 # Ignore everything in the piper_tts directory
 /TTS/piper_tts/*
 /utils/whisper/*
-# But don't ignore the voices folder
-!/TTS/piper_tts/voices/
 
 # Model folder in utils/styletts2/Models
 /TTS/styletts2/Models/
