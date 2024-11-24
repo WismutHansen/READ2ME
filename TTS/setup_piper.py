@@ -44,6 +44,50 @@ def extract_zip(file_path, destination_dir):
     print("Extraction complete.")
 
 
+def download_voice_files():
+    """Download and set up the Piper voice files if they don't exist."""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    voices_dir = os.path.join(script_dir, "piper_tts", "voices")
+    
+    # Define voice configurations
+    voices = {
+        "default_en_US_female_voice": {
+            "url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx",
+            "config_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx.json",
+            "model_card_url": "https://huggingface.co/rhasspy/piper-voices/raw/v1.0.0/en/en_US/hfc_female/medium/MODEL_CARD"
+        },
+        "default_en_US_male_voice": {
+            "url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech_low/medium/en_US-ljspeech_low-medium.onnx",
+            "config_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech_low/medium/en_US-ljspeech_low-medium.onnx.json",
+            "model_card_url": "https://huggingface.co/rhasspy/piper-voices/raw/v1.0.0/en/en_US/ljspeech_low/medium/MODEL_CARD"
+        }
+    }
+    
+    for voice_name, voice_data in voices.items():
+        voice_dir = os.path.join(voices_dir, voice_name)
+        os.makedirs(voice_dir, exist_ok=True)
+        
+        # Define file paths
+        onnx_path = os.path.join(voice_dir, f"{voice_name}.onnx")
+        config_path = os.path.join(voice_dir, f"{voice_name}.onnx.json")
+        model_card_path = os.path.join(voice_dir, "MODEL_CARD")
+        
+        # Download ONNX model if it doesn't exist
+        if not os.path.exists(onnx_path):
+            print(f"\nDownloading {voice_name} ONNX model...")
+            download_file(voice_data["url"], onnx_path)
+        
+        # Download config if it doesn't exist
+        if not os.path.exists(config_path):
+            print(f"\nDownloading {voice_name} config...")
+            download_file(voice_data["config_url"], config_path)
+        
+        # Download model card if it doesn't exist
+        if not os.path.exists(model_card_path):
+            print(f"\nDownloading {voice_name} model card...")
+            download_file(voice_data["model_card_url"], model_card_path)
+
+
 def setup_piper_tts():
     # Determine the operating system and machine architecture
     operating_system = platform.system()
@@ -167,13 +211,16 @@ def setup_piper_tts():
                 check=True,
             )
 
+    # Download and set up voice files
+    download_voice_files()
+    
+    print("\nPiper TTS setup complete!")
+
     # Clean up temporary files and directories
     shutil.rmtree(extraction_dir)
     os.remove(binary_path)
     if additional_file and additional_path:
         os.remove(additional_path)
-
-    print("Piper TTS setup completed successfully.")
 
 
 if __name__ == "__main__":

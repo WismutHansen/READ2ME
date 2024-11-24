@@ -5,6 +5,8 @@ import torch
 from cached_path import cached_path
 from typing import Optional
 from TTS.espeak_util import set_espeak_library
+import requests
+from pathlib import Path
 
 torch.manual_seed(0)
 torch.backends.cudnn.benchmark = False
@@ -37,6 +39,29 @@ from .models import *
 from .text_utils import TextCleaner
 from .utils import *
 
+def download_asr_model():
+    """Download the ASR model if it doesn't exist."""
+    asr_model_path = Path(module_dir) / "utils" / "ASR" / "epoch_00080.pth"
+    if not asr_model_path.exists():
+        print("Downloading ASR model...")
+        os.makedirs(asr_model_path.parent, exist_ok=True)
+        
+        # GitHub raw content URL for the model file
+        url = "https://huggingface.co/spaces/styletts2/StyleTTS2/resolve/main/Utils/ASR/epoch_00080.pth"
+        
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            
+            with open(asr_model_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            print("ASR model downloaded successfully")
+        except Exception as e:
+            print(f"Error downloading ASR model: {e}")
+            raise
+
 set_espeak_library()
 textclenaer = TextCleaner()
 
@@ -49,6 +74,9 @@ module_file = inspect.getfile(inspect.currentframe())
 
 # Get the directory of the current module
 module_dir = os.path.dirname(module_file)
+
+# Check and download ASR model
+download_asr_model()
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
