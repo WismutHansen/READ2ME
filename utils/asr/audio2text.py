@@ -1,4 +1,3 @@
-import re
 import torch
 from transformers import pipeline
 

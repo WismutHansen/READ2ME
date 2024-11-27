@@ -74,6 +74,7 @@ export default function SettingsManager({ variant = "outline" }: SettingsManager
                 <SelectItem value="F5">F5 (local)</SelectItem>
                 <SelectItem value="styletts2">styleTTS 2 (local)</SelectItem>
                 <SelectItem value="piper">piper (local)</SelectItem>
+                <SelectItem value="OuteTTS">OuteTTS (local)</SelectItem>
               </SelectContent>
             </Select>
           </div>

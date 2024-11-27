@@ -14,6 +14,7 @@ from typing import List, Optional, Tuple, Generator
 from huggingface_hub import snapshot_download
 import numpy as np
 import torch
+import outetts
 from edge_tts import Communicate, SubMaker, VoicesManager
 from pydub import AudioSegment
 from scipy.io.wavfile import write
@@ -28,10 +29,9 @@ from database.crud import (
     update_text,
 )
 
-from TTS.tts_utils import format_percentage
+from TTS.tts_utils import format_percentage, load_transcript, get_voices_wav
 from llm.LLM_calls import generate_title
-from TTS.F5_TTS.F5 import get_available_voices as f5_get_voices
-from TTS.F5_TTS.F5 import infer, load_transcript
+from TTS.F5_TTS.F5 import infer
 from utils.common_utils import (
     add_mp3_tags,
     get_output_files,
@@ -193,7 +193,7 @@ class EdgeTTSEngine(TTSEngine):
         ]
 
     async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+        self, text: str, voice_id: str, speed: Optional[float] = 1.1
     ) -> Tuple[AudioSegment, Optional[str]]:
         # Create temp files but don't use context manager
         temp_audio = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
@@ -202,7 +202,7 @@ class EdgeTTSEngine(TTSEngine):
         try:
             # Convert the floating point speed value to str e.g. "+10%"
             if not speed:
-                speed = 1.0
+                speed = 1.1
             rate = format_percentage(speed)
 
             # Create communicate object
@@ -261,7 +261,7 @@ class F5TTSEngine(TTSEngine):
 
     async def get_available_voices(self) -> List[str]:
         try:
-            voices = f5_get_voices(self.voice_dir)
+            voices = get_voices_wav(self.voice_dir)
             self.logger.info(f"Found {len(voices)} voices in {self.voice_dir}")
             return voices
         except Exception as e:
@@ -269,11 +269,11 @@ class F5TTSEngine(TTSEngine):
             raise
 
     async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+        self, text: str, voice_id: str, speed: Optional[float] = 1.1
     ) -> Tuple[AudioSegment, None]:
         try:
             if not speed:
-                speed = 1.0
+                speed = 1.1
             audio_path = os.path.join(self.voice_dir, voice_id)
             self.logger.info(f"Generating audio using voice: {audio_path}")
             ref_text = load_transcript(voice_id, self.voice_dir)
@@ -345,7 +345,7 @@ class PiperTTSEngine(TTSEngine):
         return voice_ids
 
     async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+        self, text: str, voice_id: str, speed: Optional[float] = 1.1
     ) -> Tuple[AudioSegment, None]:
         try:
             # Determine the path to the Piper binary based on the operating system
@@ -484,6 +484,86 @@ class StyleTTS2Engine(TTSEngine):
             return audio, None
         except Exception as e:
             self.logger.error(f"Error generating audio with StyleTTS2: {e}")
+
+
+class OuteTTSEngine(TTSEngine):
+    def __init__(self, voice_dir: str, model_path: str, language: str = "en"):
+        """
+        Initialize the OuteTTSEngine with the specified voice directory,
+        model path, and language.
+        """
+        self.voice_dir = voice_dir
+        self.model_path = model_path
+        self.language = language
+        self.interface = None
+        self.logger = logging.getLogger(__name__)
+        self._initialize_interface()
+
+    def _initialize_interface(self):
+        """
+        Initialize the OuteTTS interface with the model configuration.
+        """
+        model_config = outetts.HFModelConfig_v1(
+            model_path=self.model_path,
+            language=self.language,
+            # dtype=torch.bfloat16,
+            # additional_model_config={"attn_implementation": "flash_attention_2"},
+        )
+        self.interface = outetts.InterfaceHF(model_version="0.2", cfg=model_config)
+
+    async def get_available_voices(self) -> List[str]:
+        try:
+            voices = get_voices_wav(self.voice_dir)
+            self.logger.info(f"Found {len(voices)} voices in {self.voice_dir}")
+            return voices
+        except Exception as e:
+            self.logger.error(f"Error getting available voices: {e}")
+            raise
+
+    async def generate_audio(
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+    ) -> Tuple[AudioSegment, None]:
+        """
+        Generate audio using a reference `.wav` file for the given voice ID.
+        """
+        try:
+            if not text.strip():
+                raise ValueError("Text input is empty.")
+
+            # Path to the reference `.wav` file
+            audio_path = os.path.join(self.voice_dir, voice_id)
+            if not os.path.exists(audio_path):
+                raise FileNotFoundError(
+                    f"Reference audio file '{audio_path}' not found."
+                )
+
+            # Load reference audio and create speaker profile
+            speaker = self.interface.create_speaker(
+                audio_path=audio_path,
+                transcript=load_transcript(voice_id, self.voice_dir),
+            )
+
+            # Generate audio
+            output = self.interface.generate(
+                text=text,
+                temperature=0.1,
+                repetition_penalty=1.1,
+                max_length=4096,
+                speaker=speaker,
+            )
+
+            # Save the synthesized speech to a temporary file
+            with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+                output.save(temp_audio.name)
+
+            # Load the audio into an AudioSegment
+            audio = AudioSegment.from_file(temp_audio.name, format="wav")
+            self.logger.info(f"Generated audio for voice_id: {voice_id}")
+            return audio, None
+
+        except Exception as e:
+            self.logger.error(f"Error generating audio with OuteTTS: {e}")
+            raise
 
 
 # class FishTTSEngine(TTSEngine):

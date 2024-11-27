@@ -14,7 +14,13 @@ from database.crud import (
     update_podcast,
 )
 from llm.LLM_calls import podcast, story, generate_title, tldr
-from TTS.tts_engines import EdgeTTSEngine, F5TTSEngine, PiperTTSEngine, StyleTTS2Engine
+from TTS.tts_engines import (
+    EdgeTTSEngine,
+    F5TTSEngine,
+    PiperTTSEngine,
+    StyleTTS2Engine,
+    OuteTTSEngine,
+)
 from TTS.tts_functions import PodcastGenerator
 from utils.env import setup_env
 from utils.history_handler import add_to_history, check_history
@@ -56,6 +62,12 @@ def process_tasks(stop_event):
                         tts_engine = EdgeTTSEngine()
                     elif tts_engine == "F5":
                         tts_engine = F5TTSEngine("TTS/voices/")
+                    elif tts_engine == "OuteTTS":
+                        tts_engine = OuteTTSEngine(
+                            voice_dir="TTS/voices/",
+                            model_path="OuteAI/OuteTTS-0.2-500M",
+                            language="en",
+                        )
                     else:
                         tts_engine = StyleTTS2Engine()
 
