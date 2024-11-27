@@ -65,8 +65,9 @@ def process_tasks(stop_event):
                     elif tts_engine == "OuteTTS":
                         tts_engine = OuteTTSEngine(
                             voice_dir="TTS/voices/",
-                            model_path="OuteAI/OuteTTS-0.2-500M",
+                            model_path="OuteAI/OuteTTS-0.2-500M-GGUF",
                             language="en",
+                            n_gpu_layers=-1,
                         )
                     else:
                         tts_engine = StyleTTS2Engine()

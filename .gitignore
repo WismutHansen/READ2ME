@@ -42,7 +42,7 @@ Output/
 # Ignore everything in the piper_tts directory
 /TTS/piper_tts/*
 /utils/whisper/*
-
+/TTS/OuteTTS/models/*
 # Model folder in utils/styletts2/Models
 /TTS/styletts2/Models/
 /TTS/styletts2/Utils/ASR/*.pth

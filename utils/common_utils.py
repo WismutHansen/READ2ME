@@ -1,5 +1,7 @@
 import os
 import re
+import sys
+import subprocess
 import datetime
 from mutagen.id3 import ID3, TIT2, TALB, TPE1, TCON, TRCK, APIC
 from mutagen.mp3 import MP3
@@ -9,11 +11,141 @@ import logging
 from num2words import num2words
 from typing import Optional
 
+
+def download_file(url, save_path):
+    # Install requests library within the virtual environment
+    subprocess.run([sys.executable, "-m", "pip", "install", "requests"], check=True)
+    import requests
+
+    print(f"Downloading from {url}")
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        total_length = int(r.headers.get("content-length", 0))
+        dl = 0
+        with open(save_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    dl += len(chunk)
+                    f.write(chunk)
+                    done = int(50 * dl / total_length)
+                    print(
+                        f"\r[{'=' * done}{' ' * (50-done)}] {dl/total_length*100:.2f}%",
+                        end="",
+                    )
+    print("\nDownload complete.")
+
+
+def preprocess_text(text: str, min_chars: int = 50) -> list:
+    """
+    Preprocess text to split into sentences while handling edge cases like abbreviations and domain names.
+    Combines short sentences to ensure each section has at least `min_chars` characters.
+    """
+    # Replace " | " with "."
+    text = text.replace(" | ", ". ")
+
+    # Add a period if a sentence lacks punctuation before a newline
+    text = re.sub(r"(?<![.?!])\n", ".\n", text)
+
+    # Comprehensive list of common abbreviations
+    abbreviations = {
+        "U.S.",
+        "U.K.",
+        "e.g.",
+        "i.e.",
+        "etc.",
+        "Dr.",
+        "Mr.",
+        "Mrs.",
+        "Ms.",
+        "Prof.",
+        "Sr.",
+        "Jr.",
+        "Inc.",
+        "Ltd.",
+        "Corp.",
+        "Co.",
+        "St.",
+        "Mt.",
+        "Gov.",
+        "Gen.",
+        "Col.",
+        "Capt.",
+        "Sgt.",
+        "Lt.",
+        "Ave.",
+        "Dept.",
+        "Est.",
+        "Fig.",
+        "Univ.",
+        "Assn.",
+        "Bros.",
+        "Hosp.",
+        "No.",
+        "Rep.",
+        "Sen.",
+        "Hon.",
+        "Rev.",
+        "Messrs.",
+        "Mmes.",
+        "Pres.",
+        "Supt.",
+        "Treas.",
+        "Adm.",
+        "Cmdr.",
+        "Attys.",
+        "Pvt.",
+        "Maj.",
+        "Brig.",
+        "Ft.",
+        "Cpl.",
+        "Twp.",
+        "Ph.D.",
+        "M.D.",
+        "D.D.S.",
+        "R.N.",
+    }
+
+    # Enhanced domain pattern
+    domain_pattern = re.compile(
+        r"\b(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|gov|edu|io|co|uk|us|de|fr|es|ru|jp|cn|info|biz|me|tv|ly)\b"
+    )
+
+    # Tokenize text into potential sentences
+    tokens = re.split(r"(?<=[.?!])\s+", text.strip())
+
+    # Rejoin tokens where splits incorrectly occurred (e.g., after abbreviations or domains)
+    sentences = []
+    for token in tokens:
+        if sentences and (token in abbreviations or domain_pattern.match(token)):
+            sentences[-1] += f" {token}"
+        else:
+            sentences.append(token)
+
+    # Combine short sentences
+    combined_sentences = []
+    buffer = ""
+
+    for sentence in sentences:
+        if len(buffer) + len(sentence) + 1 < min_chars:  # Add 1 for the space
+            buffer += f" {sentence}" if buffer else sentence
+        else:
+            if buffer:
+                combined_sentences.append(buffer.strip())
+            buffer = sentence
+
+    if buffer:  # Add any remaining text in the buffer
+        combined_sentences.append(buffer.strip())
+
+    # Remove empty strings and trim whitespace
+    return [sentence.strip() for sentence in combined_sentences if sentence.strip()]
+
+
 def sanitize_filename(filename):
     """
     Remove or replace invalid characters in filenames.
     """
-    return re.sub(r'[<>:"/\\|?*]', '', filename).strip()
+    return re.sub(r'[<>:"/\\|?*]', "", filename).strip()
+
 
 def write_markdown_file(md_file_path, text, url=None):
     with open(md_file_path, "w", encoding="utf-8") as md_file_handle:

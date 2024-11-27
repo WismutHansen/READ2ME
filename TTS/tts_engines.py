@@ -15,6 +15,7 @@ from huggingface_hub import snapshot_download
 import numpy as np
 import torch
 import outetts
+from utils.common_utils import download_file, preprocess_text
 from edge_tts import Communicate, SubMaker, VoicesManager
 from pydub import AudioSegment
 from scipy.io.wavfile import write
@@ -487,7 +488,9 @@ class StyleTTS2Engine(TTSEngine):
 
 
 class OuteTTSEngine(TTSEngine):
-    def __init__(self, voice_dir: str, model_path: str, language: str = "en"):
+    def __init__(
+        self, voice_dir: str, model_path: str, language: str = "en", n_gpu_layers=0
+    ):
         """
         Initialize the OuteTTSEngine with the specified voice directory,
         model path, and language.
@@ -495,6 +498,7 @@ class OuteTTSEngine(TTSEngine):
         self.voice_dir = voice_dir
         self.model_path = model_path
         self.language = language
+        self.n_gpu_layers = n_gpu_layers
         self.interface = None
         self.logger = logging.getLogger(__name__)
         self._initialize_interface()
@@ -503,13 +507,33 @@ class OuteTTSEngine(TTSEngine):
         """
         Initialize the OuteTTS interface with the model configuration.
         """
-        model_config = outetts.HFModelConfig_v1(
-            model_path=self.model_path,
+        directory = "TTS/OuteTTS/models/"
+        file_extension = ".gguf"
+        file_url = "https://huggingface.co/OuteAI/OuteTTS-0.2-500M-GGUF/resolve/main/OuteTTS-0.2-500M-Q4_K_S.gguf"
+        destination_file = None
+
+        # Find existing .gguf file
+        for file in os.listdir(directory):
+            if file.endswith(file_extension):
+                destination_file = os.path.join(directory, file)
+                print(f"Existing .gguf file found: {destination_file}")
+                break
+
+        # If no .gguf file is found, download the file
+        if destination_file is None:
+            print("No .gguf file found. Downloading...")
+            destination_file = os.path.join(directory, "OuteTTS-0.2-500M-Q4_K_S.gguf")
+            download_file(file_url, destination_file)
+            print(f"File downloaded to {destination_file}")
+
+        model_config = outetts.GGUFModelConfig_v1(
+            model_path=destination_file,
             language=self.language,
+            n_gpu_layers=self.n_gpu_layers,
             # dtype=torch.bfloat16,
             # additional_model_config={"attn_implementation": "flash_attention_2"},
         )
-        self.interface = outetts.InterfaceHF(model_version="0.2", cfg=model_config)
+        self.interface = outetts.InterfaceGGUF(model_version="0.2", cfg=model_config)
 
     async def get_available_voices(self) -> List[str]:
         try:
@@ -522,28 +546,18 @@ class OuteTTSEngine(TTSEngine):
 
     async def generate_audio(
         self, text: str, voice_id: str, speed: Optional[float] = 1.0
-    ) -> Tuple[AudioSegment, None]:
-        """
-        Generate audio using a reference `.wav` file for the given voice ID.
-        """
+    ) -> Tuple[AudioSegment, Optional[str]]:
         try:
             if not text.strip():
                 raise ValueError("Text input is empty.")
 
-            # Path to the reference `.wav` file
-            audio_path = os.path.join(self.voice_dir, voice_id)
-            if not os.path.exists(audio_path):
-                raise FileNotFoundError(
-                    f"Reference audio file '{audio_path}' not found."
-                )
-
-            # Load reference audio and create speaker profile
+            # Load speaker profile
             speaker = self.interface.create_speaker(
-                audio_path=audio_path,
+                audio_path=os.path.join(self.voice_dir, voice_id),
                 transcript=load_transcript(voice_id, self.voice_dir),
             )
 
-            # Generate audio
+            # Generate audio for text
             output = self.interface.generate(
                 text=text,
                 temperature=0.1,
@@ -552,18 +566,23 @@ class OuteTTSEngine(TTSEngine):
                 speaker=speaker,
             )
 
-            # Save the synthesized speech to a temporary file
+            # Save and validate audio
             with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
                 output.save(temp_audio.name)
 
-            # Load the audio into an AudioSegment
+                if os.path.getsize(temp_audio.name) == 0:
+                    raise ValueError("Generated .wav file is empty.")
+
+            # Load audio segment
             audio = AudioSegment.from_file(temp_audio.name, format="wav")
-            self.logger.info(f"Generated audio for voice_id: {voice_id}")
+            if len(audio) == 0:
+                raise ValueError("Generated audio segment is empty.")
+
             return audio, None
 
         except Exception as e:
-            self.logger.error(f"Error generating audio with OuteTTS: {e}")
-            raise
+            self.logger.error(f"Error generating audio: {e}")
+            return AudioSegment.silent(duration=0), str(e)
 
 
 # class FishTTSEngine(TTSEngine):

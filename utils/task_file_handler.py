@@ -50,7 +50,7 @@ async def get_tasks():
                 logging.warning(f"Invalid task format: {task}")
 
         if valid_tasks:
-            logging.info(f"Retrieved {len(valid_tasks)} valid tasks from {task_file}")
+            logging.debug(f"Retrieved {len(valid_tasks)} valid tasks from {task_file}")
         return valid_tasks
     except IOError as e:
         logging.error(f"Error reading tasks from {task_file}: {e}")
