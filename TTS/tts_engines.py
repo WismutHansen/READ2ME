@@ -12,10 +12,11 @@ from abc import ABC, abstractmethod
 from tempfile import NamedTemporaryFile
 from typing import List, Optional, Tuple, Generator
 from huggingface_hub import snapshot_download
+from utils.text_processor import AdvancedTextPreprocessor
 import numpy as np
 import torch
 import outetts
-from utils.common_utils import download_file, preprocess_text
+from utils.common_utils import download_file
 from edge_tts import Communicate, SubMaker, VoicesManager
 from pydub import AudioSegment
 from scipy.io.wavfile import write
@@ -546,43 +547,71 @@ class OuteTTSEngine(TTSEngine):
 
     async def generate_audio(
         self, text: str, voice_id: str, speed: Optional[float] = 1.0
-    ) -> Tuple[AudioSegment, Optional[str]]:
+    ) -> Tuple[AudioSegment, None]:
+        """
+        Generate audio using a reference `.wav` file for the given voice ID.
+        """
         try:
             if not text.strip():
                 raise ValueError("Text input is empty.")
 
-            # Load speaker profile
+            # Path to the reference `.wav` file
+            audio_path = os.path.join(self.voice_dir, voice_id)
+            if not os.path.exists(audio_path):
+                raise FileNotFoundError(
+                    f"Reference audio file '{audio_path}' not found."
+                )
+
+            # Load reference audio and create speaker profile
             speaker = self.interface.create_speaker(
-                audio_path=os.path.join(self.voice_dir, voice_id),
+                audio_path=audio_path,
                 transcript=load_transcript(voice_id, self.voice_dir),
             )
 
-            # Generate audio for text
-            output = self.interface.generate(
-                text=text,
-                temperature=0.1,
-                repetition_penalty=1.1,
-                max_length=4096,
-                speaker=speaker,
+            # Initialize preprocessor
+            preprocessor = AdvancedTextPreprocessor(
+                min_chars=50, language="english", keep_acronyms=True
             )
 
-            # Save and validate audio
-            with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-                output.save(temp_audio.name)
+            # Preprocess text
+            sentences = preprocessor.preprocess_text(text)
+            audio_segments = []
 
-                if os.path.getsize(temp_audio.name) == 0:
-                    raise ValueError("Generated .wav file is empty.")
+            # Use tqdm for progress tracking
+            for sentence in tqdm(sentences, desc="Generating audio", ncols=80):
+                # Generate audio for each sentence
+                output = self.interface.generate(
+                    text=sentence,
+                    temperature=0.1,
+                    repetition_penalty=1.1,
+                    max_length=4096,
+                    speaker=speaker,
+                )
 
-            # Load audio segment
-            audio = AudioSegment.from_file(temp_audio.name, format="wav")
-            if len(audio) == 0:
-                raise ValueError("Generated audio segment is empty.")
+                # Save the synthesized speech to a temporary file
+                with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+                    output.save(temp_audio.name)
 
-            return audio, None
+                # Load the audio into an AudioSegment
+                audio = AudioSegment.from_file(temp_audio.name, format="wav")
+                audio_segments.append(audio)
+
+                # Add a random pause with slight crossfade
+                pause = AudioSegment.silent(duration=random.randint(200, 500))
+                if audio_segments:
+                    # Apply a crossfade between the last segment and the pause
+                    audio_segments[-1] = audio_segments[-1].append(pause, crossfade=50)
+                else:
+                    audio_segments.append(pause)
+
+            # Combine all audio segments using an initial empty AudioSegment
+            final_audio = sum(audio_segments, AudioSegment.silent(duration=0))
+            self.logger.info(f"Generated audio for voice_id: {voice_id}")
+            return final_audio, None
 
         except Exception as e:
-            self.logger.error(f"Error generating audio: {e}")
-            return AudioSegment.silent(duration=0), str(e)
+            self.logger.error(f"Error generating audio with OuteTTS: {e}")
+            raise
 
 
 # class FishTTSEngine(TTSEngine):

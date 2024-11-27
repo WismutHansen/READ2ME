@@ -6,18 +6,19 @@ load_dotenv()
 ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 model_name = os.getenv("MODEL_NAME")
 
+
 def ask_Ollama(user_message, system_message="You are a helpful assistant"):
     client = Client(host=ollama_base_url)
     stream = client.chat(
         model=model_name,
-        messages=[{'role': 'user', 'content': user_message}],
+        messages=[{"role": "user", "content": user_message}],
         stream=True,
-        keep_alive="-1m",
+        keep_alive="0",
     )
 
     response = ""
     for chunk in stream:
-        response += chunk['message']['content']
+        response += chunk["message"]["content"]
 
     return response
 
@@ -35,3 +36,4 @@ if __name__ == "__main__":
             print("\nAssistant\n--------\n", end="")
             print(answer)
         history += f"User: {question}\nAssistant: {answer}\n"
+
