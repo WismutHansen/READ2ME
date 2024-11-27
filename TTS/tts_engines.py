@@ -509,7 +509,7 @@ class OuteTTSEngine(TTSEngine):
         """
         directory = "TTS/OuteTTS/models/"
         file_extension = ".gguf"
-        file_url = "https://huggingface.co/OuteAI/OuteTTS-0.2-500M-GGUF/resolve/main/OuteTTS-0.2-500M-Q4_K_S.gguf"
+        file_url = "https://huggingface.co/OuteAI/OuteTTS-0.2-500M-GGUF/resolve/main/OuteTTS-0.2-500M-Q6_K.gguf"
         destination_file = None
 
         # Find existing .gguf file
@@ -522,7 +522,7 @@ class OuteTTSEngine(TTSEngine):
         # If no .gguf file is found, download the file
         if destination_file is None:
             print("No .gguf file found. Downloading...")
-            destination_file = os.path.join(directory, "OuteTTS-0.2-500M-Q4_K_S.gguf")
+            destination_file = os.path.join(directory, "OuteTTS-0.2-500M-Q6_K.gguf")
             download_file(file_url, destination_file)
             print(f"File downloaded to {destination_file}")
 

@@ -1,13 +1,34 @@
 import outetts
+import os
+from utils.common_utils import download_file
 
+directory = "TTS/OuteTTS/models/"
+file_extension = ".gguf"
+file_url = "https://huggingface.co/OuteAI/OuteTTS-0.2-500M-GGUF/resolve/main/OuteTTS-0.2-500M-Q6_K.gguf"
+destination_file = None
+
+# Find existing .gguf file
+for file in os.listdir(directory):
+    if file.endswith(file_extension):
+        destination_file = os.path.join(directory, file)
+        print(f"Existing .gguf file found: {destination_file}")
+        break
+
+# If no .gguf file is found, download the file
+if destination_file is None:
+    print("No .gguf file found. Downloading...")
+    destination_file = os.path.join(directory, "OuteTTS-0.2-500M-Q6_K.gguf")
+    download_file(file_url, destination_file)
+    print(f"File downloaded to {destination_file}")
 # Configure the model
-model_config = outetts.HFModelConfig_v1(
-    model_path="OuteAI/OuteTTS-0.2-500M",
-    language="en",  # Supported languages in v0.2: en, zh, ja, ko
+model_config = outetts.GGUFModelConfig_v1(
+    model_path="OuteTTS/models/OuteTTS-0.2-500M-Q6_K.gguf",
+    language="en",
+    n_gpu_layers=-1,
 )
 
 # Initialize the interface
-interface = outetts.InterfaceHF(model_version="0.2", cfg=model_config)
+interface = outetts.InterfaceGGUF(model_version="0.2", cfg=model_config)
 
 # Optional: Create a speaker profile (use a 10-15 second audio clip)
 # speaker = interface.create_speaker(
