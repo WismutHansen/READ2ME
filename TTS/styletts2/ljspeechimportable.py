@@ -39,20 +39,21 @@ from .models import *
 from .text_utils import TextCleaner
 from .utils import *
 
+
 def download_asr_model():
     """Download the ASR model if it doesn't exist."""
-    asr_model_path = Path(module_dir) / "utils" / "ASR" / "epoch_00080.pth"
+    asr_model_path = Path(module_dir) / "Utils" / "ASR" / "epoch_00080.pth"
     if not asr_model_path.exists():
         print("Downloading ASR model...")
         os.makedirs(asr_model_path.parent, exist_ok=True)
-        
+
         # GitHub raw content URL for the model file
         url = "https://huggingface.co/spaces/styletts2/StyleTTS2/resolve/main/Utils/ASR/epoch_00080.pth"
-        
+
         try:
             response = requests.get(url, stream=True)
             response.raise_for_status()
-            
+
             with open(asr_model_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
@@ -61,6 +62,7 @@ def download_asr_model():
         except Exception as e:
             print(f"Error downloading ASR model: {e}")
             raise
+
 
 set_espeak_library()
 textclenaer = TextCleaner()
