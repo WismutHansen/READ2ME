@@ -44,6 +44,9 @@ output_dir, urls_file, img_pth, sources_file = setup_env()
 # Background thread stop event
 stop_event = Event()
 
+# Task to manage article fetching
+fetch_task = None  # Initialized as None, will hold the asyncio Task
+
 
 def check_output_dir():
     """
@@ -152,11 +155,16 @@ class RemoveAudioRequest(BaseModel):
     items: List[RemoveAudioItem]
 
 
+class IntervalRequest(BaseModel):
+    interval: Optional[int] = None  # Interval in minutes, None for default schedule
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global fetch_task, stop_event
     stop_event.clear()  # Ensure the event is clear before starting the thread
     thread = start_task_processor(stop_event)
-    scheduler_task = asyncio.create_task(schedule_fetch_articles())
+    fetch_task = asyncio.create_task(schedule_fetch_articles())  # Initialize fetch_task
     articles_cache_task = asyncio.create_task(start_articles_cache_refresh())
     try:
         yield
@@ -165,15 +173,15 @@ async def lifespan(app: FastAPI):
     finally:
         stop_event.set()  # Signal the thread to stop
         thread.join()  # Wait for the thread to finish
-        scheduler_task.cancel()  # Cancel the scheduler task
+        fetch_task.cancel()  # Cancel the fetch task
         articles_cache_task.cancel()  # Cancel the articles cache refresh task
         try:
-            await scheduler_task  # Wait for the scheduler task to finish
+            await fetch_task  # Wait for the fetch task to finish
             await (
                 articles_cache_task
             )  # Wait for the articles cache refresh task to finish
         except asyncio.CancelledError:
-            logging.info("Scheduler task cancelled.")
+            logging.info("Fetch task cancelled.")
             logging.info("Articles cache refresh task cancelled.")
         logging.info("Clean shutdown completed.")
 
@@ -388,14 +396,14 @@ async def api_update_sources(update: SourceUpdate):
         global_keywords=update.global_keywords,
         sources=update.sources,
     )
-    
+
     # If we added new RSS feeds, refresh the cache
     if needs_refresh:
         try:
             await refresh_articles_cache()
         except Exception as e:
             logging.error(f"Error refreshing articles cache: {e}")
-    
+
     return data
 
 
@@ -549,51 +557,6 @@ def generate_article_id(date_folder, mp3_filename):
     return f"{date_folder}_000"  # Fallback if no digits found
 
 
-# @app.get("/v1/articles")
-# async def get_articles(request: Request, page: int = 1, limit: int = 20):
-#    articles = []
-#    total_articles = 0
-#
-#    for root, dirs, files in os.walk(output_dir, topdown=False):
-#        date_folder = os.path.basename(root)
-#        if not date_folder.isdigit() or len(date_folder) != 8:
-#            continue  # Skip if not a date folder
-#
-#        for file in files:
-#            if file.endswith(".mp3"):
-#                total_articles += 1
-#                if (page - 1) * limit <= len(articles) < page * limit:
-#                    article_id = generate_article_id(date_folder, file)
-#                    relative_path = get_relative_path(
-#                        os.path.join(root, file)
-#                    )
-#                    audio_url = f"/v1/audio/{relative_path}"
-#                    articles.append(
-#                        {
-#                            "id": article_id,
-#                            "date": date_folder,
-#                            "audio_file": audio_url,
-#                            "title": os.path.splitext(file)[0].replace("_", " "),
-#                        }
-#                    )
-#
-#                if len(articles) >= limit:
-#                    break
-#
-#        if len(articles) >= limit:
-#            break
-#
-#    return JSONResponse(
-#        content={
-#            "articles": articles,
-#            "total_articles": total_articles,
-#            "page": page,
-#            "limit": limit,
-#            "total_pages": (total_articles + limit - 1) // limit,
-#        }
-#    )
-
-
 @app.get("/v1/article/{article_id}")
 async def get_article_from_db(article_id: str):
     try:
@@ -712,7 +675,39 @@ async def get_available_media():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def schedule_fetch_articles():
+@app.post("/v1/schedule/set-interval")
+async def set_fetch_interval(request: IntervalRequest):
+    """
+    Set the interval for fetching articles. If interval is None, use the predefined times.
+    """
+    global fetch_task, stop_event
+
+    # Update the interval
+    interval = request.interval
+
+    # Cancel the existing fetch task if running
+    if fetch_task:
+        stop_event.set()
+        fetch_task.cancel()
+        try:
+            await fetch_task
+        except asyncio.CancelledError:
+            logging.info("Existing fetch task cancelled.")
+
+    # Clear the stop event and restart the task with the new interval
+    stop_event.clear()
+    fetch_task = asyncio.create_task(schedule_fetch_articles(interval=interval))
+
+    message = (
+        f"Fetch interval set to {interval} minutes."
+        if interval is not None
+        else "Fetch interval set to default schedule."
+    )
+    logging.info(message)
+    return {"message": message}
+
+
+async def schedule_fetch_articles(interval: Optional[int] = None):
     from utils.sources import fetch_articles
 
     async def job():
@@ -724,29 +719,36 @@ async def schedule_fetch_articles():
 
     while not stop_event.is_set():
         now = datetime.now(local_tz)
-        target_times = [
-            time(5, 0),
-            time(12, 0),
-            time(19, 0),
-        ]  # 6:00 AM, 12:00 PM and 7:00 PM
+        if interval is not None:
+            # Calculate the next run based on the interval
+            next_run = now + timedelta(minutes=interval)
+            next_run = next_run.replace(second=0, microsecond=0)
+        else:
+            # Use predefined target times
+            target_times = [
+                time(0, 0),
+                time(5, 0),
+                time(12, 0),
+                time(19, 0),
+            ]  # Midnight, 5:00 AM, 12:00 PM, 7:00 PM
 
-        for target_time in target_times:
-            if now.time() <= target_time:
+            for target_time in target_times:
+                if now.time() <= target_time:
+                    next_run = now.replace(
+                        hour=target_time.hour,
+                        minute=target_time.minute,
+                        second=0,
+                        microsecond=0,
+                    )
+                    break
+            else:
                 next_run = now.replace(
-                    hour=target_time.hour,
-                    minute=target_time.minute,
+                    hour=target_times[0].hour,
+                    minute=target_times[0].minute,
                     second=0,
                     microsecond=0,
                 )
-                break
-        else:
-            next_run = now.replace(
-                hour=target_times[0].hour,
-                minute=target_times[0].minute,
-                second=0,
-                microsecond=0,
-            )
-            next_run += timedelta(days=1)
+                next_run += timedelta(days=1)
 
         wait_seconds = (next_run - now).total_seconds()
         logging.info(

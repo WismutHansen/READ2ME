@@ -36,3 +36,4 @@ lxml[html_clean]
 num2words
 docling
 langdetect
+atproto
