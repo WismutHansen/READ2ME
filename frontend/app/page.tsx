@@ -155,6 +155,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold">READ2ME</h1>
           </div>
           <div className="flex items-center gap-2">
+          <TaskQueueStatus refreshArticles={refreshArticles} />
             <Button
               variant="outline"
               onClick={() => setArticleAdderOpen(true)}

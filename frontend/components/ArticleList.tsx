@@ -119,7 +119,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   const handleDelete = async (article: Article, e: Event) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
       const settings = getSettings();
       const response = await fetch(`${settings.serverUrl}/v1/audio`, {
@@ -141,7 +141,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       }
 
       const result = await response.json();
-      
+
       if (result.errors && result.errors.length > 0) {
         throw new Error(result.errors[0].error);
       }
@@ -180,15 +180,14 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">READ2ME Audio Library</h2>
-        <div className="w-full md:w-56">
+      <div className="flex justify-end mb-4">
+        <div className="md:w-56">
           <input
             type="text"
             placeholder="Search articles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
+            className="px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
           />
         </div>
       </div>
