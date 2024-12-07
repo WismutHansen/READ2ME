@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SourceManager from "@/components/SourceManager";
 import ArticleAdder from "@/components/ArticleAdder";
 import SettingsManager from "@/components/SettingsManager";
@@ -47,6 +48,7 @@ export default function Home() {
   const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [hasContent, setHasContent] = useState(true); // Track content state
+  const [tabValue, setTabValue] = useState("articles");
 
   // Function to refresh articles list via ArticleListRef
   const refreshArticles = async () => {
@@ -123,42 +125,36 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4 mb-24">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-[30px] sm:gap-4 mb-8">
-        <div className="relative mx-auto sm:mx-0">
-          <a
-            href="https://github.com/WismutHansen/READ2ME"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-8 relative block"
-          >
-            <Image
-              src="/Black.svg"
-              alt="READ2ME Logo"
-              className="block dark:hidden"
-              width={60}
-              height={32}
-              priority
-            />
-            <Image
-              src="/White.svg"
-              alt="READ2ME Logo"
-              className="hidden dark:block"
-              width={60}
-              height={32}
-              priority
-            />
-          </a>
-        </div>
-        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-4">
-          <div className="flex items-center sm:justify-end gap-2 sm:gap-4">
-            <TaskQueueStatus refreshArticles={refreshArticles} />
-            <Button
-              variant="outline"
-              onClick={() => setSourceManagerOpen(true)}
+    <main className="flex min-h-screen flex-col">
+      <div className="container mx-auto px-4 flex-grow">
+        <div className="flex justify-between items-center py-4">
+          <div className="flex items-center gap-2">
+            <a
+              href="https://github.com/WismutHansen/READ2ME"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-8 relative block"
             >
-              Manage Sources
-            </Button>
+              <Image
+                src="/Black.svg"
+                alt="READ2ME Logo"
+                className="block dark:hidden"
+                width={60}
+                height={32}
+                priority
+              />
+              <Image
+                src="/White.svg"
+                alt="READ2ME Logo"
+                className="hidden dark:block"
+                width={60}
+                height={32}
+                priority
+              />
+            </a>
+            <h1 className="text-2xl font-bold">READ2ME</h1>
+          </div>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               onClick={() => setArticleAdderOpen(true)}
@@ -166,53 +162,66 @@ export default function Home() {
             >
               Add Content
             </Button>
-          </div>
-          <div className="flex items-center sm:justify-end gap-2 sm:gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setSourceManagerOpen(true)}
+            >
+              Manage Sources
+            </Button>
             <SettingsManager variant="outline" />
             <ModeToggle />
           </div>
         </div>
+
+        <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8 mt-8">
+            <TabsTrigger value="articles">Your Articles</TabsTrigger>
+            <TabsTrigger value="feeds">Today's Feeds</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="articles" className="mt-0">
+            <ArticleList
+              ref={articleListRef}
+              onSelectArticle={handleSelectArticle}
+              onContentStateChange={handleContentStateChange}
+            />
+          </TabsContent>
+
+          <TabsContent value="feeds" className="mt-0">
+            <TodayFeedList
+              onSelectArticle={handleSelectArticle}
+              feedEntries={feedEntries}
+            />
+          </TabsContent>
+        </Tabs>
+
+        <Dialog open={sourceManagerOpen} onOpenChange={setSourceManagerOpen}>
+          <DialogContent className="sm:max-w-[800px]">
+            <DialogHeader>
+              <DialogTitle>Manage Sources</DialogTitle>
+            </DialogHeader>
+            <SourceManager />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={articleAdderOpen} onOpenChange={setArticleAdderOpen}>
+          <DialogContent className="sm:max-w-[800px]">
+            <DialogHeader>
+              <DialogTitle>Add Content</DialogTitle>
+            </DialogHeader>
+            <ArticleAdder />
+          </DialogContent>
+        </Dialog>
+
+        {selectedArticleId && currentArticle && (
+          <BottomBar
+            articleId={selectedArticleId}
+            type={currentArticle.content_type || 'article'}
+            audioFile={currentArticle.audio_file}
+            key={selectedArticleId}
+          />
+        )}
       </div>
-      <Dialog open={sourceManagerOpen} onOpenChange={setSourceManagerOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Manage Sources</DialogTitle>
-          </DialogHeader>
-          <SourceManager />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={articleAdderOpen} onOpenChange={setArticleAdderOpen}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>Add Content</DialogTitle>
-          </DialogHeader>
-          <ArticleAdder />
-        </DialogContent>
-      </Dialog>
-
-      {/* Pass handleSelectArticle and content state handler to ArticleList */}
-      <ArticleList
-        ref={articleListRef}
-        onSelectArticle={handleSelectArticle}
-        onContentStateChange={handleContentStateChange}
-      />
-
-      {/* Display Today's Feed Entries */}
-      <TodayFeedList
-        onSelectArticle={handleSelectArticle}
-        feedEntries={feedEntries}
-      />
-
-      {/* Conditionally render the BottomBar based on the selectedArticleId */}
-      {selectedArticleId && currentArticle && (
-        <BottomBar 
-          articleId={selectedArticleId} 
-          type={currentArticle.content_type || 'article'} 
-          audioFile={currentArticle.audio_file}
-          key={selectedArticleId} 
-        />
-      )}
     </main>
   );
 }
