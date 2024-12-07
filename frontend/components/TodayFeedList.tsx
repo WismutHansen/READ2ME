@@ -237,7 +237,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
           {isLoading ? "Fetching today's entries..." : "No entries for today"}
         </div>
       ) : (
-        <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
+        <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="w-full">
           <div className="flex flex-col gap-0.5 md:flex-row items-center justify-center mb-2">
             <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto">
               {categories.map((category) => (
