@@ -46,6 +46,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const fetchArticles = async () => {
     setIsLoading(true);
@@ -163,58 +164,82 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
     }
   };
 
+  // Function to filter articles based on search query
+  const getFilteredArticles = () => {
+    if (!searchQuery) return articles;
+    const lowerQuery = searchQuery.toLowerCase();
+    return articles.filter(article =>
+      (article.title && article.title.toLowerCase().includes(lowerQuery)) ||
+      (article.source && article.source.toLowerCase().includes(lowerQuery))
+    );
+  };
+
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
 
   return (
-    <div>
-      {isLoading && <div>Loading...</div>}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">READ2ME Audio Library</h2>
+        <div className="w-full md:w-56">
+          <input
+            type="text"
+            placeholder="Search articles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
+          />
+        </div>
+      </div>
 
-      <h2 className="text-xl font-bold mb-2">READ2ME Audio Library</h2>
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {articles.map((article) => (
-          <ContextMenu key={article.id}>
-            <ContextMenuTrigger>
-              <div
-                onClick={() => handleArticleClick(article)}
-                className="relative h-[150px] md:min-h-32 md:gap-2 md:h-auto md:aspect-[21/9] cursor-pointer group overflow-hidden rounded-lg border"
-              >
-                <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
+      {isLoading ? (
+        <div className="text-gray-500">Loading...</div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {getFilteredArticles().map((article) => (
+            <ContextMenu key={article.id}>
+              <ContextMenuTrigger>
+                <div
+                  onClick={() => handleArticleClick(article)}
+                  className="relative h-[150px] md:min-h-32 md:gap-2 md:h-auto md:aspect-[21/9] cursor-pointer group overflow-hidden rounded-lg border"
+                >
+                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
 
-                <div className="absolute inset-0 bg-black bg-opacity-40 p-4 flex flex-col">
-                  <div className="flex-1 min-h-0">
-                    <h3 className="text-white font-bold text-lg line-clamp-2 mb-auto text-pretty">{article.title || 'Untitled'}</h3>
-                  </div>
-                  <div className="flex items-start justify-between mt-2 text-white text-sm">
-                    <div className="flex cols-1">
-                      <div className="min-w-0">
-                        <div className="whitespace-wrap">{formatDate(article.date_published || article.date_added)}</div>
-                        {article.url && (
-                          <div className="opacity-75 truncate">{getSourceDomain(article.url)}</div>
-                        )}
-                      </div>
+                  <div className="absolute inset-0 bg-black bg-opacity-40 p-4 flex flex-col">
+                    <div className="flex-1 min-h-0">
+                      <h3 className="text-white font-bold text-lg line-clamp-2 mb-auto text-pretty">{article.title || 'Untitled'}</h3>
                     </div>
-                    <div className="bg-black bg-opacity-50 px-2 py-1 rounded flex-shrink-0">
-                      {article.content_type}
+                    <div className="flex items-start justify-between mt-2 text-white text-sm">
+                      <div className="flex cols-1">
+                        <div className="min-w-0">
+                          <div className="whitespace-wrap">{formatDate(article.date_published || article.date_added)}</div>
+                          {article.url && (
+                            <div className="opacity-75 truncate">{getSourceDomain(article.url)}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="bg-black bg-opacity-50 px-2 py-1 rounded flex-shrink-0">
+                        {article.content_type}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem
-                className="text-destructive focus:text-destructive"
-                onSelect={(e) => handleDelete(article, e)}
-              >
-                Delete Audio
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-        ))}
-      </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={(e) => handleDelete(article, e)}
+                >
+                  Delete Audio
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          ))}
+        </div>
+      )}
 
-      {articles.length === 0 && !isLoading && (
+      {getFilteredArticles().length === 0 && !isLoading && (
         <div className="text-center py-8">No articles found</div>
       )}
     </div>
