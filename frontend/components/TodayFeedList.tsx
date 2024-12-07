@@ -200,36 +200,40 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
     <div className="space-y-2">
       <div className="flex flex-col md:flex-row items-center justify-between mb-2">
         {selectedArticles.size > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Add {selectedArticles.size} Selected
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[280px]">
-              <DropdownMenuItem
-                onClick={() => processSelectedArticles('full')}
-                className="flex flex-col items-start py-2"
-              >
-                <span className="font-semibold">Full Text</span>
-                <span className="text-xs text-muted-foreground">Turn complete text into speech</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => processSelectedArticles('summary')}
-                className="flex flex-col items-start py-2"
-              >
-                <span className="font-semibold">TL;DR</span>
-                <span className="text-xs text-muted-foreground">Generate a summary and turn it into speech</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => processSelectedArticles('podcast')}
-                className="flex flex-col items-start py-2"
-              >
-                <span className="font-semibold">Podcast</span>
-                <span className="text-xs text-muted-foreground">Turn the article into a podcast</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 w-full">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" className="w-auto">
+                    Add {selectedArticles.size} Selected
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[280px]">
+                  <DropdownMenuItem
+                    onClick={() => processSelectedArticles('full')}
+                    className="flex flex-col items-start py-2"
+                  >
+                    <span className="font-semibold">Full Text</span>
+                    <span className="text-xs text-muted-foreground">Turn complete text into speech</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => processSelectedArticles('summary')}
+                    className="flex flex-col items-start py-2"
+                  >
+                    <span className="font-semibold">TL;DR</span>
+                    <span className="text-xs text-muted-foreground">Generate a summary and turn it into speech</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => processSelectedArticles('podcast')}
+                    className="flex flex-col items-start py-2"
+                  >
+                    <span className="font-semibold">Podcast</span>
+                    <span className="text-xs text-muted-foreground">Turn the article into a podcast</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         )}
       </div>
       {Object.keys(groupedFeedEntries).length === 0 ? (
@@ -261,7 +265,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
             </div>
           </div>
 
-          <TabsContent value={activeCategory} className="mt-0">
+          <TabsContent value={activeCategory} className="mt-2">
             <div className="space-y-2">
               {getFilteredEntries().map((entry, index) => (
                 <div

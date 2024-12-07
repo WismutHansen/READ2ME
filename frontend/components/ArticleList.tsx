@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/context-menu"
 import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -49,6 +56,10 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeType, setActiveType] = useState<string>("all");
+  const [sortConfig, setSortConfig] = useState<{
+    field: 'date' | 'source';
+    direction: 'asc' | 'desc';
+  }>({ field: 'date', direction: 'desc' });
 
   const fetchArticles = async () => {
     setIsLoading(true);
@@ -166,7 +177,26 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
     }
   };
 
-  // Function to filter articles based on search query and type
+  // Function to sort articles
+  const getSortedArticles = (articles: Article[]) => {
+    return [...articles].sort((a, b) => {
+      if (sortConfig.field === 'date') {
+        const dateA = new Date(a.date_published || a.date_added);
+        const dateB = new Date(b.date_published || b.date_added);
+        return sortConfig.direction === 'asc'
+          ? dateA.getTime() - dateB.getTime()
+          : dateB.getTime() - dateA.getTime();
+      } else {
+        const sourceA = (a.source || '').toLowerCase();
+        const sourceB = (b.source || '').toLowerCase();
+        return sortConfig.direction === 'asc'
+          ? sourceA.localeCompare(sourceB)
+          : sourceB.localeCompare(sourceA);
+      }
+    });
+  };
+
+  // Function to filter and sort articles
   const getFilteredArticles = () => {
     let filtered = articles;
 
@@ -184,7 +214,8 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       );
     }
 
-    return filtered;
+    // Finally, sort the filtered results
+    return getSortedArticles(filtered);
   };
 
   if (error) {
@@ -195,89 +226,132 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
     <div className="space-y-2 mt-2">
       <div className="flex flex-col md:flex-row items-center justify-between mb-2">
         <Tabs defaultValue="all" value={activeType} onValueChange={setActiveType} className="w-full">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-2">
-            <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto">
-              <TabsTrigger
-                value="all"
-                className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
-              >
-                All
-              </TabsTrigger>
-              <TabsTrigger
-                value="article"
-                className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
-              >
-                Article
-              </TabsTrigger>
-              <TabsTrigger
-                value="podcast"
-                className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
-              >
-                Podcast
-              </TabsTrigger>
-              <TabsTrigger
-                value="text"
-                className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
-              >
-                Text
-              </TabsTrigger>
-            </TabsList>
-            <div className="w-full md:w-auto mt-2 md:mt-0">
-              <input
-                type="text"
-                placeholder="Search in library..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:ml-1.5 gap-2 px-6 py-2  rounded-lg focus:outline-none focus:border-slate-200"
-              />
+          <div className="flex flex-col">
+            <div className="flex flex-col md:flex-row items-center gap-2 w-full">
+              <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto">
+                <TabsTrigger
+                  value="all"
+                  className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
+                >
+                  All
+                </TabsTrigger>
+                <TabsTrigger
+                  value="article"
+                  className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
+                >
+                  Article
+                </TabsTrigger>
+                <TabsTrigger
+                  value="podcast"
+                  className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
+                >
+                  Podcast
+                </TabsTrigger>
+                <TabsTrigger
+                  value="text"
+                  className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
+                >
+                  Text
+                </TabsTrigger>
+              </TabsList>
+              <div className="w-full flex flex-row gap-2">
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" className="flex-1"
+                    >
+                      Sort: {sortConfig.field === 'date' ? 'Date' : 'Source'} {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[180px]">
+                    <DropdownMenuItem
+                      onClick={() => setSortConfig({ field: 'date', direction: 'desc' })}
+                      className="flex items-center justify-between"
+                    >
+                      Date (Newest First)
+                      {sortConfig.field === 'date' && sortConfig.direction === 'desc' && " ✓"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortConfig({ field: 'date', direction: 'asc' })}
+                      className="flex items-center justify-between"
+                    >
+                      Date (Oldest First)
+                      {sortConfig.field === 'date' && sortConfig.direction === 'asc' && " ✓"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortConfig({ field: 'source', direction: 'asc' })}
+                      className="flex items-center justify-between"
+                    >
+                      Source (A-Z)
+                      {sortConfig.field === 'source' && sortConfig.direction === 'asc' && " ✓"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortConfig({ field: 'source', direction: 'desc' })}
+                      className="flex items-center justify-between"
+                    >
+                      Source (Z-A)
+                      {sortConfig.field === 'source' && sortConfig.direction === 'desc' && " ✓"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="flex-auto w-full">
+                  <input
+                    type="text"
+                    placeholder="Search in library..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-auto w-full gap-2 px-6 py-2 rounded-lg focus:outline-none focus:border-slate-200"
+                  />
+                </div>
+              </div>
             </div>
+
+            <TabsContent value={activeType} className="mt-2">
+              {isLoading ? (
+                <div className="text-gray-500">Loading...</div>
+              ) : (
+                <div className="flex flex-col space-y-2">
+                  {getFilteredArticles().map((article) => (
+                    <ContextMenu key={article.id}>
+                      <ContextMenuTrigger>
+                        <div
+                          onClick={() => handleArticleClick(article)}
+                          className="flex items-center p-2 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
+                        >
+                          <div className="flex-1 min-w-0 mr-4">
+                            <h3 className="text-sm font-medium truncate">
+                              {article.title || "Untitled"}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {getSourceDomain(article.url)} • {formatDate(article.date_published || article.date_added)}
+                            </p>
+                          </div>
+                          <div className="flex flex-col md:flex-row md:max-w-52 gap-2">
+                            <span className="text-xs px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded">
+                              {article.content_type}
+                            </span>
+                          </div>
+                        </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={(e) => handleDelete(article, e)}
+                        >
+                          Delete Audio
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
           </div>
 
-          <TabsContent value={activeType} className="mt-0">
-            {isLoading ? (
-              <div className="text-gray-500">Loading...</div>
-            ) : (
-              <div className="flex flex-col space-y-2">
-                {getFilteredArticles().map((article) => (
-                  <ContextMenu key={article.id}>
-                    <ContextMenuTrigger>
-                      <div
-                        onClick={() => handleArticleClick(article)}
-                        className="flex items-center p-2 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
-                      >
-                        <div className="flex-1 min-w-0 mr-4">
-                          <h3 className="text-sm font-medium truncate">
-                            {article.title || "Untitled"}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {getSourceDomain(article.url)} • {formatDate(article.date_published || article.date_added)}
-                          </p>
-                        </div>
-                        <div className="flex flex-col md:flex-row md:max-w-52 gap-2">
-                          <span className="text-xs px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded">
-                            {article.content_type}
-                          </span>
-                        </div>
-                      </div>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent>
-                      <ContextMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onSelect={(e) => handleDelete(article, e)}
-                      >
-                        Delete Audio
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+          {getFilteredArticles().length === 0 && !isLoading && (
+            <div className="text-center py-8">No articles found</div>
+          )}
         </Tabs>
-
-        {getFilteredArticles().length === 0 && !isLoading && (
-          <div className="text-center py-8">No articles found</div>
-        )}
       </div>
     </div>
   );
