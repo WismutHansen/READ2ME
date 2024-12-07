@@ -125,10 +125,10 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col">
+    <main className="container mx-auto p-4 mb-4">
       <div className="container mx-auto px-4 flex-grow">
-        <div className="flex justify-between items-center py-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-[30px] sm:gap-4 mb-2">
+          <div className="relative mx-auto sm:mx-0">
             <a
               href="https://github.com/WismutHansen/READ2ME"
               target="_blank"
@@ -152,10 +152,9 @@ export default function Home() {
                 priority
               />
             </a>
-            <h1 className="text-2xl font-bold">READ2ME</h1>
           </div>
           <div className="flex items-center gap-2">
-          <TaskQueueStatus refreshArticles={refreshArticles} />
+            <TaskQueueStatus refreshArticles={refreshArticles} />
             <Button
               variant="outline"
               onClick={() => setArticleAdderOpen(true)}
@@ -175,9 +174,9 @@ export default function Home() {
         </div>
 
         <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8 mt-8">
-            <TabsTrigger value="articles">Your Articles</TabsTrigger>
-            <TabsTrigger value="feeds">Today's Feeds</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-2 mt-8">
+            <TabsTrigger value="articles">Audio Library</TabsTrigger>
+            <TabsTrigger value="feeds">News Feeds</TabsTrigger>
           </TabsList>
 
           <TabsContent value="articles" className="mt-0">
@@ -223,6 +222,6 @@ export default function Home() {
           />
         )}
       </div>
-    </main>
+    </main >
   );
 }

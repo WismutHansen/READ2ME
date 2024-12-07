@@ -250,10 +250,10 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="w-full md:w-56 md:ml-2">
+            <div className="w-full md:w-auto">
               <input
                 type="text"
-                placeholder="Search articles..."
+                placeholder="Search Feeds..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full grow mt-2 md:mt-0 px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"

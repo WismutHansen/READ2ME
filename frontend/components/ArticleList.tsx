@@ -179,15 +179,15 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <div className="md:w-56">
+    <div className="space-y-2">
+      <div className="flex flex-col md:flex-row items-enter justify-end mb-2">
+        <div className="w-auto md:w-56">
           <input
             type="text"
-            placeholder="Search articles..."
+            placeholder="Search in library..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
+            className="w-full grow mt-2 md:mt-0 px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
           />
         </div>
       </div>
