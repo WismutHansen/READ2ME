@@ -180,8 +180,8 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-col md:flex-row items-enter justify-end mb-2">
-        <div className="w-auto md:w-56">
+      <div className="flex flex-col md:flex-row items-center justify-end mb-2">
+        <div className="w-full md:w-auto">
           <input
             type="text"
             placeholder="Search in library..."
@@ -195,33 +195,26 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
       {isLoading ? (
         <div className="text-gray-500">Loading...</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="flex flex-col space-y-2">
           {getFilteredArticles().map((article) => (
             <ContextMenu key={article.id}>
               <ContextMenuTrigger>
                 <div
                   onClick={() => handleArticleClick(article)}
-                  className="relative h-[150px] md:min-h-32 md:gap-2 md:h-auto md:aspect-[21/9] cursor-pointer group overflow-hidden rounded-lg border"
+                  className="flex items-center p-2 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
                 >
-                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
-
-                  <div className="absolute inset-0 bg-black bg-opacity-40 p-4 flex flex-col">
-                    <div className="flex-1 min-h-0">
-                      <h3 className="text-white font-bold text-lg line-clamp-2 mb-auto text-pretty">{article.title || 'Untitled'}</h3>
-                    </div>
-                    <div className="flex items-start justify-between mt-2 text-white text-sm">
-                      <div className="flex cols-1">
-                        <div className="min-w-0">
-                          <div className="whitespace-wrap">{formatDate(article.date_published || article.date_added)}</div>
-                          {article.url && (
-                            <div className="opacity-75 truncate">{getSourceDomain(article.url)}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="bg-black bg-opacity-50 px-2 py-1 rounded flex-shrink-0">
-                        {article.content_type}
-                      </div>
-                    </div>
+                  <div className="flex-1 min-w-0 mr-4">
+                    <h3 className="text-sm font-medium truncate">
+                      {article.title || "Untitled"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {getSourceDomain(article.url)} • {formatDate(article.date_published || article.date_added)}
+                    </p>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:max-w-52 gap-2">
+                    <span className="text-xs px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded">
+                      {article.content_type}
+                    </span>
                   </div>
                 </div>
               </ContextMenuTrigger>

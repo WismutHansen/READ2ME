@@ -238,8 +238,8 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
         </div>
       ) : (
         <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
-          <div className="flex flex-col md:flex-row items-center justify-center mb-2">
-            <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto p-1">
+          <div className="flex flex-col gap-0.5 md:flex-row items-center justify-center mb-2">
+            <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto">
               {categories.map((category) => (
                 <TabsTrigger
                   key={category}
@@ -266,7 +266,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
               {getFilteredEntries().map((entry, index) => (
                 <div
                   key={index}
-                  className="flex items-center p-2 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
+                  className="flex items-center p-1.5 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
                 >
                   <Checkbox
                     id={`article-${index}`}
@@ -282,7 +282,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                       {entry.source} • {new Date(entry.published).toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex flex-col md:flex-row md:max-w-52 gap-2">
+                  <div className="flex flex-col md:flex-row md:max-w-52 gap-0.5">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button className="w-20" variant="outline" size="sm">
