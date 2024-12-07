@@ -198,7 +198,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-col md:flex-row justify-between items-center">
+      <div className="flex flex-col md:flex-row items-center justify-between mb-2">
         {selectedArticles.size > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -250,13 +250,13 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="w-full md:w-auto">
+            <div className="w-full md:w-auto mt-2 md:mt-0">
               <input
                 type="text"
                 placeholder="Search Feeds..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full grow mt-2 md:mt-0 px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
+                className="w-full md:ml-1.5 gap-2 px-6 py-2 rounded-lg focus:outline-none focus:border-slate-200"
               />
             </div>
           </div>

@@ -174,12 +174,12 @@ export default function Home() {
         </div>
 
         <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-2 mt-8">
+          <TabsList className="grid w-full grid-cols-2 mt-8">
             <TabsTrigger value="articles">Audio Library</TabsTrigger>
             <TabsTrigger value="feeds">News Feeds</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="articles" className="mt-0">
+          <TabsContent value="articles" className="mt-0 mb-2">
             <ArticleList
               ref={articleListRef}
               onSelectArticle={handleSelectArticle}
@@ -187,7 +187,7 @@ export default function Home() {
             />
           </TabsContent>
 
-          <TabsContent value="feeds" className="mt-0">
+          <TabsContent value="feeds" className="mt-0 mb-2">
             <TodayFeedList
               onSelectArticle={handleSelectArticle}
               feedEntries={feedEntries}

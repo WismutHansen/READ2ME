@@ -192,7 +192,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mt-2">
       <div className="flex flex-col md:flex-row items-center justify-between mb-2">
         <Tabs defaultValue="all" value={activeType} onValueChange={setActiveType} className="w-full">
           <div className="flex flex-col md:flex-row items-center justify-between mb-2">
@@ -228,7 +228,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
                 placeholder="Search in library..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full grow px-6 py-2 border rounded-lg focus:outline-none focus:border-slate-200"
+                className="w-full md:ml-1.5 gap-2 px-6 py-2  rounded-lg focus:outline-none focus:border-slate-200"
               />
             </div>
           </div>
