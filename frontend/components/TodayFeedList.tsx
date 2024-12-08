@@ -198,15 +198,24 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-2">
-        {selectedArticles.size > 0 && (
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 w-full">
+      <div className="flex flex-col md:flex-row mb-2">
+      </div>
+      {Object.keys(groupedFeedEntries).length === 0 ? (
+        <div className="text-gray-500">
+          {isLoading ? "Fetching today's entries..." : "No entries for today"}
+        </div>
+      ) : (
+        <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
+          <div className="flex flex-col md:flex-row items-center justify-center mb-2">
+            <div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="w-auto">
-                    Add {selectedArticles.size} Selected
-                  </Button>
+                  <div className="fixed top-4 left-8 sm:left-24 md:left-48 2xl:left-80">
+                    {selectedArticles.size > 0 && (
+                      <Button variant="secondary">
+                        Add {selectedArticles.size} Selected
+                      </Button>
+                    )}</div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-[280px]">
                   <DropdownMenuItem
@@ -233,16 +242,6 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
-        )}
-      </div>
-      {Object.keys(groupedFeedEntries).length === 0 ? (
-        <div className="text-gray-500">
-          {isLoading ? "Fetching today's entries..." : "No entries for today"}
-        </div>
-      ) : (
-        <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory} className="w-full">
-          <div className="flex flex-col gap-0.5 md:flex-row items-center justify-center mb-2">
             <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto">
               {categories.map((category) => (
                 <TabsTrigger
@@ -254,13 +253,13 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="w-full md:w-auto mt-2 md:mt-0">
+            <div className="w-full md:ml-1.5 md:w-auto mt-2 md:mt-0">
               <input
                 type="text"
                 placeholder="Search Feeds..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:ml-1.5 gap-2 px-6 py-2 rounded-lg focus:outline-none focus:border-slate-200"
+                className="w-full px-6 py-2 rounded-lg focus:outline-none focus:border-slate-200"
               />
             </div>
           </div>
@@ -270,7 +269,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
               {getFilteredEntries().map((entry, index) => (
                 <div
                   key={index}
-                  className="flex items-center p-1.5 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
+                  className="flex items-center p-2 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
                 >
                   <Checkbox
                     id={`article-${index}`}
@@ -279,7 +278,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                     className="mr-4"
                   />
                   <div className="flex-1 min-w-0 mr-4">
-                    <h3 className="text-sm font-medium truncate">
+                    <h3 className="text-wrap text-sm font-medium">
                       {entry.title || "Untitled"}
                     </h3>
                     <p className="text-xs text-muted-foreground">
@@ -289,7 +288,7 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                   <div className="flex flex-col md:flex-row md:max-w-52 gap-0.5">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button className="w-20" variant="outline" size="sm">
+                        <Button className="w-20 text-xs text-xs px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded" variant="outline" size="sm">
                           read2me
                         </Button>
                       </DropdownMenuTrigger>
@@ -318,12 +317,12 @@ export default function TodayFeedList({ onSelectArticle }: TodayFeedListProps) {
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Button
-                      className='w-20'
+                      className="w-20 text-xs text-xs px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded"
                       variant="outline"
                       size="sm"
                       onClick={() => window.open(entry.link, '_blank')}
                     >
-                      Source
+                      source
                     </Button>
                   </div>
                 </div>

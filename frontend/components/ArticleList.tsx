@@ -321,7 +321,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
                           className="flex items-center p-2 bg-slate-200 dark:bg-slate-800 bg-card rounded-lg shadow-sm"
                         >
                           <div className="flex-1 min-w-0 mr-4">
-                            <h3 className="text-sm font-medium truncate">
+                            <h3 className="text-wrap text-sm font-medium">
                               {article.title || "Untitled"}
                             </h3>
                             <p className="text-xs text-muted-foreground">

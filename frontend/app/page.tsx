@@ -125,8 +125,8 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4 mb-4">
-      <div className="container mx-auto px-4 flex-grow">
+    <main className="flex mt-4 mb-4">
+      <div className="container flex-grow">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-[30px] sm:gap-4 mb-2">
           <div className="relative mx-auto sm:mx-0">
             <a
