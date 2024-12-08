@@ -224,11 +224,11 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
 
   return (
     <div className="space-y-2 mt-2">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-2">
-        <Tabs defaultValue="all" value={activeType} onValueChange={setActiveType} className="w-full">
+      <div className="flex flex-col md:flex-row mb-2">
+        <Tabs defaultValue="all" value={activeType} onValueChange={setActiveType} className="grow w-full">
           <div className="flex flex-col">
-            <div className="flex flex-col md:flex-row items-center gap-2 w-full">
-              <TabsList className="grid w-full grid-cols-3 md:flex md:flex-row md:grow gap-1 h-auto">
+            <div className="flex flex-col md:flex-row gap-2">
+              <TabsList className="grow grid grid-cols-3 md:w-full md:flex md:flex-row gap-1 h-auto">
                 <TabsTrigger
                   value="all"
                   className="capitalize flex-shrink-0 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100"
@@ -254,47 +254,9 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
                   Text
                 </TabsTrigger>
               </TabsList>
-              <div className="w-full flex flex-row gap-2">
+              <div className="flex gap-2">
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" className="flex-1"
-                    >
-                      Sort: {sortConfig.field === 'date' ? 'Date' : 'Source'} {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[180px]">
-                    <DropdownMenuItem
-                      onClick={() => setSortConfig({ field: 'date', direction: 'desc' })}
-                      className="flex items-center justify-between"
-                    >
-                      Date (Newest First)
-                      {sortConfig.field === 'date' && sortConfig.direction === 'desc' && " ✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortConfig({ field: 'date', direction: 'asc' })}
-                      className="flex items-center justify-between"
-                    >
-                      Date (Oldest First)
-                      {sortConfig.field === 'date' && sortConfig.direction === 'asc' && " ✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortConfig({ field: 'source', direction: 'asc' })}
-                      className="flex items-center justify-between"
-                    >
-                      Source (A-Z)
-                      {sortConfig.field === 'source' && sortConfig.direction === 'asc' && " ✓"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortConfig({ field: 'source', direction: 'desc' })}
-                      className="flex items-center justify-between"
-                    >
-                      Source (Z-A)
-                      {sortConfig.field === 'source' && sortConfig.direction === 'desc' && " ✓"}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <div className="flex-auto w-full">
+                <div className="flex-auto w-full min-w-72">
                   <input
                     type="text"
                     placeholder="Search in library..."
@@ -302,6 +264,46 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-auto w-full gap-2 px-6 py-2 rounded-lg focus:outline-none focus:border-slate-200"
                   />
+                </div>
+                <div className="flex-auto min-w-36">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="secondary" className="flex-auto w-full"
+                      >
+                        Sort: {sortConfig.field === 'date' ? 'Date' : 'Source'} {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[180px]">
+                      <DropdownMenuItem
+                        onClick={() => setSortConfig({ field: 'date', direction: 'desc' })}
+                        className="flex items-center justify-between"
+                      >
+                        Date (Newest First)
+                        {sortConfig.field === 'date' && sortConfig.direction === 'desc' && " ✓"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setSortConfig({ field: 'date', direction: 'asc' })}
+                        className="flex items-center justify-between"
+                      >
+                        Date (Oldest First)
+                        {sortConfig.field === 'date' && sortConfig.direction === 'asc' && " ✓"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setSortConfig({ field: 'source', direction: 'asc' })}
+                        className="flex items-center justify-between"
+                      >
+                        Source (A-Z)
+                        {sortConfig.field === 'source' && sortConfig.direction === 'asc' && " ✓"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setSortConfig({ field: 'source', direction: 'desc' })}
+                        className="flex items-center justify-between"
+                      >
+                        Source (Z-A)
+                        {sortConfig.field === 'source' && sortConfig.direction === 'desc' && " ✓"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
