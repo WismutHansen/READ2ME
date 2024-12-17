@@ -153,6 +153,10 @@ export default function Home() {
               />
             </a>
           </div>
+          <div className="sm:hidden absolute top-8 right-8 items-center gap-2">
+            <SettingsManager variant="outline" />
+            <ModeToggle />
+          </div>
           <div className="flex items-center gap-2">
             <TaskQueueStatus refreshArticles={refreshArticles} />
             <Button
@@ -168,8 +172,10 @@ export default function Home() {
             >
               Manage Sources
             </Button>
-            <SettingsManager variant="outline" />
-            <ModeToggle />
+            <div className="hidden sm:flex sm:items-center sm:gap-2">
+              <SettingsManager variant="outline" />
+              <ModeToggle />
+            </div>
           </div>
         </div>
 

@@ -256,7 +256,7 @@ const ArticleList = forwardRef<ArticleListRef, ArticleListProps>(({ onSelectArti
               </TabsList>
               <div className="flex gap-2">
 
-                <div className="flex-auto w-full min-w-72">
+                <div className="flex-auto w-full min-w-24 md:min-w-72">
                   <input
                     type="text"
                     placeholder="Search in library..."
