@@ -1,27 +1,29 @@
-import asyncio
-import threading
-import concurrent.futures
 import logging
 import os
-import platform
+import json
+
+# import platform
 import random
 import shutil
-import subprocess
+
+# import subprocess
 import tempfile
 from abc import ABC, abstractmethod
-from tempfile import NamedTemporaryFile
-from typing import List, Optional, Tuple, Generator
-from huggingface_hub import snapshot_download
-from utils.text_processor import AdvancedTextPreprocessor
-import numpy as np
-import torch
-import outetts
-from utils.common_utils import download_file
+
+# from tempfile import NamedTemporaryFile
+from typing import List, Optional, Tuple
+
+import httpx
+
+# import numpy as np
+# import outetts
+# import torch
 from edge_tts import Communicate, SubMaker, VoicesManager
 from pydub import AudioSegment
-from scipy.io.wavfile import write
-from tqdm import tqdm
-from txtsplit import txtsplit
+# from scipy.io.wavfile import write
+# from tqdm import tqdm
+# from txtsplit import txtsplit
+
 from database.crud import (
     ArticleData,
     PodcastData,
@@ -30,19 +32,22 @@ from database.crud import (
     update_podcast,
     update_text,
 )
-
-from TTS.tts_utils import format_percentage, load_transcript, get_voices_wav
 from llm.LLM_calls import generate_title
-from TTS.F5_TTS.F5 import infer
+
+# from TTS.F5_TTS.F5 import infer
+from TTS.tts_utils import format_percentage  # , get_voices_wav, load_transcript
 from utils.common_utils import (
     add_mp3_tags,
+    # download_file,
     get_output_files,
     write_markdown_file,
 )
 from utils.env import setup_env
-from scipy.io import wavfile
-import queue
-import soundfile as sf
+from dotenv import load_dotenv
+
+load_dotenv()
+# from utils.text_processor import AdvancedTextPreprocessor
+
 # from TTS.fish_speech.tools.llama.generate import (
 #    GenerateRequest,
 #    GenerateResponse,
@@ -256,362 +261,362 @@ class EdgeTTSEngine(TTSEngine):
                 logger.warning(f"Failed to delete temp VTT file: {e}")
 
 
-class F5TTSEngine(TTSEngine):
-    def __init__(self, voice_dir: str):
-        self.voice_dir = voice_dir
-        self.logger = logging.getLogger(__name__)
-
-    async def get_available_voices(self) -> List[str]:
-        try:
-            voices = get_voices_wav(self.voice_dir)
-            self.logger.info(f"Found {len(voices)} voices in {self.voice_dir}")
-            return voices
-        except Exception as e:
-            self.logger.error(f"Error getting available voices: {e}")
-            raise
-
-    async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.1
-    ) -> Tuple[AudioSegment, None]:
-        try:
-            if not speed:
-                speed = 1.1
-            audio_path = os.path.join(self.voice_dir, voice_id)
-            self.logger.info(f"Generating audio using voice: {audio_path}")
-            ref_text = load_transcript(voice_id, self.voice_dir)
-            audio, _ = infer(
-                audio_path,
-                ref_text,
-                text,
-                model="F5-TTS",
-                remove_silence=True,
-                speed=speed,
-            )
-
-            sr, audio_data = audio
-            if audio_data is None:
-                raise ValueError(f"F5-TTS returned None for voice {voice_id}")
-
-            # Convert numpy array to AudioSegment
-            # Ensure the array is normalized to [-1, 1]
-            audio_data = np.clip(audio_data, -1, 1)
-
-            # Convert to 16-bit PCM
-            audio_np_int16 = (audio_data * 32767).astype(np.int16)
-
-            # Create AudioSegment directly from bytes
-            audio_segment = AudioSegment(
-                data=audio_np_int16.tobytes(),
-                sample_width=2,  # 16-bit
-                frame_rate=sr,
-                channels=1,  # mono
-            )
-
-            self.logger.info(
-                f"Successfully generated audio segment of length {len(audio_segment)}ms"
-            )
-            return audio_segment, None
-
-        except Exception as e:
-            self.logger.error(f"Error in generate_audio: {e}")
-            raise
-
-
-class PiperTTSEngine(TTSEngine):
-    def __init__(self, voices_dir: str):
-        self.voices_dir = os.path.join(voices_dir)
-        self.logger = logging.getLogger(__name__)
-
-    async def get_available_voices(self) -> List[str]:
-        # List available voices based on subfolder names in the voices directory
-        if not os.path.exists(self.voices_dir):
-            self.logger.error(f"Voices directory '{self.voices_dir}' does not exist.")
-            return []
-
-        # Check each subdirectory for .onnx and .json files
-        voice_ids = [
-            folder
-            for folder in os.listdir(self.voices_dir)
-            if os.path.isdir(os.path.join(self.voices_dir, folder))
-            and any(
-                file.endswith(".onnx")
-                for file in os.listdir(os.path.join(self.voices_dir, folder))
-            )
-            and any(
-                file.endswith(".json")
-                for file in os.listdir(os.path.join(self.voices_dir, folder))
-            )
-        ]
-
-        self.logger.info(f"Found {len(voice_ids)} voices in {self.voices_dir}")
-        return voice_ids
-
-    async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.1
-    ) -> Tuple[AudioSegment, None]:
-        try:
-            # Determine the path to the Piper binary based on the operating system
-            script_folder = os.path.dirname(os.path.abspath(__file__))
-            operating_system = platform.system()
-
-            if operating_system == "Windows":
-                piper_binary = os.path.join(script_folder, "piper_tts", "piper.exe")
-            else:
-                piper_binary = os.path.join(script_folder, "piper_tts", "piper")
-
-            voice_folder_path = os.path.join(self.voices_dir, voice_id)
-
-            # Verify the voice model files exist
-            model_path = next(
-                (
-                    os.path.join(voice_folder_path, f)
-                    for f in os.listdir(voice_folder_path)
-                    if f.endswith(".onnx")
-                ),
-                None,
-            )
-            json_path = next(
-                (
-                    os.path.join(voice_folder_path, f)
-                    for f in os.listdir(voice_folder_path)
-                    if f.endswith(".json")
-                ),
-                None,
-            )
-
-            if not model_path or not json_path:
-                self.logger.error(
-                    "Required voice files not found in the specified voice folder."
-                )
-                raise FileNotFoundError("Piper model or JSON file missing")
-
-            # Use a temporary file for the output audio
-            with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-                temp_audio_path = temp_audio.name
-
-            # Construct and execute the Piper command
-            command = [
-                piper_binary,
-                "-m",
-                model_path,
-                "-c",
-                json_path,
-                "-f",
-                temp_audio_path,
-                "-s",
-                "0",  # Example: using voice index 0 for multi-voice models
-                "--length_scale",
-                f"{speed}",  # Set length scale (speed of speech)
-            ]
-
-            process = subprocess.run(
-                command,
-                input=text.encode("utf-8"),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-
-            # Check if the process completed successfully
-            if process.returncode != 0:
-                self.logger.error(
-                    f"Piper TTS command failed: {process.stderr.decode()}"
-                )
-                raise RuntimeError("Piper TTS synthesis failed")
-
-            # Load generated audio file into AudioSegment
-            audio = AudioSegment.from_file(temp_audio_path, format="wav")
-            self.logger.info(f"Generated Piper TTS audio for voice_id {voice_id}")
-            return audio, None
-        except Exception as e:
-            self.logger.error(f"Error generating audio with Piper TTS: {e}")
-            raise
-
-
-class StyleTTS2Engine(TTSEngine):
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-
-    async def get_available_voices(self) -> List[str]:
-        # Only one voice for StyleTTS2 available
-        # so we return two dummy voices to avoid throwing
-        # errors in podacast generateion
-        return ["styletts2_default_voice", "styletts2_dummy_voice"]
-
-    async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.3
-    ) -> Tuple[AudioSegment, None]:
-        from .styletts2.ljspeechimportable import inference
-
-        try:
-            # Ensure the text is valid and within length limits
-            if not text.strip():
-                self.logger.error("Text input is empty.")
-                raise ValueError("Empty text input")
-
-            if len(text) > 150000:
-                self.logger.error("Text must be <150k characters")
-                raise ValueError("Text is too long")
-
-            # Split the text and synthesize each segment
-            texts = txtsplit(text)
-            audios = []
-            noise = torch.randn(1, 1, 256).to(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            )
-
-            for t in tqdm(texts, desc="Synthesizing with StyleTTS2"):
-                audio_segment = inference(
-                    t,
-                    noise,
-                    diffusion_steps=5,
-                    embedding_scale=1,
-                    speed=speed if speed else 1.3,
-                )
-                if audio_segment is not None:
-                    audios.append(audio_segment)
-                else:
-                    self.logger.error(f"Inference returned None for text segment: {t}")
-
-            if not audios:
-                raise ValueError("No audio segments were generated")
-
-            # Concatenate all audio segments and save to a temporary WAV file
-            full_audio = np.concatenate(audios)
-            with NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav_file:
-                write(temp_wav_file.name, 24000, full_audio)
-                temp_wav_path = temp_wav_file.name
-
-            # Load the temporary WAV file as an AudioSegment
-            audio = AudioSegment.from_file(temp_wav_path, format="wav")
-            return audio, None
-        except Exception as e:
-            self.logger.error(f"Error generating audio with StyleTTS2: {e}")
-
-
-class OuteTTSEngine(TTSEngine):
-    def __init__(
-        self, voice_dir: str, model_path: str, language: str = "en", n_gpu_layers=0
-    ):
-        """
-        Initialize the OuteTTSEngine with the specified voice directory,
-        model path, and language.
-        """
-        self.voice_dir = voice_dir
-        self.model_path = model_path
-        self.language = language
-        self.n_gpu_layers = n_gpu_layers
-        self.interface = None
-        self.logger = logging.getLogger(__name__)
-        self._initialize_interface()
-
-    def _initialize_interface(self):
-        """
-        Initialize the OuteTTS interface with the model configuration.
-        """
-        directory = "TTS/OuteTTS/models/"
-        file_extension = ".gguf"
-        file_url = "https://huggingface.co/OuteAI/OuteTTS-0.2-500M-GGUF/resolve/main/OuteTTS-0.2-500M-Q6_K.gguf"
-        destination_file = None
-
-        # Find existing .gguf file
-        for file in os.listdir(directory):
-            if file.endswith(file_extension):
-                destination_file = os.path.join(directory, file)
-                print(f"Existing .gguf file found: {destination_file}")
-                break
-
-        # If no .gguf file is found, download the file
-        if destination_file is None:
-            print("No .gguf file found. Downloading...")
-            destination_file = os.path.join(directory, "OuteTTS-0.2-500M-Q6_K.gguf")
-            download_file(file_url, destination_file)
-            print(f"File downloaded to {destination_file}")
-
-        model_config = outetts.GGUFModelConfig_v1(
-            model_path=destination_file,
-            language=self.language,
-            n_gpu_layers=self.n_gpu_layers,
-            # dtype=torch.bfloat16,
-            # additional_model_config={"attn_implementation": "flash_attention_2"},
-        )
-        self.interface = outetts.InterfaceGGUF(model_version="0.2", cfg=model_config)
-
-    async def get_available_voices(self) -> List[str]:
-        try:
-            voices = get_voices_wav(self.voice_dir)
-            self.logger.info(f"Found {len(voices)} voices in {self.voice_dir}")
-            return voices
-        except Exception as e:
-            self.logger.error(f"Error getting available voices: {e}")
-            raise
-
-    async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.0
-    ) -> Tuple[AudioSegment, None]:
-        """
-        Generate audio using a reference `.wav` file for the given voice ID.
-        """
-        try:
-            if not text.strip():
-                raise ValueError("Text input is empty.")
-
-            # Path to the reference `.wav` file
-            audio_path = os.path.join(self.voice_dir, voice_id)
-            if not os.path.exists(audio_path):
-                raise FileNotFoundError(
-                    f"Reference audio file '{audio_path}' not found."
-                )
-
-            # Load reference audio and create speaker profile
-            speaker = self.interface.create_speaker(
-                audio_path=audio_path,
-                transcript=load_transcript(voice_id, self.voice_dir),
-            )
-
-            # Initialize preprocessor
-            preprocessor = AdvancedTextPreprocessor(
-                min_chars=50, language="english", keep_acronyms=True
-            )
-
-            # Preprocess text
-            sentences = preprocessor.preprocess_text(text)
-            audio_segments = []
-
-            # Use tqdm for progress tracking
-            for sentence in tqdm(sentences, desc="Generating audio", ncols=80):
-                # Generate audio for each sentence
-                output = self.interface.generate(
-                    text=sentence,
-                    temperature=0.1,
-                    repetition_penalty=1.1,
-                    max_length=4096,
-                    speaker=speaker,
-                )
-
-                # Save the synthesized speech to a temporary file
-                with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-                    output.save(temp_audio.name)
-
-                # Load the audio into an AudioSegment
-                audio = AudioSegment.from_file(temp_audio.name, format="wav")
-                audio_segments.append(audio)
-
-                # Add a random pause with slight crossfade
-                pause = AudioSegment.silent(duration=random.randint(200, 500))
-                if audio_segments:
-                    # Apply a crossfade between the last segment and the pause
-                    audio_segments[-1] = audio_segments[-1].append(pause, crossfade=50)
-                else:
-                    audio_segments.append(pause)
-
-            # Combine all audio segments using an initial empty AudioSegment
-            final_audio = sum(audio_segments, AudioSegment.silent(duration=0))
-            self.logger.info(f"Generated audio for voice_id: {voice_id}")
-            return final_audio, None
-
-        except Exception as e:
-            self.logger.error(f"Error generating audio with OuteTTS: {e}")
-            raise
+# class F5TTSEngine(TTSEngine):
+#     def __init__(self, voice_dir: str):
+#         self.voice_dir = voice_dir
+#         self.logger = logging.getLogger(__name__)
+#
+#     async def get_available_voices(self) -> List[str]:
+#         try:
+#             voices = get_voices_wav(self.voice_dir)
+#             self.logger.info(f"Found {len(voices)} voices in {self.voice_dir}")
+#             return voices
+#         except Exception as e:
+#             self.logger.error(f"Error getting available voices: {e}")
+#             raise
+#
+#     async def generate_audio(
+#         self, text: str, voice_id: str, speed: Optional[float] = 1.1
+#     ) -> Tuple[AudioSegment, None]:
+#         try:
+#             if not speed:
+#                 speed = 1.1
+#             audio_path = os.path.join(self.voice_dir, voice_id)
+#             self.logger.info(f"Generating audio using voice: {audio_path}")
+#             ref_text = load_transcript(voice_id, self.voice_dir)
+#             audio, _ = infer(
+#                 audio_path,
+#                 ref_text,
+#                 text,
+#                 model="F5-TTS",
+#                 remove_silence=True,
+#                 speed=speed,
+#             )
+#
+#             sr, audio_data = audio
+#             if audio_data is None:
+#                 raise ValueError(f"F5-TTS returned None for voice {voice_id}")
+#
+#             # Convert numpy array to AudioSegment
+#             # Ensure the array is normalized to [-1, 1]
+#             audio_data = np.clip(audio_data, -1, 1)
+#
+#             # Convert to 16-bit PCM
+#             audio_np_int16 = (audio_data * 32767).astype(np.int16)
+#
+#             # Create AudioSegment directly from bytes
+#             audio_segment = AudioSegment(
+#                 data=audio_np_int16.tobytes(),
+#                 sample_width=2,  # 16-bit
+#                 frame_rate=sr,
+#                 channels=1,  # mono
+#             )
+#
+#             self.logger.info(
+#                 f"Successfully generated audio segment of length {len(audio_segment)}ms"
+#             )
+#             return audio_segment, None
+#
+#         except Exception as e:
+#             self.logger.error(f"Error in generate_audio: {e}")
+#             raise
+#
+#
+# class PiperTTSEngine(TTSEngine):
+#     def __init__(self, voices_dir: str):
+#         self.voices_dir = os.path.join(voices_dir)
+#         self.logger = logging.getLogger(__name__)
+#
+#     async def get_available_voices(self) -> List[str]:
+#         # List available voices based on subfolder names in the voices directory
+#         if not os.path.exists(self.voices_dir):
+#             self.logger.error(f"Voices directory '{self.voices_dir}' does not exist.")
+#             return []
+#
+#         # Check each subdirectory for .onnx and .json files
+#         voice_ids = [
+#             folder
+#             for folder in os.listdir(self.voices_dir)
+#             if os.path.isdir(os.path.join(self.voices_dir, folder))
+#             and any(
+#                 file.endswith(".onnx")
+#                 for file in os.listdir(os.path.join(self.voices_dir, folder))
+#             )
+#             and any(
+#                 file.endswith(".json")
+#                 for file in os.listdir(os.path.join(self.voices_dir, folder))
+#             )
+#         ]
+#
+#         self.logger.info(f"Found {len(voice_ids)} voices in {self.voices_dir}")
+#         return voice_ids
+#
+#     async def generate_audio(
+#         self, text: str, voice_id: str, speed: Optional[float] = 1.1
+#     ) -> Tuple[AudioSegment, None]:
+#         try:
+#             # Determine the path to the Piper binary based on the operating system
+#             script_folder = os.path.dirname(os.path.abspath(__file__))
+#             operating_system = platform.system()
+#
+#             if operating_system == "Windows":
+#                 piper_binary = os.path.join(script_folder, "piper_tts", "piper.exe")
+#             else:
+#                 piper_binary = os.path.join(script_folder, "piper_tts", "piper")
+#
+#             voice_folder_path = os.path.join(self.voices_dir, voice_id)
+#
+#             # Verify the voice model files exist
+#             model_path = next(
+#                 (
+#                     os.path.join(voice_folder_path, f)
+#                     for f in os.listdir(voice_folder_path)
+#                     if f.endswith(".onnx")
+#                 ),
+#                 None,
+#             )
+#             json_path = next(
+#                 (
+#                     os.path.join(voice_folder_path, f)
+#                     for f in os.listdir(voice_folder_path)
+#                     if f.endswith(".json")
+#                 ),
+#                 None,
+#             )
+#
+#             if not model_path or not json_path:
+#                 self.logger.error(
+#                     "Required voice files not found in the specified voice folder."
+#                 )
+#                 raise FileNotFoundError("Piper model or JSON file missing")
+#
+#             # Use a temporary file for the output audio
+#             with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+#                 temp_audio_path = temp_audio.name
+#
+#             # Construct and execute the Piper command
+#             command = [
+#                 piper_binary,
+#                 "-m",
+#                 model_path,
+#                 "-c",
+#                 json_path,
+#                 "-f",
+#                 temp_audio_path,
+#                 "-s",
+#                 "0",  # Example: using voice index 0 for multi-voice models
+#                 "--length_scale",
+#                 f"{speed}",  # Set length scale (speed of speech)
+#             ]
+#
+#             process = subprocess.run(
+#                 command,
+#                 input=text.encode("utf-8"),
+#                 stdout=subprocess.PIPE,
+#                 stderr=subprocess.PIPE,
+#             )
+#
+#             # Check if the process completed successfully
+#             if process.returncode != 0:
+#                 self.logger.error(
+#                     f"Piper TTS command failed: {process.stderr.decode()}"
+#                 )
+#                 raise RuntimeError("Piper TTS synthesis failed")
+#
+#             # Load generated audio file into AudioSegment
+#             audio = AudioSegment.from_file(temp_audio_path, format="wav")
+#             self.logger.info(f"Generated Piper TTS audio for voice_id {voice_id}")
+#             return audio, None
+#         except Exception as e:
+#             self.logger.error(f"Error generating audio with Piper TTS: {e}")
+#             raise
+#
+#
+# class StyleTTS2Engine(TTSEngine):
+#     def __init__(self):
+#         self.logger = logging.getLogger(__name__)
+#
+#     async def get_available_voices(self) -> List[str]:
+#         # Only one voice for StyleTTS2 available
+#         # so we return two dummy voices to avoid throwing
+#         # errors in podacast generateion
+#         return ["styletts2_default_voice", "styletts2_dummy_voice"]
+#
+#     async def generate_audio(
+#         self, text: str, voice_id: str, speed: Optional[float] = 1.3
+#     ) -> Tuple[AudioSegment, None]:
+#         from .styletts2.ljspeechimportable import inference
+#
+#         try:
+#             # Ensure the text is valid and within length limits
+#             if not text.strip():
+#                 self.logger.error("Text input is empty.")
+#                 raise ValueError("Empty text input")
+#
+#             if len(text) > 150000:
+#                 self.logger.error("Text must be <150k characters")
+#                 raise ValueError("Text is too long")
+#
+#             # Split the text and synthesize each segment
+#             texts = txtsplit(text)
+#             audios = []
+#             noise = torch.randn(1, 1, 256).to(
+#                 "cuda" if torch.cuda.is_available() else "cpu"
+#             )
+#
+#             for t in tqdm(texts, desc="Synthesizing with StyleTTS2"):
+#                 audio_segment = inference(
+#                     t,
+#                     noise,
+#                     diffusion_steps=5,
+#                     embedding_scale=1,
+#                     speed=speed if speed else 1.3,
+#                 )
+#                 if audio_segment is not None:
+#                     audios.append(audio_segment)
+#                 else:
+#                     self.logger.error(f"Inference returned None for text segment: {t}")
+#
+#             if not audios:
+#                 raise ValueError("No audio segments were generated")
+#
+#             # Concatenate all audio segments and save to a temporary WAV file
+#             full_audio = np.concatenate(audios)
+#             with NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav_file:
+#                 write(temp_wav_file.name, 24000, full_audio)
+#                 temp_wav_path = temp_wav_file.name
+#
+#             # Load the temporary WAV file as an AudioSegment
+#             audio = AudioSegment.from_file(temp_wav_path, format="wav")
+#             return audio, None
+#         except Exception as e:
+#             self.logger.error(f"Error generating audio with StyleTTS2: {e}")
+#
+#
+# class OuteTTSEngine(TTSEngine):
+#     def __init__(
+#         self, voice_dir: str, model_path: str, language: str = "en", n_gpu_layers=0
+#     ):
+#         """
+#         Initialize the OuteTTSEngine with the specified voice directory,
+#         model path, and language.
+#         """
+#         self.voice_dir = voice_dir
+#         self.model_path = model_path
+#         self.language = language
+#         self.n_gpu_layers = n_gpu_layers
+#         self.interface = None
+#         self.logger = logging.getLogger(__name__)
+#         self._initialize_interface()
+#
+#     def _initialize_interface(self):
+#         """
+#         Initialize the OuteTTS interface with the model configuration.
+#         """
+#         directory = "TTS/OuteTTS/models/"
+#         file_extension = ".gguf"
+#         file_url = "https://huggingface.co/OuteAI/OuteTTS-0.2-500M-GGUF/resolve/main/OuteTTS-0.2-500M-Q6_K.gguf"
+#         destination_file = None
+#
+#         # Find existing .gguf file
+#         for file in os.listdir(directory):
+#             if file.endswith(file_extension):
+#                 destination_file = os.path.join(directory, file)
+#                 print(f"Existing .gguf file found: {destination_file}")
+#                 break
+#
+#         # If no .gguf file is found, download the file
+#         if destination_file is None:
+#             print("No .gguf file found. Downloading...")
+#             destination_file = os.path.join(directory, "OuteTTS-0.2-500M-Q6_K.gguf")
+#             download_file(file_url, destination_file)
+#             print(f"File downloaded to {destination_file}")
+#
+#         model_config = outetts.GGUFModelConfig_v1(
+#             model_path=destination_file,
+#             language=self.language,
+#             n_gpu_layers=self.n_gpu_layers,
+#             # dtype=torch.bfloat16,
+#             # additional_model_config={"attn_implementation": "flash_attention_2"},
+#         )
+#         self.interface = outetts.InterfaceGGUF(model_version="0.2", cfg=model_config)
+#
+#     async def get_available_voices(self) -> List[str]:
+#         try:
+#             voices = get_voices_wav(self.voice_dir)
+#             self.logger.info(f"Found {len(voices)} voices in {self.voice_dir}")
+#             return voices
+#         except Exception as e:
+#             self.logger.error(f"Error getting available voices: {e}")
+#             raise
+#
+#     async def generate_audio(
+#         self, text: str, voice_id: str, speed: Optional[float] = 1.0
+#     ) -> Tuple[AudioSegment, None]:
+#         """
+#         Generate audio using a reference `.wav` file for the given voice ID.
+#         """
+#         try:
+#             if not text.strip():
+#                 raise ValueError("Text input is empty.")
+#
+#             # Path to the reference `.wav` file
+#             audio_path = os.path.join(self.voice_dir, voice_id)
+#             if not os.path.exists(audio_path):
+#                 raise FileNotFoundError(
+#                     f"Reference audio file '{audio_path}' not found."
+#                 )
+#
+#             # Load reference audio and create speaker profile
+#             speaker = self.interface.create_speaker(
+#                 audio_path=audio_path,
+#                 transcript=load_transcript(voice_id, self.voice_dir),
+#             )
+#
+#             # Initialize preprocessor
+#             preprocessor = AdvancedTextPreprocessor(
+#                 min_chars=50, language="english", keep_acronyms=True
+#             )
+#
+#             # Preprocess text
+#             sentences = preprocessor.preprocess_text(text)
+#             audio_segments = []
+#
+#             # Use tqdm for progress tracking
+#             for sentence in tqdm(sentences, desc="Generating audio", ncols=80):
+#                 # Generate audio for each sentence
+#                 output = self.interface.generate(
+#                     text=sentence,
+#                     temperature=0.1,
+#                     repetition_penalty=1.1,
+#                     max_length=4096,
+#                     speaker=speaker,
+#                 )
+#
+#                 # Save the synthesized speech to a temporary file
+#                 with NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+#                     output.save(temp_audio.name)
+#
+#                 # Load the audio into an AudioSegment
+#                 audio = AudioSegment.from_file(temp_audio.name, format="wav")
+#                 audio_segments.append(audio)
+#
+#                 # Add a random pause with slight crossfade
+#                 pause = AudioSegment.silent(duration=random.randint(200, 500))
+#                 if audio_segments:
+#                     # Apply a crossfade between the last segment and the pause
+#                     audio_segments[-1] = audio_segments[-1].append(pause, crossfade=50)
+#                 else:
+#                     audio_segments.append(pause)
+#
+#             # Combine all audio segments using an initial empty AudioSegment
+#             final_audio = sum(audio_segments, AudioSegment.silent(duration=0))
+#             self.logger.info(f"Generated audio for voice_id: {voice_id}")
+#             return final_audio, None
+#
+#         except Exception as e:
+#             self.logger.error(f"Error generating audio with OuteTTS: {e}")
+#             raise
 
 
 # class FishTTSEngine(TTSEngine):
@@ -1006,3 +1011,206 @@ class OuteTTSEngine(TTSEngine):
 #        else:
 #            audio = np.concatenate(segments, axis=0)
 #            yield None, (24000, audio), None  # 24 kHz sample rate
+
+
+class OpenAITTSEngine(TTSEngine):
+    def __init__(self):
+        """
+        Initialize OpenAI TTS Engine with API Key.
+
+        Args:
+            api_key (str): OpenAI API key for authentication.
+        """
+        base_url = os.getenv(
+            "OPENAI_TTS_BASE_URL", "https://api.openai.com/v1/audio/speech"
+        )
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key is None:
+            raise Exception(
+                "No OpenAI API key found in environment variables. Please include it in the .env file."
+            )
+        self.api_key = api_key
+        self.logger = logging.getLogger(__name__)
+        self.base_url = base_url
+        self.voices = [
+            "alloy",
+            "echo",
+            "fable",
+            "onyx",
+            "nova",
+            "shimmer",
+        ]
+
+    async def get_available_voices(self) -> List[str]:
+        """Return list of available voice IDs."""
+        return self.voices
+
+    async def generate_audio(
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+    ) -> Tuple[AudioSegment, None]:
+        """
+        Generate audio using OpenAI's TTS API.
+
+        Args:
+            text (str): Text to synthesize.
+            voice_id (str): Voice ID (from OpenAI's supported voices).
+            speed (Optional[float]): Speech speed (not directly supported by OpenAI).
+
+        Returns:
+            Tuple[AudioSegment, None]: Generated audio and optional VTT file path.
+        """
+        try:
+            # Validate voice_id
+            if voice_id not in self.voices:
+                raise ValueError(
+                    f"Invalid voice_id '{voice_id}'. Available voices: {self.voices}"
+                )
+
+            # Prepare API request payload
+            payload = {
+                "model": "tts-1",  # OpenAI's TTS model
+                "voice": voice_id,
+                "input": text,
+            }
+
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
+
+            # Make async API request
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.base_url,
+                    headers=headers,
+                    json=payload,
+                )
+
+            # Check response status
+            if response.status_code != 200:
+                self.logger.error(f"OpenAI TTS API Error: {response.text}")
+                raise RuntimeError(f"Failed to generate TTS: {response.text}")
+
+            # Save audio to a temporary file
+            temp_audio = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            temp_audio.write(response.content)
+            temp_audio.flush()
+            temp_audio.close()
+
+            # Load the audio file into an AudioSegment
+            audio = AudioSegment.from_file(temp_audio.name, format="mp3")
+            self.logger.info(
+                f"Successfully generated audio with OpenAI TTS ({voice_id})"
+            )
+
+            return audio, None
+
+        except Exception as e:
+            self.logger.error(f"Error in OpenAI TTS generation: {e}")
+            raise
+
+
+class KokoroTTSEngine(TTSEngine):
+    def __init__(self, api_base_url: str, api_key: Optional[str] = None):
+        """
+        Initialize Kokoro TTS Engine.
+
+        Args:
+            api_base_url (str): Base URL for Kokoro TTS API (e.g., "https://kokoro.example.com").
+            api_key (Optional[str]): API key for authentication (if required).
+        """
+        base_url = os.getenv("KOKORO_TTS_URL", "http://localhost:8880")
+        self.api_base_url = base_url.rstrip("/")  # Ensure no trailing slash
+        self.api_key = api_key
+        self.logger = logging.getLogger(__name__)
+        self.headers = {
+            "Content-Type": "application/json",
+        }
+        if api_key:
+            self.headers["Authorization"] = f"Bearer {api_key}"
+
+    async def get_available_voices(self) -> List[str]:
+        """Fetch and return only the list of available voices from the Kokoro TTS API."""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.api_base_url}/v1/audio/voices", headers=self.headers
+                )
+
+            if response.status_code != 200:
+                self.logger.error(f"Kokoro API Error: {response.text}")
+                raise RuntimeError(f"Failed to fetch voices: {response.text}")
+
+            # Extract only the list of voices from the JSON response
+            voices_data = response.json()
+            voices = voices_data.get("voices", [])  # Get the "voices" key safely
+
+            if not voices:
+                self.logger.warning("No voices found in Kokoro API response.")
+
+            self.logger.info(f"Available Kokoro TTS voices: {voices}")
+            return voices  # Now returning only a list of voice names
+
+        except Exception as e:
+            self.logger.error(f"Error fetching Kokoro TTS voices: {e}")
+            raise
+
+    async def generate_audio(
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+    ) -> Tuple[AudioSegment, None]:
+        """
+        Generate audio using Kokoro TTS API.
+
+        Args:
+            text (str): The text to synthesize.
+            voice_id (str): The voice to use (must be from available voices).
+            speed (Optional[float]): Speech speed (default: 1.0).
+
+        Returns:
+            Tuple[AudioSegment, None]: Generated audio and optional VTT file path.
+        """
+        try:
+            payload = {
+                "model": "kokoro",
+                "input": text,
+                "voice": voice_id,
+                "response_format": "mp3",
+                "speed": speed,
+            }
+
+            self.logger.info(
+                f"Sending Kokoro TTS request: {json.dumps(payload, indent=2)}"
+            )
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.api_base_url}/v1/audio/speech",
+                    headers=self.headers,
+                    json=payload,
+                )
+
+            self.logger.info(f"Kokoro API Response Status: {response.status_code}")
+
+            if response.status_code != 200:
+                self.logger.error(
+                    f"Kokoro TTS API Error [{response.status_code}]: {response.text}"
+                )
+                return None, None  # Handle error gracefully
+
+            # Save audio to a temporary file
+            temp_audio = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            temp_audio.write(response.content)
+            temp_audio.flush()
+            temp_audio.close()
+
+            # Load the audio file into an AudioSegment
+            audio = AudioSegment.from_file(temp_audio.name, format="mp3")
+            self.logger.info(
+                f"Successfully generated audio with Kokoro TTS ({voice_id})"
+            )
+
+            return audio, None
+
+        except Exception as e:
+            self.logger.error(f"Error in Kokoro TTS generation: {e}")
+            raise

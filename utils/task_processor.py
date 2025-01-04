@@ -16,10 +16,12 @@ from database.crud import (
 from llm.LLM_calls import podcast, story, generate_title, tldr
 from TTS.tts_engines import (
     EdgeTTSEngine,
-    F5TTSEngine,
-    PiperTTSEngine,
-    StyleTTS2Engine,
-    OuteTTSEngine,
+    # F5TTSEngine,
+    # PiperTTSEngine,
+    # StyleTTS2Engine,
+    # OuteTTSEngine,
+    OpenAITTSEngine,
+    KokoroTTSEngine,
 )
 from TTS.tts_functions import PodcastGenerator
 from utils.env import setup_env
@@ -56,21 +58,25 @@ def process_tasks(stop_event):
                     continue
 
                 try:
-                    if tts_engine == "piper":
-                        tts_engine = PiperTTSEngine("TTS/piper_tts/voices/")
+                    if tts_engine == "openai":
+                        tts_engine = OpenAITTSEngine("test")
+                    # if tts_engine == "piper":
+                    #     tts_engine = PiperTTSEngine("TTS/piper_tts/voices/")
                     elif tts_engine == "edge":
                         tts_engine = EdgeTTSEngine()
-                    elif tts_engine == "F5":
-                        tts_engine = F5TTSEngine("TTS/voices/")
-                    elif tts_engine == "OuteTTS":
-                        tts_engine = OuteTTSEngine(
-                            voice_dir="TTS/voices/",
-                            model_path="OuteAI/OuteTTS-0.2-500M-GGUF",
-                            language="en",
-                            n_gpu_layers=-1,
-                        )
+                    # elif tts_engine == "F5":
+                    #     tts_engine = F5TTSEngine("TTS/voices/")
+                    # elif tts_engine == "OuteTTS":
+                    #     tts_engine = OuteTTSEngine(
+                    #         voice_dir="TTS/voices/",
+                    #         model_path="OuteAI/OuteTTS-0.2-500M-GGUF",
+                    #         language="en",
+                    #         n_gpu_layers=-1,
+                    #     )
+                    # else:
+                    #     tts_engine = StyleTTS2Engine()
                     else:
-                        tts_engine = StyleTTS2Engine()
+                        tts_engine = KokoroTTSEngine("http://192.168.1.213:8880")
 
                     if task_type == "url" and current_task == "full":
                         new_article = ArticleData(url=content)
@@ -107,6 +113,7 @@ def process_tasks(stop_event):
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
+                            print(f"using voice: {voice}")
                             audio, vtt_file = await tts_engine.generate_audio(
                                 content, voice
                             )
