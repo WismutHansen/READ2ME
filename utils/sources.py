@@ -8,7 +8,10 @@ import logging
 import newspaper
 from .task_file_handler import add_task
 from .rssfeed import find_rss_feed, get_articles_from_feed
+from dotenv import load_dotenv
 
+load_dotenv()
+DEFAULT_TTS = os.environ.get("DEFAULT_TTS", "kokoro")
 MAX_ARTICLES_PER_SOURCE = 20
 
 
@@ -76,7 +79,7 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
     try:
         if download_all:
             logging.info(f"Adding article to task list: {article_url}")
-            await add_task("url", article_url, "edge_tts", "full")
+            await add_task("url", article_url, DEFAULT_TTS, "full")
             return True
 
         # Check that article_url is a string
@@ -98,7 +101,7 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
                 logging.info(
                     f"Keyword '{pattern.pattern}' found in headline: {article_url}"
                 )
-                await add_task("url", article_url, "edge_tts", "full")
+                await add_task("url", article_url, DEFAULT_TTS, "full")
                 return True
 
         logging.debug(f"No keywords found in headline: {article_url}")

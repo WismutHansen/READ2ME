@@ -71,10 +71,12 @@ export default function SettingsManager({ variant = "outline" }: SettingsManager
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="edge">edge TTS (online)</SelectItem>
-                <SelectItem value="F5">F5 (local)</SelectItem>
-                <SelectItem value="styletts2">styleTTS 2 (local)</SelectItem>
-                <SelectItem value="piper">piper (local)</SelectItem>
-                <SelectItem value="OuteTTS">OuteTTS (local)</SelectItem>
+                <SelectItem value="kokoro">Kokoro TTS (local)</SelectItem>
+                <SelectItem value="openai">OpenAI (online)</SelectItem>
+                {/* <SelectItem value="F5">F5 (local)</SelectItem> */}
+                {/* <SelectItem value="styletts2">styleTTS 2 (local)</SelectItem> */}
+                {/* <SelectItem value="piper">piper (local)</SelectItem> */}
+                {/* <SelectItem value="OuteTTS">OuteTTS (local)</SelectItem> */}
               </SelectContent>
             </Select>
           </div>

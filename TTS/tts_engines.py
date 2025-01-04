@@ -1156,7 +1156,7 @@ class KokoroTTSEngine(TTSEngine):
             raise
 
     async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+        self, text: str, voice_id: str, speed: Optional[float] = 1.2
     ) -> Tuple[AudioSegment, None]:
         """
         Generate audio using Kokoro TTS API.

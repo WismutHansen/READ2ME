@@ -13,7 +13,7 @@ Error: cached-path is not installed
 Info: phonemizer version 3.3.0 (no specific version required)
 Error: txtsplit is not installed
 Info: playwright version 1.49.1 (no specific version required)
-Error: newspaper4k is not installed
+Info: newspaper4k version 0.9.3.1 (no specific version required)
 Error: schedule is not installed
 Info: wikipedia version 1.4.0 (no specific version required)
 Info: aiohttp version 3.11.11 (no specific version required)
@@ -41,7 +41,7 @@ Info: torch version 2.5.1 (no specific version required)
 Info: torchaudio version 2.5.1 (no specific version required)
 Info: torchvision version 0.20.1 (no specific version required)
 Error: rvc-python is not installed
-Error: nltk is not installed
+Info: nltk version 3.9.1 (no specific version required)
 Error: munch is not installed
 Error: einops is not installed
 Error: einops_exts is not installed
