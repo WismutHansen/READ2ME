@@ -1174,7 +1174,7 @@ class KokoroTTSEngine(TTSEngine):
                 "model": "kokoro",
                 "input": text,
                 "voice": voice_id,
-                "response_format": "mp3",
+                "response_format": "wav",
                 "speed": speed,
             }
 
@@ -1182,7 +1182,7 @@ class KokoroTTSEngine(TTSEngine):
                 f"Sending Kokoro TTS request: {json.dumps(payload, indent=2)}"
             )
 
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
                 response = await client.post(
                     f"{self.api_base_url}/v1/audio/speech",
                     headers=self.headers,
@@ -1198,13 +1198,13 @@ class KokoroTTSEngine(TTSEngine):
                 return None, None  # Handle error gracefully
 
             # Save audio to a temporary file
-            temp_audio = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            temp_audio = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
             temp_audio.write(response.content)
             temp_audio.flush()
             temp_audio.close()
 
             # Load the audio file into an AudioSegment
-            audio = AudioSegment.from_file(temp_audio.name, format="mp3")
+            audio = AudioSegment.from_file(temp_audio.name, format="wav")
             self.logger.info(
                 f"Successfully generated audio with Kokoro TTS ({voice_id})"
             )

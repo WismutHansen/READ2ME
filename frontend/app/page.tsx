@@ -153,28 +153,32 @@ export default function Home() {
               />
             </a>
           </div>
-          <div className="sm:hidden absolute top-8 right-8 items-center gap-2">
+          <div className="sm:hidden absolute top-8 right-8 flex items-center gap-2">
             <SettingsManager variant="outline" />
             <ModeToggle />
           </div>
-          <div className="flex items-center gap-2">
-            <TaskQueueStatus refreshArticles={refreshArticles} />
-            <Button
-              variant="outline"
-              onClick={() => setArticleAdderOpen(true)}
-              className={!hasContent ? 'animate-breathing-outline' : ''}
-            >
-              Add Content
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setSourceManagerOpen(true)}
-            >
-              Manage Sources
-            </Button>
-            <div className="hidden sm:flex sm:items-center sm:gap-2">
-              <SettingsManager variant="outline" />
-              <ModeToggle />
+          <div className="flex items-center justify-between w-full sm:justify-end sm:w-auto gap-2">
+            <div className="flex items-center">
+              <TaskQueueStatus refreshArticles={refreshArticles} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setArticleAdderOpen(true)}
+                className={!hasContent ? 'animate-breathing-outline' : ''}
+              >
+                Add Content
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setSourceManagerOpen(true)}
+              >
+                Manage Sources
+              </Button>
+              <div className="hidden sm:flex sm:items-center sm:gap-2">
+                <SettingsManager variant="outline" />
+                <ModeToggle />
+              </div>
             </div>
           </div>
         </div>
