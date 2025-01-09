@@ -22,6 +22,7 @@ from TTS.tts_engines import (
     # OuteTTSEngine,
     OpenAITTSEngine,
     KokoroTTSEngine,
+    # Styletts2StudioTTSEngine,
 )
 from TTS.tts_functions import PodcastGenerator
 from utils.env import setup_env
@@ -64,6 +65,8 @@ def process_tasks(stop_event):
                     #     tts_engine = PiperTTSEngine("TTS/piper_tts/voices/")
                     elif tts_engine == "edge":
                         tts_engine = EdgeTTSEngine()
+                    # elif tts_engine == "styletts2_studio":
+                    #     tts_engine = Styletts2StudioTTSEngine()
                     # elif tts_engine == "F5":
                     #     tts_engine = F5TTSEngine("TTS/voices/")
                     # elif tts_engine == "OuteTTS":

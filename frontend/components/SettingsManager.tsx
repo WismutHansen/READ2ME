@@ -73,6 +73,7 @@ export default function SettingsManager({ variant = "outline" }: SettingsManager
                 <SelectItem value="edge">edge TTS (online)</SelectItem>
                 <SelectItem value="kokoro">Kokoro TTS (local)</SelectItem>
                 <SelectItem value="openai">OpenAI (online)</SelectItem>
+                {/* <SelectItem value="styletts2_studio">StyleTTS2 Studio (local)</SelectItem> */}
                 {/* <SelectItem value="F5">F5 (local)</SelectItem> */}
                 {/* <SelectItem value="styletts2">styleTTS 2 (local)</SelectItem> */}
                 {/* <SelectItem value="piper">piper (local)</SelectItem> */}

@@ -9,9 +9,9 @@ Info: uvicorn version 0.34.0 (no specific version required)
 Info: mutagen version 1.47.0 (no specific version required)
 Info: pillow version 10.4.0 (no specific version required)
 Error: watchdog is not installed
-Error: cached-path is not installed
+Info: cached-path version 1.6.6 (no specific version required)
 Info: phonemizer version 3.3.0 (no specific version required)
-Error: txtsplit is not installed
+Info: txtsplit version 1.0.0 (no specific version required)
 Info: playwright version 1.49.1 (no specific version required)
 Info: newspaper4k version 0.9.3.1 (no specific version required)
 Error: schedule is not installed
@@ -42,9 +42,9 @@ Info: torchaudio version 2.5.1 (no specific version required)
 Info: torchvision version 0.20.1 (no specific version required)
 Error: rvc-python is not installed
 Info: nltk version 3.9.1 (no specific version required)
-Error: munch is not installed
-Error: einops is not installed
-Error: einops_exts is not installed
+Info: munch version 4.0.0 (no specific version required)
+Info: einops version 0.8.0 (no specific version required)
+Info: einops_exts version 0.0.4 (no specific version required)
 Info: setuptools version 75.6.0 (no specific version required)
 Error: matplotlib is not installed
 Info: transformers version 4.47.1 (no specific version required)

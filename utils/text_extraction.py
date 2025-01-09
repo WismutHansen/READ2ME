@@ -481,33 +481,6 @@ async def extract_text(
         return None, None, None
 
 
-# def readability(url):  # Currently not used
-#     response = requests.head(url, allow_redirects=True)
-#     resolved_url = response.url
-#     downloaded = trafilatura.fetch_url(resolved_url)
-#     article = simple_json_from_html_string(downloaded, use_readability=True)
-#
-#     title = article.get("title", "No Title")
-#     byline = article.get("byline")
-#     content = article.get("plain_text", [])
-#
-#     markdown = f"# {title}\n\n"
-#     if byline:
-#         markdown += f"**Written by:** {byline}\n\n"
-#     markdown += f"**From:** {url}\n\n"
-#
-#     # Check if content is iterable and then process it
-#     if isinstance(content, list):
-#         markdown += "\n".join(
-#             [
-#                 item.get("text", "") if isinstance(item, dict) else str(item)
-#                 for item in content
-#             ]
-#         )
-#
-#     return markdown
-
-
 if __name__ == "__main__":
     url = input("Enter URL to extract text from: ")
     article_content, title = asyncio.run(extract_text(url))

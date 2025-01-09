@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
+# tts_engines.py
+# -*- coding: utf-8 -*-
+# import json
 import logging
 import os
-import json
 
 # import platform
 import random
@@ -14,16 +17,19 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
 
 import httpx
+from dotenv import load_dotenv
 
 # import numpy as np
 # import outetts
 # import torch
 from edge_tts import Communicate, SubMaker, VoicesManager
+from fastapi.concurrency import run_in_threadpool
+from openai import OpenAI
 from pydub import AudioSegment
+
 # from scipy.io.wavfile import write
 # from tqdm import tqdm
 # from txtsplit import txtsplit
-
 from database.crud import (
     ArticleData,
     PodcastData,
@@ -43,7 +49,9 @@ from utils.common_utils import (
     write_markdown_file,
 )
 from utils.env import setup_env
-from dotenv import load_dotenv
+
+# from TTS.styletts2_studio.text2speech import generate_long_form_tts
+# import soundfile as sf
 
 load_dotenv()
 # from utils.text_processor import AdvancedTextPreprocessor
@@ -207,58 +215,49 @@ class EdgeTTSEngine(TTSEngine):
         temp_vtt = tempfile.NamedTemporaryFile(suffix=".vtt", delete=False)
 
         try:
-            # Convert the floating point speed value to str e.g. "+10%"
-            if not speed:
-                speed = 1.1
-            rate = format_percentage(speed)
+            # Convert speed to EdgeTTS format (e.g., "+10%")
+            rate = f"{int((speed - 1) * 100):+d}%"
 
-            # Create communicate object
+            # Initialize EdgeTTS Communicate
             communicate = Communicate(text, voice_id, rate=rate)
+
+            # Subtitle handler
             submaker = SubMaker()
 
-            # Generate audio and save to temp file
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    temp_audio.write(chunk["data"])
-                elif chunk["type"] == "WordBoundary":
-                    # Handle SSML timing data if needed
-                    submaker.create_sub(
-                        (chunk["offset"], chunk["duration"]), chunk["text"]
-                    )
-                    with open(temp_vtt.name, "w", encoding="utf-8") as f:
-                        f.write(submaker.generate_subs())
+            # Generate audio
+            async for message in communicate.stream():
+                if message["type"] == "audio" and "data" in message:
+                    temp_audio.write(message["data"])
+                elif message["type"] == "WordBoundary":
+                    submaker.feed(message)
+
+            # Write subtitles if available
+            with open(temp_vtt.name, "w", encoding="utf-8") as f:
+                f.write(submaker.get_srt())
 
             temp_audio.flush()
-            temp_audio.close()  # Close file before reading
+            temp_audio.close()
             audio = AudioSegment.from_file(temp_audio.name)
 
-            # Read VTT content
-            with open(temp_vtt.name, "r", encoding="utf-8") as f:
-                vtt_content = f.read()
-
-            # Create permanent VTT file if needed
-            vtt_file = None
-            if vtt_content.strip():
-                vtt_file = temp_vtt.name
-                temp_vtt = None  # Don't delete the VTT file since we're using it
+            if os.path.getsize(temp_vtt.name) > 0:
+                vtt_file = temp_vtt.name  # Keep the file
+            else:
+                os.unlink(temp_vtt.name)  # Remove empty subtitle file
 
             return audio, vtt_file
 
         finally:
-            # Clean up temp files
+            # Cleanup temp files
             try:
-                if temp_audio:
-                    temp_audio.close()
-                    os.unlink(temp_audio.name)
+                os.unlink(temp_audio.name)
             except Exception as e:
-                logger.warning(f"Failed to delete temp audio file: {e}")
+                print(f"Warning: Failed to delete temp audio file: {e}")
 
             try:
-                if temp_vtt:  # Only delete if we didn't keep it as vtt_file
-                    temp_vtt.close()
+                if vtt_file is None:
                     os.unlink(temp_vtt.name)
             except Exception as e:
-                logger.warning(f"Failed to delete temp VTT file: {e}")
+                print(f"Warning: Failed to delete temp VTT file: {e}")
 
 
 # class F5TTSEngine(TTSEngine):
@@ -1119,7 +1118,7 @@ class KokoroTTSEngine(TTSEngine):
             api_base_url (str): Base URL for Kokoro TTS API (e.g., "https://kokoro.example.com").
             api_key (Optional[str]): API key for authentication (if required).
         """
-        base_url = os.getenv("KOKORO_TTS_URL", "http://localhost:8880")
+        base_url = os.getenv("KOKORO_TTS_URL", "http://localhost:8880/v1")
         self.api_base_url = base_url.rstrip("/")  # Ensure no trailing slash
         self.api_key = api_key
         self.logger = logging.getLogger(__name__)
@@ -1134,7 +1133,7 @@ class KokoroTTSEngine(TTSEngine):
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self.api_base_url}/v1/audio/voices", headers=self.headers
+                    f"{self.api_base_url}/audio/voices", headers=self.headers
                 )
 
             if response.status_code != 200:
@@ -1159,58 +1158,119 @@ class KokoroTTSEngine(TTSEngine):
         self, text: str, voice_id: str, speed: Optional[float] = 1.2
     ) -> Tuple[AudioSegment, None]:
         """
-        Generate audio using Kokoro TTS API.
-
-        Args:
-            text (str): The text to synthesize.
-            voice_id (str): The voice to use (must be from available voices).
-            speed (Optional[float]): Speech speed (default: 1.0).
-
-        Returns:
-            Tuple[AudioSegment, None]: Generated audio and optional VTT file path.
+        Generate audio using the local Kokoro TTS via the OpenAI client.
         """
-        try:
-            payload = {
-                "model": "kokoro",
-                "input": text,
-                "voice": voice_id,
-                "response_format": "wav",
-                "speed": speed,
-            }
 
+        # We'll define a sync function to use with run_in_threadpool
+        def run_openai_request():
+            # 1) Create an OpenAI client pointing to your local endpoint
+            openai_client = OpenAI(
+                base_url=self.api_base_url,  # e.g. http://localhost:8880/v1
+                api_key=self.api_key,
+            )
             self.logger.info(
-                f"Sending Kokoro TTS request: {json.dumps(payload, indent=2)}"
+                f"Requesting TTS from {self.api_base_url} with voice={voice_id}"
             )
 
-            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-                response = await client.post(
-                    f"{self.api_base_url}/v1/audio/speech",
-                    headers=self.headers,
-                    json=payload,
-                )
+            # 2) Make the TTS request (model='kokoro' is your local TTS)
+            response = openai_client.audio.speech.create(
+                model="kokoro",
+                voice=voice_id,
+                input=text,
+                response_format="wav",
+                speed=speed,
+            )
 
-            self.logger.info(f"Kokoro API Response Status: {response.status_code}")
+            # 3) Save the response to a temporary WAV file
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+                tmp_file_path = tmp_file.name
+            response.stream_to_file(tmp_file_path)
 
-            if response.status_code != 200:
-                self.logger.error(
-                    f"Kokoro TTS API Error [{response.status_code}]: {response.text}"
-                )
-                return None, None  # Handle error gracefully
+            return tmp_file_path
 
-            # Save audio to a temporary file
-            temp_audio = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-            temp_audio.write(response.content)
-            temp_audio.flush()
-            temp_audio.close()
+        try:
+            # Offload the synchronous TTS call to a thread
+            tmp_file_path = await run_in_threadpool(run_openai_request)
 
-            # Load the audio file into an AudioSegment
-            audio = AudioSegment.from_file(temp_audio.name, format="wav")
+            # 4) Load it into a Pydub AudioSegment
+            audio_segment = AudioSegment.from_file(tmp_file_path, format="wav")
             self.logger.info(
                 f"Successfully generated audio with Kokoro TTS ({voice_id})"
             )
 
-            return audio, None
+            return audio_segment, None
 
         except Exception as e:
             self.logger.error(f"Error in Kokoro TTS generation: {e}")
             raise
+
+
+# class Styletts2StudioTTSEngine(TTSEngine):
+#     def __init__(self):
+#         """
+#         Initialize StyleTTS2 Studio TTS Engine.
+#
+#         Args:
+#             voices (str): Path of the voices.json file
+#         """
+#         voices: str = "TTS/styletts2_studio/voices.json"
+#         self.voices = voices
+#         self.logger = logging.getLogger(__name__)
+#
+#     async def get_available_voices(self) -> List[str]:
+#         """Fetch and return only the list of available voices from StyleTTS2 Studio."""
+#         try:
+#             # Load the JSON data (assuming it's stored in a file)
+#             with open(self.voices, "r", encoding="utf-8") as f:
+#                 data = json.load(f)
+#
+#             # Extract voice names (keys of the dictionary)
+#             available_voices = list(data.keys())
+#
+#             if not available_voices:
+#                 self.logger.warning("No voices found for StyleTTS2 Studio")
+#
+#             self.logger.info(f"Available StyleTTS2 Studio voices: {available_voices}")
+#             return available_voices  # Now returning only a list of voice names
+#
+#         except Exception as e:
+#             self.logger.error(f"Error fetching StyleTTS2 Studio voices: {e}")
+#             raise
+#
+#     async def generate_audio(
+#         self, text: str, voice_id: str, speed: Optional[float] = 1.2
+#     ) -> Tuple[AudioSegment, None]:
+#         """
+#         Generate audio using StyleTT2_Studio.
+#
+#         Args:
+#             text (str): The text to synthesize.
+#             voice_id (str): The voice to use (must be from available voices).
+#             speed (Optional[float]): Speech speed (default: 1.0).
+#
+#         Returns:
+#             Tuple[AudioSegment, None]: Generated audio and optional VTT file path.
+#         """
+#         try:
+#             audio = generate_long_form_tts(text, voice_id, speed=speed)
+#             if audio is None:
+#                 self.logger.error("Error generating audio")
+#                 return None, None
+#             # Save audio to a temporary file
+#             temp_audio = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+#             temp_audio_name = temp_audio.name
+#             temp_audio.close()  # close so we can write with soundfile
+#
+#             sf.write(temp_audio_name, audio, 24000, subtype="PCM_16")
+#
+#             # Load the audio file into an AudioSegment
+#             audio = AudioSegment.from_file(temp_audio.name, format="wav")
+#             self.logger.info(
+#                 f"Successfully generated audio with StyleTTS2 Studio ({voice_id})"
+#             )
+#
+#             return audio, None
+#
+#         except Exception as e:
+#             self.logger.error(f"Error in StyleTTS2 Studio generation: {e}")
+#             raise
