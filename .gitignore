@@ -49,6 +49,7 @@ Output/
 /TTS/styletts2/Utils/ASR/*.pth
 /TTS/styletts2/Utils/ASR/epoch_00080.pth
 /TTS/styletts2/Utils/ASR/epoch_00080.pth
+/TTS/styletts2_studio/*
 # RVC models
 /TTS/rvc/Models/Female_1/*
 /TTS/rvc/Models/Male_1/*
