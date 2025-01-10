@@ -173,7 +173,7 @@ export default function Home() {
                 variant="outline"
                 onClick={() => setSourceManagerOpen(true)}
               >
-                Manage Sources
+                Sources
               </Button>
               <div className="hidden sm:flex sm:items-center sm:gap-2">
                 <SettingsManager variant="outline" />
@@ -208,7 +208,7 @@ export default function Home() {
         <Dialog open={sourceManagerOpen} onOpenChange={setSourceManagerOpen}>
           <DialogContent className="sm:max-w-[800px]">
             <DialogHeader>
-              <DialogTitle>Manage Sources</DialogTitle>
+              <DialogTitle>Sources</DialogTitle>
             </DialogHeader>
             <SourceManager />
           </DialogContent>

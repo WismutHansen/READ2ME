@@ -90,7 +90,7 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
       setLoading(true);
     }
     
-    const { serverUrl, ttsEngine } = getSettings();
+    const { serverUrl } = getSettings();
     try {
       const response = await fetch(`${serverUrl}/v1/queue/status`);
       if (!response.ok) throw new Error("Failed to fetch queue status");
@@ -101,9 +101,7 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
       const countChanged = data.task_count !== taskCount;
       
       if (tasksChanged || countChanged) {
-        // If task count decreased and we had a previous count, it means a task completed
         if (previousTaskCount !== null && data.task_count < previousTaskCount) {
-          // Refresh the article list since a task completed
           await refreshArticles();
         }
         
@@ -112,10 +110,13 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
         setTasks(data.tasks || []);
       }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to fetch task queue status",
-      });
+      console.error(error);
+      if (!initialized) {
+        toast({
+          variant: "destructive",
+          title: "Failed to fetch task queue status",
+        });
+      }
     } finally {
       setLoading(false);
       setInitialized(true);
@@ -162,7 +163,7 @@ const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
           size="default"
           className="flex items-center gap-2"
         >
-          {loading ? (
+          {!initialized && loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <>
