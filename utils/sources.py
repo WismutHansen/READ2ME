@@ -114,10 +114,10 @@ async def process_article(article_url, global_patterns, source_patterns, downloa
 
 async def process_source(source, global_patterns):
     source_url = source["url"]
-    source_category = source["category"]
+    # Safely retrieve the category; default to "general" if missing
+    source_category = source.get("category", "general")
     source_keywords = source.get("keywords", [])
     download_all = "*" in source_keywords
-    #    filter_quality = "%" in source_keywords # if the % character is used, all articles should first be rated by th score_text function
     source_patterns = compile_patterns([k for k in source_keywords if k and k != "*"])
 
     if source.get("is_rss", False):

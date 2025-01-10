@@ -42,15 +42,15 @@ export default function AudioPlayer({ audioUrl }: { audioUrl: string }) {
 
   return (
     <div className="flex items-center gap-4">
-      <audio 
+      <audio
         ref={audioRef}
         src={audioUrl}
         onEnded={() => setIsPlaying(false)}
         onError={handleError}
         preload="metadata"
       />
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         size="icon"
         onClick={togglePlayPause}
         disabled={!!error}

@@ -23,8 +23,6 @@ from dotenv import load_dotenv
 # import outetts
 # import torch
 from edge_tts import Communicate, SubMaker, VoicesManager
-from fastapi.concurrency import run_in_threadpool
-from openai import OpenAI
 from pydub import AudioSegment
 
 # from scipy.io.wavfile import write
@@ -41,7 +39,6 @@ from database.crud import (
 from llm.LLM_calls import generate_title
 
 # from TTS.F5_TTS.F5 import infer
-from TTS.tts_utils import format_percentage  # , get_voices_wav, load_transcript
 from utils.common_utils import (
     add_mp3_tags,
     # download_file,
@@ -1155,50 +1152,59 @@ class KokoroTTSEngine(TTSEngine):
             raise
 
     async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.2
+        self, text: str, voice_id: str, speed: Optional[float] = 1.3
     ) -> Tuple[AudioSegment, None]:
         """
         Generate audio using the local Kokoro TTS via the OpenAI client.
         """
-
-        # We'll define a sync function to use with run_in_threadpool
-        def run_openai_request():
-            # 1) Create an OpenAI client pointing to your local endpoint
-            openai_client = OpenAI(
-                base_url=self.api_base_url,  # e.g. http://localhost:8880/v1
-                api_key=self.api_key,
-            )
-            self.logger.info(
-                f"Requesting TTS from {self.api_base_url} with voice={voice_id}"
-            )
-
-            # 2) Make the TTS request (model='kokoro' is your local TTS)
-            response = openai_client.audio.speech.create(
-                model="kokoro",
-                voice=voice_id,
-                input=text,
-                response_format="wav",
-                speed=speed,
-            )
-
-            # 3) Save the response to a temporary WAV file
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-                tmp_file_path = tmp_file.name
-            response.stream_to_file(tmp_file_path)
-
-            return tmp_file_path
-
         try:
-            # Offload the synchronous TTS call to a thread
-            tmp_file_path = await run_in_threadpool(run_openai_request)
-
-            # 4) Load it into a Pydub AudioSegment
-            audio_segment = AudioSegment.from_file(tmp_file_path, format="wav")
+            self.logger.debug(f"Full text being sent to TTS: {text}")
             self.logger.info(
-                f"Successfully generated audio with Kokoro TTS ({voice_id})"
+                f"Requesting TTS from {self.api_base_url} with voice={voice_id}, text length: {len(text)}"
             )
 
-            return audio_segment, None
+            # Match the API requirements
+            payload = {
+                "input": text,
+                "voice": voice_id,
+                "model": "tts-1",
+                "response_format": "mp3",
+                "speed": speed
+            }
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{self.api_base_url}/audio/speech",
+                        json=payload,
+                        headers=self.headers,
+                        timeout=300.0
+                    )
+
+                    if response.status_code != 200:
+                        raise Exception(f"API call failed: {response.text}")
+
+                    # Save to temporary file
+                    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+                        tmp_file_path = tmp_file.name
+                        content = response.content
+                        self.logger.debug(f"Response content size: {len(content)} bytes")
+                        tmp_file.write(content)
+
+                    # Load the audio file into an AudioSegment
+                    audio_segment = AudioSegment.from_mp3(tmp_file_path)
+                    self.logger.info(
+                        f"Generated audio duration: {len(audio_segment)}ms for text of length {len(text)}"
+                    )
+
+                    # Clean up
+                    os.unlink(tmp_file_path)
+
+                    return audio_segment, None
+
+            except Exception as e:
+                self.logger.error(f"Error in TTS request: {str(e)}")
+                raise
 
         except Exception as e:
             self.logger.error(f"Error in Kokoro TTS generation: {e}")
