@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# main.py
+# -*- coding: utf-8 -*-
 import asyncio
 import logging
 import os
@@ -6,8 +9,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 from logging.handlers import TimedRotatingFileHandler
 from threading import Event
-from typing import List, Optional, Union, Literal
+from typing import List, Optional, Union, Literal, Dict, Any
 from urllib.parse import urlparse
+import json
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -39,7 +43,7 @@ check_package_versions()
 # Rest of your main.py code...
 
 # Load environment variables
-output_dir, urls_file, img_pth, sources_file = setup_env()
+output_dir, task_file, img_pth, sources_file = setup_env()
 
 # Background thread stop event
 stop_event = Event()
@@ -928,6 +932,91 @@ async def remove_audio_files(request: RemoveAudioRequest):
             errors.append({"id": item.id, "error": str(e)})
 
     return {"removed": removed_items, "errors": errors}
+
+
+@app.get("/v1/status")
+async def get_status() -> Dict[str, Any]:
+    """
+    Retrieve the current system status, including the task queue and recent errors.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing:
+            - "queue": Task counts categorized by status.
+            - "errors": A list of the last 10 logged errors.
+            - "lastUpdate": The current timestamp.
+
+    Raises:
+        HTTPException: If an error occurs while processing the request.
+    """
+    try:
+        # Load task queue statistics
+        tasks: List[Dict[str, Any]] = []
+        if os.path.isfile(task_file) and os.path.getsize(task_file) > 0:
+            try:
+                with open(task_file, "r", encoding="utf-8") as f:
+                    raw_tasks = json.load(f)
+                    tasks = [
+                        t for t in raw_tasks if isinstance(t, dict)
+                    ]  # Only keep dictionaries
+            except json.JSONDecodeError:
+                logging.error(
+                    f"Invalid JSON format in {task_file}. Resetting tasks list."
+                )
+                tasks = []  # Default to an empty list
+
+        # Load recent errors from the log file
+        errors: List[Dict[str, str]] = []
+        log_file: str = "process_log.txt"
+        if os.path.isfile(log_file):
+            try:
+                with open(log_file, "r", encoding="utf-8") as f:
+                    for line in f.readlines()[-50:]:  # Read last 50 lines
+                        if "ERROR" in line:
+                            parts = line.split("ERROR")
+                            if len(parts) > 1:
+                                timestamp: str = parts[0].strip().split()[0]
+                                error_detail: str = parts[1].strip()
+                                error_type: str = error_detail.split(":")[0].strip()
+                                message: str = error_detail.split(":", 1)[1].strip()
+                                errors.append(
+                                    {
+                                        "timestamp": timestamp,
+                                        "type": error_type,
+                                        "message": message,
+                                    }
+                                )
+            except FileNotFoundError:
+                pass  # No log file found, ignore errors list
+
+        return {
+            "queue": {
+                "pending": sum(
+                    1
+                    for t in tasks
+                    if isinstance(t, dict) and t.get("status") == "pending"
+                ),
+                "processing": sum(
+                    1
+                    for t in tasks
+                    if isinstance(t, dict) and t.get("status") == "processing"
+                ),
+                "completed": sum(
+                    1
+                    for t in tasks
+                    if isinstance(t, dict) and t.get("status") == "completed"
+                ),
+                "failed": sum(
+                    1
+                    for t in tasks
+                    if isinstance(t, dict) and t.get("status") == "failed"
+                ),
+            },
+            "errors": errors[-10:],  # Return only the last 10 errors
+            "lastUpdate": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        logging.error(f"Error getting status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

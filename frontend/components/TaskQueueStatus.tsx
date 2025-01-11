@@ -1,223 +1,221 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Loader2, X, ListOrdered } from "lucide-react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { getSettings } from "@/lib/settings";
+
+import { useState, useEffect } from 'react';
+import { Button } from './ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
+import { ListTodo, AlertCircle, Clock, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getSettings } from '@/lib/settings';
+
+interface StatusState {
+  queue: {
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+  };
+  errors: Array<{
+    timestamp: string;
+    message: string;
+    type: string;
+  }>;
+  lastUpdate: string;
+}
 
 interface TaskQueueStatusProps {
-  refreshInterval?: number;
-  refreshArticles: () => Promise<void>;
+  refreshArticles: () => void;
 }
 
-interface Task {
-  type: string;
-  content: string;
-  tts_engine: string;
-  task: string | null;
+function StatusContent({ status, loading, onRefresh }: { 
+  status: StatusState; 
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 p-4">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Loading status...</span>
+      </div>
+    );
+  }
+
+  // Add safety check for status and queue
+  const queue = status?.queue ?? { pending: 0, processing: 0, completed: 0, failed: 0 };
+  const errors = status?.errors ?? [];
+  const lastUpdate = status?.lastUpdate ?? new Date().toISOString();
+
+  return (
+    <div className="space-y-4 p-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">Queue Status</h2>
+        <Button variant="outline" size="sm" onClick={onRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh List
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="rounded-lg border p-3">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Clock className="h-4 w-4 text-blue-500" />
+            Pending
+          </h3>
+          <p className="text-2xl">{queue.pending}</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
+            Processing
+          </h3>
+          <p className="text-2xl">{queue.processing}</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            Completed
+          </h3>
+          <p className="text-2xl">{queue.completed}</p>
+        </div>
+        <div className="rounded-lg border p-3">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            Failed
+          </h3>
+          <p className="text-2xl">{queue.failed}</p>
+        </div>
+      </div>
+
+      {errors.length > 0 && (
+        <div className="rounded-lg border p-3 space-y-2">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            Recent Errors
+          </h3>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {errors.map((error, index) => (
+              <div key={index} className="text-sm text-red-500 border-l-2 border-red-500 pl-2">
+                <div className="font-medium">{error.type}</div>
+                <div className="text-xs text-gray-500">{error.timestamp}</div>
+                <div>{error.message}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="text-xs text-gray-500">
+        Last updated: {new Date(lastUpdate).toLocaleString()}
+      </div>
+    </div>
+  );
 }
 
-const parseTaskType = (task: Task) => {
-  return {
-    source: task.type,
-    action: task.task || '',
-  };
-};
-
-const getSourceLabel = (source: string) => {
-  switch (source) {
-    case 'url':
-      return 'URL';
-    case 'text':
-      return 'Text';
-    default:
-      return source;
-  }
-};
-
-const getActionLabel = (action: string) => {
-  switch (action) {
-    case 'full':
-      return 'Full Text';
-    case 'summary':
-      return 'TL;DR';
-    case 'podcast':
-      return 'Podcast';
-    default:
-      return action;
-  }
-};
-
-const getSourceColor = (source: string) => {
-  switch (source) {
-    case 'url':
-      return 'bg-orange-100 text-orange-800';
-    case 'text':
-      return 'bg-pink-100 text-pink-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const getActionColor = (action: string) => {
-  switch (action) {
-    case 'full':
-      return 'bg-blue-100 text-blue-800';
-    case 'summary':
-      return 'bg-green-100 text-green-800';
-    case 'podcast':
-      return 'bg-purple-100 text-purple-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const TaskQueueStatus: React.FC<TaskQueueStatusProps> = ({
-  refreshInterval = 5000,
-  refreshArticles,
-}) => {
-  const [taskCount, setTaskCount] = useState<number | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
+export default function TaskQueueStatus({ refreshArticles }: TaskQueueStatusProps) {
+  const [status, setStatus] = useState<StatusState>({
+    queue: { pending: 0, processing: 0, completed: 0, failed: 0 },
+    errors: [],
+    lastUpdate: '',
+  });
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
-  const [previousTaskCount, setPreviousTaskCount] = useState<number | null>(null);
-  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const fetchQueueStatus = async () => {
-    // Only show loading on initial fetch
-    if (!initialized) {
-      setLoading(true);
-    }
-    
-    const { serverUrl } = getSettings();
+  const fetchStatus = async () => {
     try {
-      const response = await fetch(`${serverUrl}/v1/queue/status`);
-      if (!response.ok) throw new Error("Failed to fetch queue status");
+      const { serverUrl } = getSettings();
+      const response = await fetch(`${serverUrl}/v1/status`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Status response:', data);
       
-      // Only update state if there are actual changes
-      const tasksChanged = JSON.stringify(data.tasks) !== JSON.stringify(tasks);
-      const countChanged = data.task_count !== taskCount;
-      
-      if (tasksChanged || countChanged) {
-        if (previousTaskCount !== null && data.task_count < previousTaskCount) {
-          await refreshArticles();
-        }
-        
-        setTaskCount(data.task_count);
-        setPreviousTaskCount(data.task_count);
-        setTasks(data.tasks || []);
-      }
-    } catch (error) {
-      console.error(error);
-      if (!initialized) {
-        toast({
-          variant: "destructive",
-          title: "Failed to fetch task queue status",
-        });
-      }
-    } finally {
-      setLoading(false);
-      setInitialized(true);
-    }
-  };
-
-  const removeTask = async (task: Task) => {
-    const { serverUrl } = getSettings();
-    try {
-      const response = await fetch(`${serverUrl}/v1/queue/remove`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
+      const formattedStatus: StatusState = {
+        queue: {
+          pending: Number(data.queue?.pending ?? 0),
+          processing: Number(data.queue?.processing ?? 0),
+          completed: Number(data.queue?.completed ?? 0),
+          failed: Number(data.queue?.failed ?? 0)
         },
-        body: JSON.stringify(task),
-      });
-      if (!response.ok) throw new Error("Failed to remove task");
-      toast({ variant: "success", title: "Task removed successfully" });
+        errors: Array.isArray(data.errors) ? data.errors : [],
+        lastUpdate: data.lastUpdate ?? new Date().toISOString()
+      };
 
-      // Call refreshArticles after task removal
-      await refreshArticles();
-
-      // Refresh the task list after deletion
-      await fetchQueueStatus();
+      setStatus(formattedStatus);
+      setLoading(false);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to remove task",
+      console.error('Failed to fetch status:', error);
+      // Set default values on error
+      setStatus({
+        queue: { pending: 0, processing: 0, completed: 0, failed: 0 },
+        errors: [],
+        lastUpdate: new Date().toISOString(),
       });
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchQueueStatus();
-    const interval = setInterval(fetchQueueStatus, refreshInterval);
-    return () => clearInterval(interval);
-  }, [refreshInterval]);
+    if (isOpen) {
+      fetchStatus();
+    }
+    // Only start polling when modal is open
+    const interval = isOpen ? setInterval(fetchStatus, 5000) : null;
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOpen]);
+
+  // Add safety checks with optional chaining and nullish coalescing
+  const hasActiveJobs = (status?.queue?.pending ?? 0) > 0 || (status?.queue?.processing ?? 0) > 0;
+  const hasErrors = (status?.queue?.failed ?? 0) > 0;
+
+  const handleRefresh = () => {
+    refreshArticles();
+    fetchStatus();
+  };
 
   return (
-    <HoverCard>
-      <HoverCardTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
         <Button
           variant="outline"
-          size="default"
-          className="flex items-center gap-2"
+          size="icon"
+          className={cn(
+            "relative",
+            hasActiveJobs && "animate-pulse",
+            hasErrors && "border-red-500"
+          )}
         >
-          {!initialized && loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <ListOrdered className="h-4 w-4" />
-              <span>
-                {taskCount !== null ? `${taskCount} ` : "No tasks"}
-              </span>
-            </>
+          <ListTodo className={cn(
+            "h-4 w-4",
+            hasErrors && "text-red-500"
+          )} />
+          {(hasActiveJobs || hasErrors) && (
+            <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
           )}
         </Button>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-96 p-4">
-        <div className="space-y-3">
-          <h4 className="font-semibold">Task List</h4>
-          {tasks.length > 0 ? (
-            tasks.map((task, index) => (
-              <div key={index} className="p-2 border-b last:border-0 flex justify-between items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium">Task {index + 1}</span>
-                    {task.type && (
-                      <>
-                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getSourceColor(parseTaskType(task).source)}`}>
-                          {getSourceLabel(parseTaskType(task).source)}
-                        </span>
-                        <span className={`text-xs inline-block px-2 py-1 leading-4 rounded-full ${getActionColor(parseTaskType(task).action)}`}>
-                          {getActionLabel(parseTaskType(task).action)}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 truncate hover:text-clip hover:whitespace-normal">
-                    <a href={task.content} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                      {task.content}
-                    </a>
-                  </p>
-                  <p className="text-xs text-gray-500">TTS: {task.tts_engine}</p>
-                </div>
-                <button
-                  onClick={() => removeTask(task)}
-                  className="text-gray-500 hover:text-red-500 flex-shrink-0"
-                  aria-label="Remove task"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))
-          ) : (
-            <span className="text-sm">No tasks available</span>
-          )}
-        </div>
-      </HoverCardContent>
-    </HoverCard>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Task Queue Status</DialogTitle>
+        </DialogHeader>
+        <StatusContent 
+          status={status} 
+          loading={loading} 
+          onRefresh={handleRefresh}
+        />
+      </DialogContent>
+    </Dialog>
   );
-};
-
-export default TaskQueueStatus;
+}
