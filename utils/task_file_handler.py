@@ -1,11 +1,28 @@
+#!/usr/bin/env python3
+# task_file_handler.py
+# -*- coding: utf-8 -*-
 import os
 import aiofiles
 import logging
 import json
 from utils.env import setup_env
 from typing import Union, List, Dict, Any
+import time
+import random
+import string
+from utils.common_enums import TaskStatus, InputType, TaskType
+from datetime import datetime
 
 output_dir, task_file, img_pth, sources_file = setup_env()
+
+
+def generate_task_id(length: int = 6) -> str:
+    timestamp = int(time.time())  # current time in seconds
+    # A quick random 6-char string (no re-seeding)
+    rand_part = "".join(
+        random.choice(string.ascii_letters + string.digits) for _ in range(length)
+    )
+    return f"{timestamp}-{rand_part}"
 
 
 async def load_tasks() -> List[Dict[str, Any]]:
@@ -45,29 +62,37 @@ async def save_tasks(tasks: List[Dict[str, Any]]) -> None:
 
 
 async def add_task(
-    task_type: str, content: str, tts_engine: str, task: Union[str, dict, None] = None
-) -> None:
+    input_type: InputType, content: str, tts_engine: str, task_type: TaskType
+) -> str:
     """
     Adds a new task to the task queue.
 
     Args:
-        task_type (str): The type of task.
+        input_type (InputType): The type of the Input either url or text.
         content (str): The content related to the task.
         tts_engine (str): The TTS engine to use.
-        task (Union[str, dict, None], optional): Additional task metadata.
+        task_type (TaskType): Additional task metadata.
+
+    Returns:
+        str: The ID of the added task.
     """
-    new_task = {
-        "type": task_type,
+    task_id = generate_task_id()
+    
+    # Convert enums to their string values for JSON serialization
+    task = {
+        "id": task_id,
+        "type": input_type.value if hasattr(input_type, 'value') else str(input_type),
         "content": content,
         "tts_engine": tts_engine,
-        "task": task if isinstance(task, str) else None,
+        "task": task_type.value if hasattr(task_type, 'value') else str(task_type),
+        "status": TaskStatus.PENDING.value,  # Use enum value
+        "timestamp": datetime.now().isoformat()
     }
-
+    
     tasks = await load_tasks()
-    tasks.append(new_task)
+    tasks.append(task)
     await save_tasks(tasks)
-
-    logging.info(f"Task added: {json.dumps(new_task)}")
+    return task_id
 
 
 async def get_tasks() -> List[Dict[str, Any]]:
@@ -82,6 +107,22 @@ async def get_tasks() -> List[Dict[str, Any]]:
     return tasks
 
 
+async def update_task_status(task_id: str, status: TaskStatus) -> None:
+    """
+    Updates the status of a task.
+
+    Args:
+        task_id (str): The ID of the task to update.
+        status (TaskStatus): The new status for the task.
+    """
+    tasks = await load_tasks()
+    for task in tasks:
+        if task["id"] == task_id:
+            task["status"] = status.value  # Use enum value
+    await save_tasks(tasks)
+    logging.info(f"Updated task {task_id} to status: {status}")
+
+
 async def clear_tasks() -> None:
     """
     Clears all tasks from the task queue.
@@ -90,7 +131,7 @@ async def clear_tasks() -> None:
     logging.info(f"Tasks cleared from {task_file}")
 
 
-async def remove_task(task_to_remove: Dict[str, Any]) -> None:
+async def remove_task(task_id: str) -> None:
     """
     Removes a specific task from the task queue.
 
@@ -98,7 +139,7 @@ async def remove_task(task_to_remove: Dict[str, Any]) -> None:
         task_to_remove (Dict[str, Any]): The task dictionary to remove.
     """
     tasks = await load_tasks()
-    tasks = [task for task in tasks if task != task_to_remove]
+    tasks = [task for task in tasks if task != task_id]
     await save_tasks(tasks)
 
     logging.info(f"Task removed from {task_file}")
@@ -113,6 +154,12 @@ async def get_task_count() -> int:
     """
     tasks = await load_tasks()
     return len(tasks)
+
+
+async def save_tasks(tasks: List[Dict]) -> None:
+    """Save tasks to the task file."""
+    async with aiofiles.open(task_file, 'w') as file:
+        await file.write(json.dumps(tasks, indent=2))
 
 
 # Initialize logging

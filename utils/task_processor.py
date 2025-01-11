@@ -1,7 +1,15 @@
+#!/usr/bin/env python3
+# task_processor.py
+# -*- coding: utf-8 -*-
+"""
+Functions for handling
+"""
+
 import asyncio
 import logging
 from threading import Thread, Event
 from typing import Any, Dict, List, Optional, Tuple
+import os
 
 from database.crud import (
     ArticleData,
@@ -23,8 +31,14 @@ from TTS.tts_engines import (
 from TTS.tts_functions import PodcastGenerator
 from utils.env import setup_env
 from utils.history_handler import add_to_history, check_history
-from utils.task_file_handler import clear_tasks, get_tasks
+from utils.task_file_handler import (
+    clear_tasks,
+    get_tasks,
+    update_task_status,
+    save_tasks,
+)
 from utils.text_extraction import extract_text
+from utils.common_enums import TaskStatus, InputType, TaskType
 
 output_dir, task_file, img_pth, sources_file = setup_env()
 
@@ -52,21 +66,36 @@ def process_tasks(stop_event: Event) -> None:
         """
         while not stop_event.is_set():
             tasks: List[Dict[str, Any]] = await get_tasks()
-            if tasks:
-                logging.info(f"Tasks retrieved: {tasks}")
+            # if tasks:
+            #     logging.info(f"Tasks retrieved: {tasks}")
+
+            completed_task_ids = []  # Track successfully completed tasks
+            failed_task_ids = []  # Track failed tasks
 
             for task in tasks:
-                task_type: Optional[str] = task.get("type")
+                task_id: Optional[str] = task.get("id")
+                # Convert string to enum for input_type
+                input_type_str: Optional[str] = task.get("type")
+                input_type = InputType(input_type_str) if input_type_str else None
+
                 content: Optional[str] = task.get("content")
                 tts_engine_name: Optional[str] = task.get("tts_engine")
-                current_task: Optional[str] = task.get("task")
 
-                if not all([task_type, content, tts_engine_name, current_task]):
+                # Convert string to enum for task_type
+                task_type_str: Optional[str] = task.get("task")
+                task_type = TaskType(task_type_str) if task_type_str else None
+
+                status: Optional[str] = task.get("status")
+
+                if not all([task_id, input_type, content, tts_engine_name, task_type]):
                     logging.error(f"Invalid task format: {task}")
                     continue
 
+                if status != TaskStatus.PENDING.value:  # Compare with enum value
+                    continue
+                await update_task_status(task_id, TaskStatus.PROCESSING)
                 # Check if the URL has been processed before
-                if task_type == "url" and await check_history(content):
+                if input_type == InputType.URL and await check_history(content):
                     logging.info(f"URL {content} has already been processed. Skipping.")
                     continue
 
@@ -77,15 +106,16 @@ def process_tasks(stop_event: Event) -> None:
                     elif tts_engine_name == "edge":
                         tts_engine = EdgeTTSEngine()
                     else:
-                        tts_engine = KokoroTTSEngine("http://192.168.1.213:8880")
+                        tts_engine = KokoroTTSEngine()
 
                     # URL with full article TTS
-                    if task_type == "url" and current_task == "full":
+                    if input_type == InputType.URL and task_type == TaskType.FULL:
                         new_article = ArticleData(url=content)
                         article_id: int = create_article(new_article)
                         text, title, tl_dr = await extract_text(content, article_id)
                         if not text or len(text.strip()) == 0:
                             logging.error(f"Text extraction failed for URL: {content}")
+                            await update_task_status(task_id, "failed")
                             continue
                         try:
                             voices = await tts_engine.get_available_voices()
@@ -102,10 +132,11 @@ def process_tasks(stop_event: Event) -> None:
                             logging.error(
                                 f"Error creating audio for URL {content}: {e}"
                             )
+                        await update_task_status(task_id, TaskStatus.COMPLETED)
                         await add_to_history(content)
 
                     # Text to audio (full)
-                    elif task_type == "text" and current_task == "full":
+                    elif input_type == InputType.TEXT and task_type == TaskType.FULL:
                         title: str = generate_title(content)
                         new_text = TextData(title=title, text=content)
                         text_id: int = create_text(new_text)
@@ -129,8 +160,9 @@ def process_tasks(stop_event: Event) -> None:
                         except Exception as e:
                             logging.error(f"Error creating audio for text: {e}")
 
+                        await update_task_status(task_id, TaskStatus.COMPLETED)
                     # Text to podcast script generation
-                    elif task_type == "text" and current_task == "podcast":
+                    elif input_type == InputType.TEXT and task_type == TaskType.PODCAST:
                         new_text = TextData(text=content)
                         text_id: int = create_text(new_text)
                         print(f"text {text_id} added to database")
@@ -165,8 +197,10 @@ def process_tasks(stop_event: Event) -> None:
                         except Exception as e:
                             logging.error(f"Error creating podcast audio for text: {e}")
 
+                        await update_task_status(task_id, TaskStatus.COMPLETED)
+
                     # URL TTS summary (TL;DR)
-                    elif task_type == "url" and current_task == "tldr":
+                    elif input_type == InputType.URL and task_type == TaskType.TLDR:
                         new_article = ArticleData(url=content)
                         article_id = create_article(new_article)
                         text, title, tl_dr = await extract_text(content, article_id)
@@ -193,10 +227,11 @@ def process_tasks(stop_event: Event) -> None:
                             logging.error(
                                 f"Error creating audio for URL {content}: {e}"
                             )
+                        await update_task_status(task_id, TaskStatus.COMPLETED)
                         await add_to_history(content)
 
                     # Text TTS summary (TL;DR)
-                    elif task_type == "text" and current_task == "tldr":
+                    elif input_type == InputType.TEXT and task_type == TaskType.TLDR:
                         title: str = generate_title(content)
                         text_tldr: str = tldr(content)
                         new_text = TextData(text=content, title=title, tl_dr=text_tldr)
@@ -220,8 +255,10 @@ def process_tasks(stop_event: Event) -> None:
                         except Exception as e:
                             logging.error(f"Error creating audio for text/summary: {e}")
 
+                        await update_task_status(task_id, TaskStatus.COMPLETED)
+
                     # URL to Podcast
-                    elif current_task == "podcast":
+                    elif task_type == "podcast":
                         new_article = ArticleData(url=content)
                         article_id = create_article(new_article)
                         try:
@@ -270,9 +307,12 @@ def process_tasks(stop_event: Event) -> None:
                             )
                             continue
 
+                        await update_task_status(task_id, TaskStatus.COMPLETED)
+                        await add_to_history(content)
+
                     # Story from URL or Text
-                    elif current_task == "story":
-                        if task_type == "url":
+                    elif task_type == TaskType.STORY:
+                        if input_type == InputType.URL:
                             try:
                                 text, title, tl_dr = await extract_text(content)
                                 if not text or len(text.strip()) == 0:
@@ -285,7 +325,7 @@ def process_tasks(stop_event: Event) -> None:
                                     f"Error extracting text from URL {content}: {e}"
                                 )
                                 continue
-                        elif task_type == "text":
+                        elif input_type == "text":
                             text = content
 
                         # Generate the story script
@@ -316,15 +356,30 @@ def process_tasks(stop_event: Event) -> None:
                         except Exception as e:
                             logging.error(f"Error creating story audio: {e}")
                             continue
-
+                        await update_task_status(task_id, TaskStatus.COMPLETED)
+                        await add_to_history(content)
                     else:
-                        logging.error(f"Unknown task type: {task_type}")
+                        logging.error(f"Unknown task type: {input_type}")
+
+                    # If we reach here without exceptions, add to completed tasks
+                    completed_task_ids.append(task_id)
+                    await update_task_status(task_id, TaskStatus.COMPLETED)
 
                 except Exception as e:
                     logging.error(f"Unhandled exception processing task {task}: {e}")
+                    failed_task_ids.append(task_id)
+                    await update_task_status(task_id, TaskStatus.FAILED)
 
-            if tasks:
-                await clear_tasks()
+            # Update tasks file to remove only completed tasks
+            if completed_task_ids or failed_task_ids:
+                remaining_tasks = [
+                    task
+                    for task in tasks
+                    if task.get("id") not in completed_task_ids
+                    and task.get("id") not in failed_task_ids
+                ]
+                await save_tasks(remaining_tasks)
+
             await asyncio.sleep(5)
 
     loop.run_until_complete(process())

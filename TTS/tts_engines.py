@@ -347,23 +347,16 @@ class OpenAITTSEngine(TTSEngine):
 
 
 class KokoroTTSEngine(TTSEngine):
-    def __init__(self, api_base_url: str, api_key: Optional[str] = None):
+    def __init__(self):
         """
         Initialize Kokoro TTS Engine.
-
-        Args:
-            api_base_url (str): Base URL for Kokoro TTS API (e.g., "https://kokoro.example.com").
-            api_key (Optional[str]): API key for authentication (if required).
         """
         base_url = os.getenv("KOKORO_TTS_URL", "http://localhost:8880/v1")
         self.api_base_url = base_url.rstrip("/")  # Ensure no trailing slash
-        self.api_key = api_key
         self.logger = logging.getLogger(__name__)
         self.headers = {
             "Content-Type": "application/json",
         }
-        if api_key:
-            self.headers["Authorization"] = f"Bearer {api_key}"
 
     async def get_available_voices(self) -> List[str]:
         """Fetch and return only the list of available voices from the Kokoro TTS API."""

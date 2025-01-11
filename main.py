@@ -32,10 +32,17 @@ from database.models import create_or_update_tables
 from utils.env import setup_env
 from utils.history_handler import add_to_history
 from utils.source_manager import read_sources, update_sources
-from utils.task_file_handler import add_task, get_task_count, get_tasks, remove_task
+from utils.task_file_handler import (
+    add_task,
+    generate_task_id,
+    get_task_count,
+    get_tasks,
+    remove_task,
+)
 from utils.task_processor import start_task_processor
 from utils.version_check import check_package_versions
 from utils.rssfeed import get_articles_from_feed, load_feeds_from_json
+from utils.common_enums import InputType, TaskType
 
 # Check package versions
 check_package_versions()
@@ -117,13 +124,13 @@ except Exception as e:
 class URLRequest(BaseModel):
     url: str
     tts_engine: str = "edge"  # Default to edge-tts
-    task: Optional[str] = None
+    task: TaskType = TaskType.FULL  # Default to full processing
 
 
 class TextRequest(BaseModel):
     text: str
     tts_engine: str = "edge"  # Default to edge-tts
-    task: Optional[str] = None
+    task: TaskType = TaskType.FULL  # Default to full processing
 
 
 class Source(BaseModel):
@@ -138,6 +145,7 @@ class SourceUpdate(BaseModel):
 
 
 class TaskRemoveRequest(BaseModel):
+    task_id: str
     type: str
     content: str
     tts_engine: str
@@ -194,7 +202,7 @@ app = FastAPI(
     lifespan=lifespan,
     title="Read2Me API",
     description="API for text-to-speech conversion and more",
-    version="0.1.2",
+    version="0.1.3",
 )
 
 # Configure CORS
@@ -250,13 +258,15 @@ async def get_queue_status():
 
 @app.delete("/v1/queue/remove")
 async def remove_task_endpoint(task: TaskRemoveRequest):
-    task_dict = task.model_dump()
-    existing_tasks = await get_tasks()
+    task_id = task.task_id
+    existing_tasks = await get_tasks()  # This is presumably a list of dicts
 
-    if task_dict not in existing_tasks:
+    # Example check: if your tasks are stored like [{"id": "123", ...}, {"id": "abc", ...}]
+    # then we see if `task_id` matches any t["id"] in the list
+    if not any(t.get("id") == task_id for t in existing_tasks):
         raise HTTPException(status_code=404, detail="Task not found in queue")
 
-    await remove_task(task_dict)
+    await remove_task(task_id)
     return {"status": "success", "message": "Task removed from queue"}
 
 
@@ -279,7 +289,7 @@ async def url_audio_full(request: URLRequest):
             detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
         )
 
-    await add_task("url", request.url, request.tts_engine, "full")
+    await add_task(InputType.URL, request.url, request.tts_engine, TaskType.FULL)
     return {"message": "URL added to the READ2ME task list"}
 
 
@@ -323,7 +333,7 @@ async def url_story(request: URLRequest):
             status_code=400,
             detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
         )
-    await add_task("url", request.url, request.tts_engine, "story")
+    await add_task(InputType.URL, request.url, request.tts_engine, TaskType.STORY)
     return {"message": "URL added to the READ2ME task list"}
 
 
@@ -345,14 +355,14 @@ async def url_audio_summary(request: URLRequest):
             status_code=400,
             detail="Invalid URL. Please provide a valid HTTP or HTTPS URL.",
         )
-    await add_task("url", request.url, request.tts_engine, task="tldr")
+    await add_task(InputType.URL, request.url, request.tts_engine, TaskType.TLDR)
     return {"message": "URL/Summary added to the READ2ME task list"}
 
 
 @app.post("/v1/text/full")
 async def read_text(request: TextRequest):
     logging.info(f"Received text: {request.text}")
-    await add_task("text", request.text, request.tts_engine, task="full")
+    await add_task(InputType.TEXT, request.text, request.tts_engine, TaskType.FULL)
     return {"message": "Text added to the READ2ME task list"}
 
 
@@ -363,7 +373,7 @@ async def read_text_summary(request: TextRequest):
         f"URL type: {type(request.text)}, TTS Engine type: {type(request.tts_engine)}, task: summary"
     )
 
-    await add_task("text", request.text, request.tts_engine, task="tldr")
+    await add_task(InputType.TEXT, request.text, request.tts_engine, TaskType.TLDR)
     return {"message": "text/summary added to the READ2ME task list"}
 
 
@@ -374,7 +384,7 @@ async def read_text_podcast(request: TextRequest):
         f"URL type: {type(request.text)}, TTS Engine type: {type(request.tts_engine)}, task: podcast"
     )
 
-    await add_task("text", request.text, request.tts_engine, task="podcast")
+    await add_task(InputType.TEXT, request.text, request.tts_engine, TaskType.PODCAST)
     return {"message": "text/podcast added to the READ2ME task list"}
 
 
@@ -421,7 +431,7 @@ async def api_get_sources():
 async def url_audio_reprocess(request: URLRequest):
     logging.info(f"Reprocessing URL: {request.url}")
     await add_to_history(request.url)  # Add to history to avoid future re-processing
-    await add_task("url", request.url, request.tts_engine)
+    await add_task(InputType.URL, request.url, request.tts_engine, request.task)
     return {"message": "URL reprocessing added to the READ2ME task list"}
 
 
