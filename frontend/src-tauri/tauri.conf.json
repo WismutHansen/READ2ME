@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "read2me_frontend",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.read2me.dev",
   "build": {
     "frontendDist": "..",
     "devUrl": "http://localhost:3000",
@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "READ2ME",
-        "width": 800,
-        "height": 600,
+        "width": 1024,
+        "height": 800,
         "resizable": true,
         "fullscreen": false
       }
