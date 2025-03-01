@@ -29,7 +29,7 @@ def download_file(url, save_path):
                     f.write(chunk)
                     done = int(50 * dl / total_length)
                     print(
-                        f"\r[{'=' * done}{' ' * (50-done)}] {dl/total_length*100:.2f}%",
+                        f"\r[{'=' * done}{' ' * (50 - done)}] {dl / total_length * 100:.2f}%",
                         end="",
                     )
     print("\nDownload complete.")
@@ -310,14 +310,33 @@ def create_image_with_date(
     date_text: str,
     audio_type: Optional[str] = None,
     title: Optional[str] = None,
-):
+) -> None:
+    """
+    Creates an image with a date overlay and an optional color tint based on the audio type.
+
+    The function loads an image from `image_path`, applies a semi-transparent color tint if a valid
+    `audio_type` is provided, and then adds centered date text at the bottom of the image. The final
+    image is saved to `output_path` only if the file does not already exist.
+
+    Parameters:
+        image_path (str): The file path of the input image.
+        output_path (str): The file path to save the modified image.
+        date_text (str): The text (typically a date) to overlay on the image.
+        audio_type (Optional[str]): Type of audio content which determines the tint color. Supported values:
+            - "url/full"  : Blue tint.
+            - "url/tldr"  : Red tint.
+            - "text/full" : Yellow tint.
+            - "text/tldr" : Green tint.
+            - "podcast"   : Purple tint.
+            - "story"     : Pink tint.
+            If None or unrecognized, no tint is applied.
+        title (Optional[str]): An optional title parameter (currently not used).
+
+    Returns:
+        None
+    """
     if not os.path.exists(output_path):
         image = Image.open(image_path).convert("RGBA")
-        draw = ImageDraw.Draw(image)
-
-        # Define font
-        font_path = "Fonts/PermanentMarker.ttf"
-        font = ImageFont.truetype(font_path, 50)
 
         # Determine tint color based on audio_type
         if audio_type == "url/full":
@@ -340,13 +359,18 @@ def create_image_with_date(
             tint_overlay = Image.new("RGBA", image.size, tint_color)
             image = Image.alpha_composite(image, tint_overlay)
 
+        # Reinitialize drawing context after applying tint
+        draw = ImageDraw.Draw(image)
+
+        # Define font
+        font_path = "Fonts/PermanentMarker.ttf"
+        font = ImageFont.truetype(font_path, 50)
+
         # Draw date text
         width, height = image.size
         text_bbox = draw.textbbox((0, 0), date_text, font=font)
-        text_width, text_height = (
-            text_bbox[2] - text_bbox[0],
-            text_bbox[3] - text_bbox[1],
-        )
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
         position = ((width - text_width) // 2, height - text_height - 35)
         draw.text(position, date_text, font=font, fill="black")
 
