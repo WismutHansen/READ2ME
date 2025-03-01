@@ -87,6 +87,12 @@ def create_or_update_tables():
             ("article_id", "TEXT"),
             ("text_id", "TEXT"),
         ],
+        "voice_settings": [
+            ("id", "TEXT PRIMARY KEY"),
+            ("enginge_name", "TEXT"),
+            ("voice_id", "TEXT"),
+            ("is_active", "INTEGER DEFAULT 1"),
+        ],
     }
 
     # Iterate over each table and ensure columns are correct

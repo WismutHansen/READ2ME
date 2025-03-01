@@ -359,7 +359,21 @@ class KokoroTTSEngine(TTSEngine):
         }
 
     async def get_available_voices(self) -> List[str]:
-        """Fetch and return only the list of available voices from the Kokoro TTS API."""
+        """
+        Fetch and return a filtered list of available voices from the Kokoro TTS API.
+
+        This function:
+        - Retrieves the list of voices from the API.
+        - Filters out voices that do not start with "af" or "am" for now
+        - Excludes the voice "af_nicole" since it's a whispering voice and it doesnt make much sense for news articles
+
+        Returns:
+            List[str]: A list of voice names that match the criteria.
+
+        Raises:
+            RuntimeError: If the API request fails.
+            Exception: For any unexpected errors.
+        """
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
@@ -370,15 +384,22 @@ class KokoroTTSEngine(TTSEngine):
                 self.logger.error(f"Kokoro API Error: {response.text}")
                 raise RuntimeError(f"Failed to fetch voices: {response.text}")
 
-            # Extract only the list of voices from the JSON response
-            voices_data = response.json()
-            voices = voices_data.get("voices", [])  # Get the "voices" key safely
+            # Extract the list of voices safely
+            voices_data: dict = response.json()
+            voices: List[str] = voices_data.get("voices", [])
 
-            if not voices:
-                self.logger.warning("No voices found in Kokoro API response.")
+            # Apply filtering criteria
+            filtered_voices: List[str] = [
+                voice
+                for voice in voices
+                if (voice.startswith(("af", "am")) and voice != "af_nicole")
+            ]
 
-            self.logger.info(f"Available Kokoro TTS voices: {voices}")
-            return voices  # Now returning only a list of voice names
+            if not filtered_voices:
+                self.logger.warning("No matching voices found in Kokoro API response.")
+
+            self.logger.info(f"Filtered Kokoro TTS voices: {filtered_voices}")
+            return filtered_voices
 
         except Exception as e:
             self.logger.error(f"Error fetching Kokoro TTS voices: {e}")

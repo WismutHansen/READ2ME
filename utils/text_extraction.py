@@ -408,6 +408,10 @@ async def extract_text(
         soup = BeautifulSoup(downloaded, "html.parser")
         title_tag = soup.find("title")
         title = title_tag.text if title_tag else ""
+
+        """Remove everything from ' | ' onwards in a title."""
+        title = title.split(" | ")[0]
+
         date_tag = soup.find("meta", attrs={"property": "article:published_time"})
         timestamp = date_tag.get("content", "") if isinstance(date_tag, Tag) else ""
         article_content = f"{title}.\n\n" if title else ""

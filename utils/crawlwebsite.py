@@ -1,7 +1,7 @@
 from urllib.parse import urljoin, urlparse, urldefrag
 import aiohttp
 from bs4 import BeautifulSoup
-from utils.text_extraction import extract_text
+from .text_extraction import extract_text
 import logging
 import asyncio
 
@@ -79,4 +79,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

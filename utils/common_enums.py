@@ -26,3 +26,9 @@ class TaskType(str, Enum):
     TLDR = "tldr"
     PODCAST = "podcast"
     STORY = "story"
+
+
+class TTSEngine(str, Enum):
+    EDGE = "EdgeTTSEngine"
+    OPENAI = "OpenAITTSEngine"
+    KOKORO = "KokoroTTSEngine"

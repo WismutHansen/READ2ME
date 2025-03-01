@@ -1,11 +1,17 @@
 import sys
 import os
 import logging
-from utils.common_utils import shorten_text, split_text, write_markdown_file, sanitize_filename
+from utils.common_utils import (
+    shorten_text,
+    split_text,
+    write_markdown_file,
+    sanitize_filename,
+)
 from dotenv import load_dotenv
 from .Local_Ollama import ask_Ollama
 from .Local_OpenAI import ask_LLM
 from .Prompts import pod, title_prompt, story_mode, markdown
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"

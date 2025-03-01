@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from tzlocal import get_localzone
-
+from TTS.tts_engines import EdgeTTSEngine, OpenAITTSEngine, KokoroTTSEngine
 from database.crud import (
     fetch_available_media,
     get_article,
@@ -29,25 +29,20 @@ from database.crud import (
     delete_audio,
 )
 from database.models import create_or_update_tables
+from database.crud import get_voice_settings, update_voice_settings
 from utils.env import setup_env
 from utils.history_handler import add_to_history
 from utils.source_manager import read_sources, update_sources
 from utils.task_file_handler import (
     add_task,
-    generate_task_id,
     get_task_count,
     get_tasks,
     remove_task,
 )
 from utils.task_processor import start_task_processor
-from utils.version_check import check_package_versions
 from utils.rssfeed import get_articles_from_feed, load_feeds_from_json
 from utils.common_enums import InputType, TaskType
 
-# Check package versions
-check_package_versions()
-
-# Rest of your main.py code...
 
 # Load environment variables
 output_dir, task_file, img_pth, sources_file = setup_env()
@@ -169,6 +164,11 @@ class RemoveAudioRequest(BaseModel):
 
 class IntervalRequest(BaseModel):
     interval: Optional[int] = None  # Interval in minutes, None for default schedule
+
+
+class VoiceSettingUpdate(BaseModel):
+    voice_id: str
+    is_active: bool
 
 
 @asynccontextmanager
@@ -1027,6 +1027,57 @@ async def get_status() -> Dict[str, Any]:
     except Exception as e:
         logging.error(f"Error getting status: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v1/voices/{engine_name}")
+async def get_voices(engine_name: str) -> List[dict]:
+    """
+    Retrieve available voices for a given text-to-speech (TTS) engine.
+
+    Args:
+        engine_name (str): The name of the TTS engine (e.g., "kokoro", "openai", "edge").
+
+    Returns:
+        List[dict]: A list of available voices with their activation status.
+    """
+    # Get available voices from the specified engine
+    if engine_name == "kokoro":
+        engine = KokoroTTSEngine()
+    elif engine_name == "openai":
+        engine = OpenAITTSEngine()
+    else:
+        engine = EdgeTTSEngine()
+
+    available_voices = await engine.get_available_voices()
+
+    # Get stored settings
+    stored_settings = {
+        vs["voice_id"]: vs["is_active"] for vs in get_voice_settings(engine_name)
+    }
+
+    # Combine available voices with stored settings
+    voice_settings = [
+        {"voice_id": voice, "is_active": stored_settings.get(voice, True)}
+        for voice in available_voices
+    ]
+
+    return voice_settings
+
+
+@app.post("/v1/voices/{engine_name}")
+async def update_voices(engine_name: str, voices: List[VoiceSettingUpdate]) -> dict:
+    """
+    Update the activation status of voices for a given text-to-speech (TTS) engine.
+
+    Args:
+        engine_name (str): The name of the TTS engine (e.g., "kokoro", "openai", "edge").
+        voices (List[VoiceSettingUpdate]): A list of voice settings to update.
+
+    Returns:
+        dict: A success message confirming the update.
+    """
+    update_voice_settings(engine_name, [v.model_dump() for v in voices])
+    return {"status": "success"}
 
 
 if __name__ == "__main__":

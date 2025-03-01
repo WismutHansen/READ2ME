@@ -42,4 +42,6 @@ dependencies = [
   "werkzeug==2.0.3",
   "wikipedia>=1.4.0",
   "txtsplit>=1.0.0",
+  "fastapi-cors>=0.0.6",
+  "atproto>=0.0.57",
 ]

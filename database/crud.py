@@ -4,7 +4,7 @@ import os
 import sqlite3
 from datetime import datetime, date
 from pydantic import BaseModel, HttpUrl
-from typing import List, Optional
+from typing import List, Optional, Dict
 import argparse
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -584,29 +584,68 @@ def get_author(author_id: str) -> Optional[Author]:
 
 def delete_audio(content_type: str, item_id: str) -> bool:
     """Delete audio file entry from database for given content type and id.
-    
+
     Args:
         content_type: Type of content ("article", "text", or "podcast")
         item_id: ID of the item
-        
+
     Returns:
         bool: True if update was successful, False otherwise
     """
     conn = create_connection()
     cursor = conn.cursor()
-    
+
     table_name = f"{content_type}s"  # articles, texts, podcasts
     fields_to_update = ["audio_file = NULL"]
     if content_type == "article":
         fields_to_update.append("vtt_file = NULL")
-        
+
     query = f"UPDATE {table_name} SET {', '.join(fields_to_update)} WHERE id = ?"
     cursor.execute(query, (item_id,))
     conn.commit()
     success = cursor.rowcount > 0
     conn.close()
-    
+
     return success
+
+
+def get_voice_settings(engine_name: str) -> List[Dict]:
+    conn = sqlite3.connect("database/read2me.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            "SELECT voice_id, is_active FROM voice_settings WHERE engine_name = ?",
+            (engine_name,),
+        )
+        results = cursor.fetchall()
+        return [{"voice_id": row[0], "is_active": bool(row[1])} for row in results]
+    finally:
+        conn.close()
+
+
+def update_voice_settings(engine_name: str, voices: List[Dict]):
+    conn = sqlite3.connect("database/read2me.db")
+    cursor = conn.cursor()
+
+    try:
+        # Delete existing settings for this engine
+        cursor.execute(
+            "DELETE FROM voice_settings WHERE engine_name = ?", (engine_name,)
+        )
+
+        # Insert new settings
+        cursor.executemany(
+            "INSERT INTO voice_settings (engine_name, voice_id, is_active) VALUES (?, ?, ?)",
+            [
+                (engine_name, voice["voice_id"], 1 if voice["is_active"] else 0)
+                for voice in voices
+            ],
+        )
+
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def main():

@@ -50,13 +50,13 @@ def setup_env() -> tuple[str, str, str, str]:
     output_dir: str = os.getenv("OUTPUT_DIR", "Output")
     img_pth: str = os.getenv("IMG_PATH", "front.jpg")
 
-    check_output_dir()  # Ensure the output directory exists (assuming the function exists)
+    check_output_dir()  # Ensure the output directory exists
 
-    logging.info("Setup complete, following values will be used:")
-    logging.info("Output folder: %s", os.path.abspath(output_dir))
-    logging.info("Task file: %s", os.path.abspath(task_file))
-    logging.info("Album Art Image: %s", os.path.abspath(img_pth))
-    logging.info("Sources file: %s", os.path.abspath(sources_file_path))
+    # logging.info("Setup complete, following values will be used:")
+    # logging.info("Output folder: %s", os.path.abspath(output_dir))
+    # logging.info("Task file: %s", os.path.abspath(task_file))
+    # logging.info("Album Art Image: %s", os.path.abspath(img_pth))
+    # logging.info("Sources file: %s", os.path.abspath(sources_file_path))
 
     return output_dir, task_file, img_pth, sources_file_path
 
