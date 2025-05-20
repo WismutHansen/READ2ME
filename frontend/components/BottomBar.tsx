@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 interface Article {
   id: string;
@@ -97,19 +98,11 @@ export default function BottomBar({ articleId, type, audioFile }: BottomBarProps
           </div>
         </div>
 
-        <div className="flex gap-4 items-start h-[calc(100%-4rem)] overflow-hidden">
-          <div className="w-full overflow-y-auto pr-4">
-            {showTldr && article.tldr ? (
-              <div className="prose dark:prose-invert max-w-none">
-                {article.tldr}
-              </div>
-            ) : (
-              <div className="prose dark:prose-invert max-w-none">
-                {article.content}
-              </div>
-            )}
+          <div className="flex gap-4 items-start h-[calc(100%-4rem)] overflow-hidden">
+            <div className="w-full overflow-y-auto pr-4">
+              <MarkdownRenderer content={showTldr && article.tldr ? article.tldr : (article.content || '')} />
+            </div>
           </div>
-        </div>
 
         <div className="absolute bottom-4 left-4">
         </div>

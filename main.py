@@ -598,7 +598,7 @@ async def get_article_from_db(article_id: str):
             "title": article.get("title"),
             "date": article.get("date_published") or article.get("date_added"),
             "audio_file": audio_file,
-            "content": article.get("plain_text"),
+            "content": article.get("markdown_text") or article.get("plain_text"),
             "tl_dr": article.get("tl_dr"),
         }
         return JSONResponse(content=content)
