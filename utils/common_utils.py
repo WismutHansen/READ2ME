@@ -97,8 +97,6 @@ def split_text(text, max_words=1500):
             else:
                 current_chunk = paragraph + "\n\n"
                 current_word_count = paragraph_word_count
-            current_chunk = ""
-            current_word_count = 0
 
     if current_chunk:
         chunks.append(current_chunk.strip())
