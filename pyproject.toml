@@ -6,11 +6,15 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "aiofiles>=24.1.0",
+  "atproto>=0.0.57",
   "cached-path>=1.6.6",
+  "chatterbox-tts>=0.1.1",
   "docling",
   "edge-tts>=7.0.0",
   "einops-exts>=0.0.4",
   "einops>=0.8.0",
+  "fastapi-cors>=0.0.6",
+  "fastapi-mcp>=0.1.8",
   "fastapi>=0.115.6",
   "feedparser>=6.0.11",
   "feedsearch>=1.0.12",
@@ -41,9 +45,4 @@ dependencies = [
   "uvicorn>=0.34.0",
   "werkzeug==2.0.3",
   "wikipedia>=1.4.0",
-  "txtsplit>=1.0.0",
-  "fastapi-cors>=0.0.6",
-  "atproto>=0.0.57",
-  "fastapi-mcp>=0.1.8",
-  "chatterbox-tts>=0.1.1",
 ]
