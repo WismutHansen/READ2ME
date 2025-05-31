@@ -4,7 +4,7 @@
 
 ## Overview
 
-Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS or with the local TTS models F5-TTS, StyleTTS2 or Piper TTS, and tags the resulting MP3 files with metadata. You can either turn the full text into audio or have an LLM convert the seed text into a podcast. Currently Ollama and any OpenAI compatible API is supported. You can install the provided Chromium Extension in any Chromium-based browser (e.g. Chrome or Microsoft Edge) to send current urls or any text to the sever, add sources and keywords for automatic fetching.
+Read2Me is a FastAPI application that fetches content from provided URLs, processes the text, converts it into speech using Microsoft Azure's Edge TTS or with the local TTS models Kokoro TTS (via Kokoro FastAPI), or chatterbox, and tags the resulting MP3 files with metadata. You can either turn the full text into audio or have an LLM convert the seed text into a podcast. Currently Ollama and any OpenAI compatible API is supported. You can install the provided Chromium Extension in any Chromium-based browser (e.g. Chrome or Microsoft Edge) to send current urls or any text to the sever, add sources and keywords for automatic fetching.
 
 This is a currently a beta version but I plan to extend it to support other content types (e.g., epub) in the future and provide more robust support for languages other than English. Currently, when using the default Azure Edge TTS, it already supports [other languages](https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/speech-service/includes/language-support/multilingual-voices.md) and tries to autodetect it from the text but quality might vary depending on the language.
 
@@ -16,17 +16,18 @@ This is a currently a beta version but I plan to extend it to support other cont
 - Adds a cover image with the current date to the MP3 files.
 - For urls from wikipedia, uses the wikipedia python library to extract article content
 - Automatic retrieval of new articles from specified sources at defined intervals (currently hard coded to twice a day at 5AM and 5PM local time). Sources and keywords can be specified via text files.
-- Turn any seed text (url or manually entered text) into a podcast (currently works with edge-tts and F5)
-- Chrome Extension available on the Chrome WebStore: [READ2ME Browser Companion](https://chromewebstore.google.com/detail/read2me-browser-companion/khbimiljkjbgnphmpeoimkppidmgnelb). If you prefere installing the Extension from source, it's available in this repository as well.
+- Turn any seed text (url or manually entered text) into a podcast
+- Chrome Extension available on the Chrome WebStore: [READ2ME Browser Companion](https://chromewebstore.google.com/detail/read2me-browser-companion/khbimiljkjbgnphmpeoimkppidmgnelb). If you prefer installing the Extension from source, it's available in this repository as well.
 
 ## Requirements
 
 - Python 3.10 or higher
-- Dependencies listed in `requirements.txt` for edge-tts, separate requirements for F5 and StyleTTS2.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) for python package management
+- [pnpm](https://pnpm.io/) for javascript package management
 
 ## Installation
 
-### Python Installation
+### FastAPI backend
 
 1. **Clone the repository:**
 
@@ -35,61 +36,24 @@ This is a currently a beta version but I plan to extend it to support other cont
    cd read2me
    ```
 
-2. **Create and activate a virtual environment:**
+2. **Install python dependencies**
 
-   ```sh
-   python -m venv .venv
-   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+   ```bash
+   uv sync # Replace name with the name of the script you want to run
    ```
 
-   or if you like to use uv for package management:
-
-   ```sh
-   uv venv
-   source .venv/bin/activate # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-
-   ```sh
-   pip install -r requirements.txt (or uv pip install -r requirements.txt)
-   ```
-
-   For the local styleTTS2 text-to-speech model, please also install the additional dependencies:
-
-   ```sh
-   pip install -r requirements_stts2.txt (or uv pip install -r requirements_stts2.txt)
-   ```
-
-   For the F5-TTS model, please also install the additional dependencies:
-
-   ```sh
-   pip install -r requirements_F5.txt (or uv pip install -r requirements_F5.txt)
-   ```
-
+3. **Activate venv and install playwright**
    Install playwright
 
    ```sh
-   playwright install
+   source .venv/bin/activate && playwright install # or .venv\Scripts\activate && playwright install (on Windows)
    ```
 
-   If using uv please also install:
-
-   ```sh
-   uv pip install pip
-   ```
-
-  For local piperTTS support:
-
-  ```sh
-  python3 -m TTS.piper_tts.instalpipertts (MacOS and Linux) or python -m TTS.piper_tts.instalpipertts (on Windows)
-  ```
-
-   **Note:** [ffmpeg](https://www.ffmpeg.org/) is required when using either StyleTTS2 or PiperTTS for converting wav files into mp3. StyleTTS also requires [espeak-ng](https://github.com/espeak-ng/espeak-ng) to be installed on your system.
+**Note:** [ffmpeg](https://www.ffmpeg.org/) is required when using either for converting wav files into mp3.
 
 4. **Set up environment variables:**
 
-   Rename  `.env.example` file in the root director to `.env` and edit the content to your preference:
+   Rename `.env.example` file in the root director to `.env` and edit the content to your preference:
 
    ```sh
    OUTPUT_DIR=Output # Directory to store output files
@@ -104,73 +68,40 @@ This is a currently a beta version but I plan to extend it to support other cont
 
    You can use either Ollama or any OpenAI compatible API for title and podcast script generation (summary function also coming soon)
 
-### Docker Installation
+5. **Start the backend**
 
-1. **Clone the repository and switch into it :**
-
-   ```sh
-   git clone https://github.com/WismutHansen/READ2ME.git && cd read2me
+   ```bash
+   uv run main.py
    ```
 
-2. **Copy the .env.example to .env and edit the contents:**
-    Important: When using a local LLM-engine e.g. ollama, the url needs to follow this format "host.docker.internal:11434" (for Ollama) or "host.docker.internal:1234" (for LMStudio)
+### Next.js frontend
 
-3. **Build the docker container**
+```bash
+cd frontend && pnpm install && pnpm run dev
+```
 
-   ```sh
-    docker build -t read2me . 
-   ```
+you can access the frontend on <http://localhost:3000>
 
-    Note: build time takes a long time, be patient
+## **Add URLs for processing without frontend:**
 
-4. **Run the docker container**
+Send a POST request to `http://localhost:7777/v1/url/full` with a JSON body containing the URL:
 
-   ```sh
-    docker run -p 7777:7777 -d read2me
-    ```
+```json
+{
+  "url": "https://example.com/article"
+}
+```
 
-    Note: build time takes a long time, be patient
+You can use `curl` or any API client like Postman to send this request like this:
 
-## Usage
+```sh
+curl -X POST http://localhost:7777/v1/url/full/ \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/article"}'
+  -d '{"tts-engine": "edge"}'
+```
 
- 1. **Prepare the environment variables file (.env):**
-
-   copy and rename `.env.example` to `.env`. Edit the content of this file as you wish, specifying the output directory, task file and image path to use for the mp3 file cover as well as the sources and keywords file.
-
-   **Run the FastAPI application:**
-
-   ```sh
-   uvicorn main:app --host 0.0.0.0 --port 7777
-   ```
-
-   **or, if you're connected to a Linux server e.g. via ssh and want to keep the app running after closing your session**
-
-   ```sh
-   nohup uvicorn main:app --host 0.0.0.0 --port 7777 &
-   ```
-
-   this will write all commandline output into a file called `nohup.out` in your current working directory.
-
-2. **Add URLs for processing:**
-
-   Send a POST request to `http://localhost:7777/v1/url/full` with a JSON body containing the URL:
-
-   ```json
-   {
-     "url": "https://example.com/article"
-   }
-   ```
-
-   You can use `curl` or any API client like Postman to send this request like this:
-
-   ```sh
-   curl -X POST http://localhost:7777/v1/url/full/ \
-     -H "Content-Type: application/json" \
-     -d '{"url": "https://example.com/article"}'
-     -d '{"tts-engine": "edge"}'
-   ```
-
-   The repository also contains a working Chromium Extension that you can install in any Chromium-based browser (e.g. Google Chrome) when the developer settings are enabled.
+The repository also contains a working Chromium Extension that you can install in any Chromium-based browser (e.g. Google Chrome) when the developer settings are enabled.
 
 3. **Processing URLs:**
 
@@ -178,18 +109,15 @@ This is a currently a beta version but I plan to extend it to support other cont
 
 4. **Specify Sources and keywords for automatic retrieval:**
 
-Create a file called `sources.json` in your current working directory with URLs to websites that you want to monitor for new articles. You can also set global keywords and per-source keywords to be used as filters for automatic retrieval. If you set "*" for a source, all new articles will be retrieved. Here is an example structure:
+Create a file called `sources.json` in your current working directory with URLs to websites that you want to monitor for new articles. You can also set global keywords and per-source keywords to be used as filters for automatic retrieval. If you set "\*" for a source, all new articles will be retrieved. Here is an example structure:
 
 ```json
 {
-  "global_keywords": [
-    "globalkeyword1",
-    "globalkeyword2"
-  ],
+  "global_keywords": ["globalkeyword1", "globalkeyword2"],
   "sources": [
     {
       "url": "https://example.com",
-      "keywords": ["keyword1","keyword2"]
+      "keywords": ["keyword1", "keyword2"]
     },
     {
       "url": "https://example2.com",
@@ -200,29 +128,6 @@ Create a file called `sources.json` in your current working directory with URLs 
 ```
 
 Location of both files is configurable in .env file.
-
-## Frontend
-
-To use the next.js frontend, make sure you have node.js installed on your system. Note: Frontend is currently in an early experimental stage so expect lots of bugs:
-First, switch into the frontend directory
-
-```bash
-cd frontend
-```
-
-then install the required node dependencies:
-
-```bash
-npm install
-```
-
-then to start the frontend run:
-
-```bash
-npm run dev
-```
-
-you can access the frontend on <http://localhost:3000>
 
 ## API Endpoints
 
@@ -250,16 +155,6 @@ you can access the frontend on <http://localhost:3000>
 - **POST /v1/url/podcast**
 - **POST /v1/text/full**
 - **POST /v1/text/podcast**
-
-## File Structure
-
-- **main.py**: The main FastAPI application file.
-- **requirements.txt**: List of dependencies.
-- **.env**: Environment variables file.
-- database/: Directory containing the sqlite database and all database-related code
-- TTS/: Directory containing the code for all of the TTS-engines
-- **utils/**: Directory with helper functions for task handling, text extraction etc.
-- **Output/**: Directory where the output files (MP3 and MD) are saved unless you specified a different directory int the .env file.
 
 ## Dependencies
 
@@ -303,26 +198,26 @@ you can access the frontend on <http://localhost:3000>
 
 ## License
 
-This project is licensed under the Apache License Version 2.0, January 2004, except for the styletts2 code, which is licensed under the MIT License. The F5-TTS abd styletts2 pre-trained models are under their own license.
-
-StyleTTS2 Pre-Trained Models: Before using these pre-trained models, you agree to inform the listeners that the speech samples are synthesized by the pre-trained models, unless you have the permission to use the voice you synthesize. That is, you agree to only use voices whose speakers grant the permission to have their voice cloned, either directly or by license before making synthesized voices public, or you have to publicly announce that these voices are synthesized if you do not have the permission to use these voices.
+This project is licensed under the Apache License Version 2.0, January 2004
 
 ## Roadmap
 
 - [x] language detection and voice selection based on detected language (currently only works for edge-tts).
 - [x] Add support for handling of pdf files
-- [x] Add support for local text-to-speech (TTS) engine like StyleTTS2.
 - [x] Add support for LLM-based text processing like podcast transcript with local LLMs through Ollama or the OpenAI API
-- [x] Add support for F5-TTS
+- [x] Add support for chatterbox TTS
 - [ ] Add support for automatic image captioning using local vision models or the OpenAI API
 
 ## Acknowledgements
 
 I would like to thank the following repositories and authors for their inspiration and code:
 
-- [F5-TTS](https://github.com/PasiKoodaa/F5-TTS.git) - Currently the best open weights TTS model!
+- [F5-TTS](https://github.com/PasiKoodaa/F5-TTS.git) - A great open weights TTS model!
 - [stylyetts2](https://github.com/yl4579/StyleTTS2) - A great open source TTS engine, and really fast if using NVIDIA/CUDA
 - [piperTTS](https://github.com/rhasspy/piper) - Another good local TTS engine that also works on low spec systems
-- [AlwaysReddy](https://github.com/ILikeAI/AlwaysReddy) - Thanks to these guys, I got piper TTS working in my project
+- [AlwaysReddy](https://github.com/ILikeAI/AlwaysReddy) - Thanks to these guys, I got piper TTS working in my project (now removed due to better TTS models available)
 - [rvc-python](https://pypi.org/project/rvc-python/) - For improving generated speech
 - [edge-tts](https://github.com/rany2/edge-tts/tree/master) - Best free online TTS engine
+- [kokoro tts](https://huggingface.co/hexgrad/Kokoro-82M) - The fastest local TTS model with awesome audio quality!
+- [kokoro FastAPI](https://github.com/remsky/Kokoro-FastAPI) - OpenAI-API compatible FastAPI server for Kokoro TTS
+- [chatterbox](https://github.com/resemble-ai/chatterbox) - The best TTS model for English by far (in May 2025) thanks to the great work by resemble.ai!
