@@ -77,14 +77,14 @@ This is a currently a beta version but I plan to extend it to support other cont
 ### Next.js frontend
 
 ```bash
-cd frontend && pnpm install && pnpm run dev
+ cd frontend && cp .env.local.example .env.local && pnpm install && pnpm run dev
 ```
 
 you can access the frontend on <http://localhost:3000>
 
 ## **Add URLs for processing without frontend:**
 
-Send a POST request to `http://localhost:7777/v1/url/full` with a JSON body containing the URL:
+Send a POST request to `http://localhost:7788/v1/url/full` with a JSON body containing the URL:
 
 ```json
 {
@@ -95,7 +95,7 @@ Send a POST request to `http://localhost:7777/v1/url/full` with a JSON body cont
 You can use `curl` or any API client like Postman to send this request like this:
 
 ```sh
-curl -X POST http://localhost:7777/v1/url/full/ \
+curl -X POST http://localhost:7788/v1/url/full/ \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/article"}'
   -d '{"tts-engine": "edge"}'
