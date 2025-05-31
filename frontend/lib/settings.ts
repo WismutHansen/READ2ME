@@ -5,6 +5,8 @@ export interface Settings {
   ttsEngine: string;
 }
 
+export const AVAILABLE_TTS_ENGINES = ['edge', 'localai', 'chatterbox'] as const;
+
 export const DEFAULT_SETTINGS: Settings = {
   serverUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7777',
   ttsEngine: 'edge'
