@@ -1,17 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Button, ButtonProps } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/useSettings";
 
 interface SettingsManagerProps {
-  variant?: ButtonProps['variant'];
+  variant?: ButtonProps["variant"];
 }
 
-export default function SettingsManager({ variant = "outline" }: SettingsManagerProps) {
+export default function SettingsManager({
+  variant = "outline",
+}: SettingsManagerProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { serverUrl, ttsEngine, updateSetting } = useSettings();
   const [localServerUrl, setLocalServerUrl] = useState(serverUrl);
@@ -38,13 +52,15 @@ export default function SettingsManager({ variant = "outline" }: SettingsManager
     if (!localServerUrl || !validateUrl(localServerUrl)) {
       toast({
         variant: "destructive",
-        title: !localServerUrl ? "Please enter a server URL" : "Please enter a valid server URL",
+        title: !localServerUrl
+          ? "Please enter a server URL"
+          : "Please enter a valid server URL",
       });
       return;
     }
 
-    updateSetting('serverUrl', localServerUrl);
-    updateSetting('ttsEngine', localTtsEngine);
+    updateSetting("serverUrl", localServerUrl);
+    updateSetting("ttsEngine", localTtsEngine);
 
     toast({ title: "Settings saved successfully" });
     setIsSettingsOpen(false);
@@ -73,6 +89,7 @@ export default function SettingsManager({ variant = "outline" }: SettingsManager
                 <SelectItem value="edge">edge TTS (online)</SelectItem>
                 <SelectItem value="kokoro">Kokoro TTS (local)</SelectItem>
                 <SelectItem value="openai">OpenAI (online)</SelectItem>
+                <SelectItem value="chatterbox">chatterbox (local)</SelectItem>
                 {/* <SelectItem value="styletts2_studio">StyleTTS2 Studio (local)</SelectItem> */}
                 {/* <SelectItem value="F5">F5 (local)</SelectItem> */}
                 {/* <SelectItem value="styletts2">styleTTS 2 (local)</SelectItem> */}

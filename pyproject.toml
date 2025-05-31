@@ -15,7 +15,7 @@ dependencies = [
   "feedparser>=6.0.11",
   "feedsearch>=1.0.12",
   "langdetect>=1.0.9",
-  "librosa>=0.10.2.post1",
+  "librosa",
   "llvmlite>=0.43.0",
   "munch>=4.0.0",
   "mutagen>=1.47.0",
@@ -36,7 +36,7 @@ dependencies = [
   "torch",
   "torchaudio>=2.5.1",
   "trafilatura>=2.0.0",
-  "transformers>=4.47.1",
+  "transformers",
   "tzlocal>=5.2",
   "uvicorn>=0.34.0",
   "werkzeug==2.0.3",
@@ -45,4 +45,5 @@ dependencies = [
   "fastapi-cors>=0.0.6",
   "atproto>=0.0.57",
   "fastapi-mcp>=0.1.8",
+  "chatterbox-tts>=0.1.1",
 ]

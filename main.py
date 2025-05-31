@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi_mcp import add_mcp_server
+from fastapi_mcp import FastApiMCP
 from pydantic import BaseModel
 from tzlocal import get_localzone
 from TTS.tts_engines import EdgeTTSEngine, OpenAITTSEngine, KokoroTTSEngine
@@ -206,12 +206,10 @@ app = FastAPI(
     version="0.1.3",
 )
 
-# Mount the MCP server to your app
-add_mcp_server(
-    app,  # Your FastAPI app
-    mount_path="/mcp",  # Where to mount the MCP server
-    name="READ2ME MCP",  # Name for the MCP server
-)
+mcp = FastApiMCP(app)
+
+# Mount the MCP server directly to your FastAPI app
+mcp.mount()
 
 # Configure CORS
 app.add_middleware(
@@ -1093,7 +1091,7 @@ if __name__ == "__main__":
 
     create_or_update_tables()
     try:
-        uvicorn.run(app, host="0.0.0.0", port=7777, log_config=None)
+        uvicorn.run("main:app", host="0.0.0.0", port=7788, log_config=None, reload=True)
     except Exception as e:
         logging.error(f"Unhandled exception: {e}", exc_info=True)
         raise

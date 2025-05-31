@@ -1,32 +1,51 @@
-import nltk
 import re
 import unicodedata
-from typing import List, Optional
+from typing import List, Dict
 
-# Download necessary NLTK resources
-nltk.download("punkt")
-nltk.download("averaged_perceptron_tagger")
-nltk.download("wordnet")
+import nltk
+
+# ---------------------------------------------------------------------------
+# Ensure required NLTK resources are present
+# ---------------------------------------------------------------------------
+
+
+def _ensure_nltk_resources() -> None:
+    """Download missing NLTK corpora on‑the‑fly.
+
+    Newer NLTK (≥3.9) splits Punkt into an extra *punkt_tab* asset.  We try to
+    fetch both traditional and modern names so the code works across versions.
+    """
+    for res in ("punkt_tab", "punkt", "averaged_perceptron_tagger", "wordnet"):
+        try:
+            nltk.data.find(res)
+        except LookupError:
+            # *punkt_tab* is optional on older releases – ignore failures there
+            try:
+                nltk.download(res, quiet=True)
+            except Exception:
+                pass  # pragma: no cover
+
+
+_ensure_nltk_resources()
+
+# ---------------------------------------------------------------------------
 
 
 class AdvancedTextPreprocessor:
-    def __init__(
-        self, min_chars: int = 50, language: str = "english", keep_acronyms: bool = True
-    ):
-        """
-        Advanced text preprocessor using NLTK for sophisticated text processing.
+    """Sentence bundling + very light‑weight NER."""
 
-        Args:
-            min_chars (int): Minimum characters for combined sentences
-            language (str): Language for sentence tokenization
-            keep_acronyms (bool): Preserve acronyms during processing
-        """
+    def __init__(
+        self,
+        min_chars: int = 50,
+        language: str = "english",
+        keep_acronyms: bool = True,
+    ) -> None:
         self.min_chars = min_chars
         self.language = language
         self.keep_acronyms = keep_acronyms
 
-        # Comprehensive abbreviations and acronyms
-        self.abbreviations = {
+        # Acronyms / abbreviations worth preserving to avoid false splits
+        self.abbreviations: set[str] = {
             "U.S.",
             "U.K.",
             "e.g.",
@@ -53,164 +72,104 @@ class AdvancedTextPreprocessor:
             "CTO",
         }
 
-    def normalize_text(self, text: str) -> str:
-        """
-        Normalize text by handling Unicode and common text artifacts.
+    # ---------------------------------------------------------------------
 
-        Args:
-            text (str): Input text to normalize
-
-        Returns:
-            str: Normalized text
-        """
-        # Unicode normalization
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """Unicode normalisation + cosmetic whitespace/dash fixes."""
         text = unicodedata.normalize("NFKC", text)
-
-        # Standardize whitespace and line breaks
         text = re.sub(r"\s+", " ", text)
         text = text.replace(" | ", ". ")
-
-        # Replace various dash/hyphen types
         text = text.replace("—", "-").replace("–", "-")
-
-        # Normalize quotation marks
         text = text.translate(str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"}))
-
         return text.strip()
 
-    def is_acronym(self, token: str) -> bool:
-        """
-        Check if a token is an acronym.
-
-        Args:
-            token (str): Token to check
-
-        Returns:
-            bool: True if token is an acronym, False otherwise
-        """
+    def _is_acronym(self, token: str) -> bool:
         return (
             self.keep_acronyms
             and token.isupper()
             and len(token) > 1
-            and all(c.isalpha() for c in token)
+            and token.isalpha()
         )
 
+    # ---------------------------------------------------------------------
+
     def preprocess_text(self, text: str) -> List[str]:
-        """
-        Preprocess text using NLTK's advanced tokenization.
+        """Split *text* into sentences while stitching tiny fragments together."""
 
-        Args:
-            text (str): Input text to preprocess
+        text = self._normalize_text(text)
 
-        Returns:
-            List[str]: Processed sentences
-        """
-        # Normalize text first
-        text = self.normalize_text(text)
+        # High‑level helper chooses punkt or punkt_tab automatically
+        try:
+            sentences = nltk.tokenize.sent_tokenize(text, language=self.language)
+        except LookupError:  # pragma: no cover
+            _ensure_nltk_resources()
+            sentences = nltk.tokenize.sent_tokenize(text, language=self.language)
 
-        # Use NLTK's sentence tokenizer (supports multiple languages)
-        sentence_tokenizer = nltk.data.load(f"tokenizers/punkt/{self.language}.pickle")
-
-        # Tokenize sentences
-        sentences = sentence_tokenizer.tokenize(text)
-
-        # Advanced sentence processing
-        processed_sentences = []
+        processed: list[str] = []
         buffer = ""
 
-        for sentence in sentences:
-            # Trim whitespace
-            sentence = sentence.strip()
-
-            # Skip empty sentences
+        for sentence in map(str.strip, sentences):
             if not sentence:
                 continue
 
-            # Check for abbreviations and special tokens
-            tokens = nltk.word_tokenize(sentence)
-
-            # Preserve certain abbreviations and acronyms
+            # Preserve common abbreviation‑heavy snippets
             if any(abbr in sentence for abbr in self.abbreviations):
                 if buffer and len(buffer) + len(sentence) + 1 < self.min_chars:
-                    buffer += f" {sentence}"
+                    buffer += " " + sentence
                 else:
                     if buffer:
-                        processed_sentences.append(buffer.strip())
+                        processed.append(buffer.strip())
                     buffer = sentence
                 continue
 
-            # Combine short sentences
+            # Merge glove‑fitting short sentences
             if len(buffer) + len(sentence) + 1 < self.min_chars:
-                buffer += f" {sentence}" if buffer else sentence
+                buffer += (" " if buffer else "") + sentence
             else:
                 if buffer:
-                    processed_sentences.append(buffer.strip())
+                    processed.append(buffer.strip())
                 buffer = sentence
 
-        # Add any remaining buffer
         if buffer:
-            processed_sentences.append(buffer.strip())
+            processed.append(buffer.strip())
 
-        # Final filtering
-        return [
-            sent
-            for sent in processed_sentences
-            if sent.strip() and len(sent.strip()) > 5
-        ]
+        return [s for s in processed if len(s) > 5]
 
-    def extract_entities(self, text: str) -> dict:
-        """
-        Extract named entities using NLTK.
+    # ---------------------------------------------------------------------
 
-        Args:
-            text (str): Input text
-
-        Returns:
-            dict: Extracted entities
-        """
-        # Tokenize and POS tag the text
+    def extract_entities(self, text: str) -> Dict[str, List[str]]:
+        """Extract rudimentary named entities via POS tagging."""
+        _ensure_nltk_resources()
         tokens = nltk.word_tokenize(text)
         tagged = nltk.pos_tag(tokens)
 
-        # Extract named entities
-        entities = {"PERSON": [], "ORGANIZATION": [], "LOCATION": []}
-
-        # Simple NER using POS tags (Note: This is a basic implementation)
+        entities: Dict[str, List[str]] = {
+            "PERSON": [],
+            "ORGANIZATION": [],
+            "LOCATION": [],
+        }
         for word, tag in tagged:
-            if tag.startswith("NNP"):  # Proper noun
+            if tag.startswith("NNP"):
                 entities["PERSON"].append(word)
-            # Add more sophisticated NER logic as needed
-
         return entities
 
 
-# Example usage
-def main():
-    # Sample text with complex tokenization challenges
-    sample_text = """
-    Dr. Smith, a renowned researcher at MIT, recently published a groundbreaking study. 
-    The research, conducted in collaboration with U.S. National Laboratories, 
-    explores innovative solutions for climate change. e.g. renewable energy technologies.
-    """
+# ---------------------------------------------------------------------------
 
-    # Initialize preprocessor
-    preprocessor = AdvancedTextPreprocessor(
-        min_chars=50, language="english", keep_acronyms=True
+
+def _demo() -> None:  # pragma: no cover
+    sample = (
+        "Dr. Smith, a renowned researcher at MIT, recently published a groundbreaking study. "
+        "The research, conducted in collaboration with U.S. National Laboratories, "
+        "explores innovative solutions for climate change, e.g. renewable energy technologies."
     )
 
-    # Preprocess text
-    processed_sentences = preprocessor.preprocess_text(sample_text)
-
-    # Extract entities
-    entities = preprocessor.extract_entities(sample_text)
-
-    print("Processed Sentences:")
-    for sentence in processed_sentences:
-        print(f"- {sentence}")
-
-    print("\nExtracted Entities:")
-    print(entities)
+    pre = AdvancedTextPreprocessor(min_chars=50)
+    for s in pre.preprocess_text(sample):
+        print("-", s)
+    print("\nEntities:", pre.extract_entities(sample))
 
 
 if __name__ == "__main__":
-    main()
+    _demo()

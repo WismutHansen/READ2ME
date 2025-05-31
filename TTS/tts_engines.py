@@ -2,21 +2,23 @@
 # tts_engines.py
 # -*- coding: utf-8 -*-
 import logging
+import mimetypes
 import os
-
 import random
 import shutil
-
+import sys
 import tempfile
 from abc import ABC, abstractmethod
-
 from typing import List, Optional, Tuple
 
 import httpx
+import torch
+import torchaudio as ta
+from chatterbox.tts import ChatterboxTTS
 from dotenv import load_dotenv
-
 from edge_tts import Communicate, SubMaker, VoicesManager
 from pydub import AudioSegment
+from pydub.effects import speedup
 
 from database.crud import (
     ArticleData,
@@ -27,19 +29,25 @@ from database.crud import (
     update_text,
 )
 from llm.LLM_calls import generate_title
-
 from utils.common_utils import (
     add_mp3_tags,
     get_output_files,
     write_markdown_file,
 )
 from utils.env import setup_env
+from utils.text_processor import AdvancedTextPreprocessor
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 output_dir, task_file, img_pth, sources_file = setup_env()
+
+_TEXT_PREPROCESSOR = AdvancedTextPreprocessor(
+    min_chars=20,
+    language="english",
+    keep_acronyms=True,
+)
 
 
 class TTSEngine(ABC):
@@ -186,6 +194,8 @@ class EdgeTTSEngine(TTSEngine):
 
         try:
             # Convert speed to EdgeTTS format (e.g., "+10%")
+            if speed is None:
+                speed = 1.1
             rate = f"{int((speed - 1) * 100):+d}%"
 
             # Initialize EdgeTTS Communicate
@@ -211,10 +221,11 @@ class EdgeTTSEngine(TTSEngine):
 
             if os.path.getsize(temp_vtt.name) > 0:
                 vtt_file = temp_vtt.name  # Keep the file
+                return audio, vtt_file
             else:
                 os.unlink(temp_vtt.name)  # Remove empty subtitle file
-
-            return audio, vtt_file
+                _ = None
+                return audio, _
 
         finally:
             # Cleanup temp files
@@ -224,8 +235,7 @@ class EdgeTTSEngine(TTSEngine):
                 print(f"Warning: Failed to delete temp audio file: {e}")
 
             try:
-                if vtt_file is None:
-                    os.unlink(temp_vtt.name)
+                os.unlink(temp_vtt.name)
             except Exception as e:
                 print(f"Warning: Failed to delete temp VTT file: {e}")
 
@@ -467,3 +477,136 @@ class KokoroTTSEngine(TTSEngine):
         except Exception as e:
             self.logger.error(f"Error in Kokoro TTS generation: {e}")
             raise
+
+
+class ChatterboxEngine(TTSEngine):
+    def __init__(self, voice_dir: str, device=None):
+        """
+        Initialize Chatterbox TTS Engine.
+        """
+        self.device = self._detect_device(device)
+        print(f"Using {self.device} device for Chatterbox TTS.", file=sys.stderr)
+        self.model = self._load_model()
+        self.sample_rate = self.model.sr
+        self.logger = logging.getLogger(__name__)
+        self.voice_dir = voice_dir
+        print("Chatterbox model loaded", file=sys.stderr)
+
+    def _detect_device(self, device):
+        if device is not None:
+            return device
+        if torch.cuda.is_available():
+            return "cuda"
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+
+    def _load_model(self):
+        # Save original torch.load and restore after model loading
+        original_torch_load = torch.load
+        try:
+            if self.device == "mps":
+                # Apply MPS device mapping patch
+                def patched_torch_load(*args, **kwargs):
+                    if "map_location" not in kwargs:
+                        kwargs["map_location"] = torch.device(self.device)
+                    return original_torch_load(*args, **kwargs)
+
+                torch.load = patched_torch_load
+
+            return ChatterboxTTS.from_pretrained(device=self.device)
+        finally:
+            # Always restore torch.load
+            torch.load = original_torch_load
+
+    async def get_available_voices(self) -> list:
+        """
+        Scans the given directory for available voices by matching audio and .txt files.
+
+        Args:
+            directory (str): Path to the directory containing audio and .txt files.
+
+        Returns:
+            list: A list of available voice filenames (including their extensions).
+        """
+        available_voices = []
+
+        # Get list of all audio and .txt files in the directory
+
+        files = os.listdir(self.voice_dir)
+
+        audio_files = set()
+        for f in files:
+            mime_type, _ = mimetypes.guess_type(f)  # single call
+            if mime_type and mime_type.startswith("audio"):
+                audio_files.add(f)
+
+        # Find common base filenames (without extensions) that have both audio and .txt files
+        for audio_file in audio_files:
+            os.path.splitext(audio_file)[0]  # Extract the filename without extension
+            available_voices.append(audio_file)  # Append the full audio filename
+
+        return available_voices
+
+    async def generate_audio(
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+    ) -> Tuple[AudioSegment, None]:
+        """
+        Generate TTS in ≥20-character chunks using AdvancedTextPreprocessor,
+        then concatenate the resulting AudioSegments.
+        """
+        try:
+            # 1. chunk input text with your pre-processor
+            chunks: List[str] = _TEXT_PREPROCESSOR.preprocess_text(text)
+
+            segments: List[AudioSegment] = []
+
+            # 2. TTS call per chunk
+            for idx, chunk in enumerate(chunks, 1):
+                if voice_id:
+                    prompt_path = await self.get_voice_file(voice_id)
+                    wav = self.model.generate(text=chunk, audio_prompt_path=prompt_path)
+                else:
+                    wav = self.model.generate(chunk)
+
+                # 3. temp-file hop self.model → pydub
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_path = tmp.name
+                    _ = ta.save(tmp_path, wav, self.model.sr)
+
+                seg = AudioSegment.from_wav(tmp_path)
+                os.unlink(tmp_path)
+
+                segments.append(seg)
+                self.logger.debug(
+                    f"Chunk {idx}/{len(chunks)}: {len(chunk)} chars → {len(seg)} ms"
+                )
+
+            # 4. concatenate all segments
+            audio_segment: AudioSegment = sum(segments[1:], segments[0])
+
+            # 5. optional speed adjustment
+            if speed and abs(speed - 1.0) > 1e-3:
+                audio_segment = speedup(audio_segment, playback_speed=speed)
+
+            self.logger.info(f"TTS composite duration: {len(audio_segment)} ms")
+            return audio_segment, None
+
+        except Exception as e:
+            self.logger.error(f"TTS generation error: {e}")
+            raise
+
+    async def get_voice_file(self, voice_id: str) -> str:
+        # Define supported audio MIME types
+        supported_mime_prefixes = ["audio"]
+
+        for _ in self.voice_dir:
+            voice_path = os.path.join(self.voice_dir, f"{voice_id}")
+            if os.path.exists(voice_path):
+                mime_type, _ = mimetypes.guess_type(voice_path)
+                if mime_type and any(
+                    mime_type.startswith(prefix) for prefix in supported_mime_prefixes
+                ):
+                    return voice_path
+
+        raise FileNotFoundError(f"No supported audio file found for {voice_id}")

@@ -27,6 +27,7 @@ from TTS.tts_engines import (
     EdgeTTSEngine,
     OpenAITTSEngine,
     KokoroTTSEngine,
+    ChatterboxEngine,
 )
 from TTS.tts_functions import PodcastGenerator
 from utils.env import setup_env
@@ -105,6 +106,8 @@ def process_tasks(stop_event: Event) -> None:
                         tts_engine = OpenAITTSEngine()
                     elif tts_engine_name == "edge":
                         tts_engine = EdgeTTSEngine()
+                    elif tts_engine_name == "chatterbox":
+                        tts_engine = ChatterboxEngine(voice_dir="TTS/voices")
                     else:
                         tts_engine = KokoroTTSEngine()
 
