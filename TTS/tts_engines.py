@@ -486,11 +486,11 @@ class ChatterboxEngine(TTSEngine):
         """
         self.device = self._detect_device(device)
         print(f"Using {self.device} device for Chatterbox TTS.", file=sys.stderr)
-        self.model = self._load_model()
-        self.sample_rate = self.model.sr
+        self.model = None  # Initialize model to None
+        self.sample_rate = None # Initialize sample_rate to None, will be set after model loading
         self.logger = logging.getLogger(__name__)
         self.voice_dir = voice_dir
-        print("Chatterbox model loaded", file=sys.stderr)
+        # print("Chatterbox model loaded", file=sys.stderr) # Model is no longer loaded at init
 
     def _detect_device(self, device):
         if device is not None:
@@ -501,7 +501,12 @@ class ChatterboxEngine(TTSEngine):
             return "mps"
         return "cpu"
 
-    def _load_model(self):
+    def load_model(self):
+        """Loads the ChatterboxTTS model."""
+        if self.model is not None:
+            self.logger.info("Model is already loaded.")
+            return
+
         # Save original torch.load and restore after model loading
         original_torch_load = torch.load
         try:
@@ -514,10 +519,35 @@ class ChatterboxEngine(TTSEngine):
 
                 torch.load = patched_torch_load
 
-            return ChatterboxTTS.from_pretrained(device=self.device)
+            self.logger.info(f"Loading ChatterboxTTS model on {self.device}...")
+            self.model = ChatterboxTTS.from_pretrained(device=self.device)
+            self.sample_rate = self.model.sr # Set sample_rate after model is loaded
+            self.logger.info("ChatterboxTTS model loaded successfully.")
+            print("Chatterbox model loaded", file=sys.stderr)
         finally:
             # Always restore torch.load
             torch.load = original_torch_load
+
+    def unload_model(self):
+        """Unloads the ChatterboxTTS model and frees VRAM."""
+        if self.model is None:
+            self.logger.info("Model is not loaded.")
+            return
+
+        self.logger.info("Unloading ChatterboxTTS model...")
+        del self.model
+        self.model = None
+        self.sample_rate = None # Reset sample_rate
+        if self.device == "cuda":
+            torch.cuda.empty_cache()
+            self.logger.info("CUDA cache emptied.")
+        elif self.device == "mps":
+            # For MPS, there isn't a direct equivalent to empty_cache that is as impactful
+            # as for CUDA. Re-assigning to None and relying on Python's GC is the primary way.
+            # torch.mps.empty_cache() # This function exists but its utility is debated for MPS
+            pass
+        self.logger.info("ChatterboxTTS model unloaded.")
+        print("Chatterbox model unloaded", file=sys.stderr)
 
     async def get_available_voices(self) -> list:
         """
@@ -555,6 +585,7 @@ class ChatterboxEngine(TTSEngine):
         Generate TTS in ≥20-character chunks using AdvancedTextPreprocessor,
         then concatenate the resulting AudioSegments.
         """
+        self.load_model() # Ensure model is loaded
         try:
             # 1. chunk input text with your pre-processor
             chunks: List[str] = _TEXT_PREPROCESSOR.preprocess_text(text)
@@ -572,7 +603,10 @@ class ChatterboxEngine(TTSEngine):
                 # 3. temp-file hop self.model → pydub
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                     tmp_path = tmp.name
-                    _ = ta.save(tmp_path, wav, self.model.sr)
+                    # Ensure model and sample_rate are available
+                    if self.model is None or self.sample_rate is None:
+                        raise RuntimeError("Model or sample rate not initialized. Load the model first.")
+                    _ = ta.save(tmp_path, wav, self.sample_rate)
 
                 seg = AudioSegment.from_wav(tmp_path)
                 os.unlink(tmp_path)
@@ -595,18 +629,19 @@ class ChatterboxEngine(TTSEngine):
         except Exception as e:
             self.logger.error(f"TTS generation error: {e}")
             raise
+        finally:
+            self.unload_model() # Ensure model is unloaded
 
     async def get_voice_file(self, voice_id: str) -> str:
         # Define supported audio MIME types
         supported_mime_prefixes = ["audio"]
 
-        for _ in self.voice_dir:
-            voice_path = os.path.join(self.voice_dir, f"{voice_id}")
-            if os.path.exists(voice_path):
-                mime_type, _ = mimetypes.guess_type(voice_path)
-                if mime_type and any(
-                    mime_type.startswith(prefix) for prefix in supported_mime_prefixes
-                ):
-                    return voice_path
+        voice_path = os.path.join(self.voice_dir, f"{voice_id}")
+        if os.path.exists(voice_path):
+            mime_type, _ = mimetypes.guess_type(voice_path)
+            if mime_type and any(
+                mime_type.startswith(prefix) for prefix in supported_mime_prefixes
+            ):
+                return voice_path
 
         raise FileNotFoundError(f"No supported audio file found for {voice_id}")

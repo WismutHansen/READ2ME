@@ -11,11 +11,17 @@ model_name = os.getenv("MODEL_NAME", "llama3.2:latest")
 
 def ask_Ollama(user_message, system_message="You are a helpful assistant"):
     client = Client(host=ollama_base_url)
+
+    # Determine keep_alive duration based on LOW_VRAM environment variable
+    low_vram_str = os.getenv("LOW_VRAM", "False")
+    is_low_vram = low_vram_str.lower() == 'true'
+    keep_alive_duration = "0s" if is_low_vram else "5m"
+
     stream = client.chat(
         model=model_name,
         messages=[{"role": "user", "content": user_message}],
         stream=True,
-        keep_alive="0",
+        keep_alive=keep_alive_duration,
     )
 
     response = ""
