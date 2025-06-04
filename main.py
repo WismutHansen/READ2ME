@@ -109,7 +109,7 @@ try:
       ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
       ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
     
-      READ2ME Version 0.1.3 - You' gonna read that?
+      READ2ME Version 0.1.4 - You can't always read what you want...
 
     """)
     logging.info(f"Logging setup completed. Log file path: {log_file_path}")
