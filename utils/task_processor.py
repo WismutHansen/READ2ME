@@ -36,12 +36,20 @@ from utils.task_file_handler import (
     clear_tasks,
     get_tasks,
     update_task_status,
+    update_task_progress,
     save_tasks,
 )
 from utils.text_extraction import extract_text
 from utils.common_enums import TaskStatus, InputType, TaskType
 
 output_dir, task_file, img_pth, sources_file = setup_env()
+
+
+def create_progress_callback(task_id: str):
+    """Create a progress callback function for a specific task."""
+    async def progress_callback(progress: int):
+        await update_task_progress(task_id, progress)
+    return progress_callback
 
 
 def process_tasks(stop_event: Event) -> None:
@@ -123,9 +131,16 @@ def process_tasks(stop_event: Event) -> None:
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
-                            audio, vtt_file = await tts_engine.generate_audio(
-                                text, voice
-                            )
+                            # Create progress callback for ChatterboxEngine
+                            if tts_engine_name == "chatterbox":
+                                progress_cb = create_progress_callback(task_id)
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    text, voice, progress_callback=progress_cb
+                                )
+                            else:
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    text, voice
+                                )
                             audio = await tts_engine.export_audio(
                                 audio, text, title, vtt_file, audio_type="url/full"
                             )
@@ -149,9 +164,16 @@ def process_tasks(stop_event: Event) -> None:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
                             print(f"using voice: {voice}")
-                            audio, vtt_file = await tts_engine.generate_audio(
-                                content, voice
-                            )
+                            # Create progress callback for ChatterboxEngine
+                            if tts_engine_name == "chatterbox":
+                                progress_cb = create_progress_callback(task_id)
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    content, voice, progress_callback=progress_cb
+                                )
+                            else:
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    content, voice
+                                )
                             await tts_engine.export_audio(
                                 audio,
                                 content,
@@ -218,7 +240,12 @@ def process_tasks(stop_event: Event) -> None:
                             if voice is None:
                                 logging.error("Failed to pick voice")
                                 continue
-                            audio, _ = await tts_engine.generate_audio(tl_dr, voice)
+                            # Create progress callback for ChatterboxEngine
+                            if tts_engine_name == "chatterbox":
+                                progress_cb = create_progress_callback(task_id)
+                                audio, _ = await tts_engine.generate_audio(tl_dr, voice, progress_callback=progress_cb)
+                            else:
+                                audio, _ = await tts_engine.generate_audio(tl_dr, voice)
                             await tts_engine.export_audio(
                                 audio,
                                 tl_dr,
@@ -244,9 +271,16 @@ def process_tasks(stop_event: Event) -> None:
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
-                            audio, vtt_file = await tts_engine.generate_audio(
-                                text_tldr, voice
-                            )
+                            # Create progress callback for ChatterboxEngine
+                            if tts_engine_name == "chatterbox":
+                                progress_cb = create_progress_callback(task_id)
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    text_tldr, voice, progress_callback=progress_cb
+                                )
+                            else:
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    text_tldr, voice
+                                )
                             await tts_engine.export_audio(
                                 audio,
                                 text_tldr,
@@ -350,9 +384,16 @@ def process_tasks(stop_event: Event) -> None:
                         try:
                             voices = await tts_engine.get_available_voices()
                             voice = await tts_engine.pick_random_voice(voices)
-                            audio, vtt_file = await tts_engine.generate_audio(
-                                script, voice
-                            )
+                            # Create progress callback for ChatterboxEngine
+                            if tts_engine_name == "chatterbox":
+                                progress_cb = create_progress_callback(task_id)
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    script, voice, progress_callback=progress_cb
+                                )
+                            else:
+                                audio, vtt_file = await tts_engine.generate_audio(
+                                    script, voice
+                                )
                             await tts_engine.export_audio(
                                 audio, script, audio_type="story"
                             )

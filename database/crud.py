@@ -6,6 +6,9 @@ from datetime import datetime, date
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional, Dict
 import argparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(SCRIPT_DIR, "read2me.db")
@@ -246,7 +249,7 @@ def update_article(article_id: str, updated_fields: ArticleData):
     cursor.execute(query, values)
     conn.commit()
     conn.close()
-    print(f"Article with id '{article_id}' has been updated.")
+    logger.info(f"Article with id '{article_id}' has been updated.")
 
 
 def get_articles(skip: int = 0, limit: int = 100):

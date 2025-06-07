@@ -86,6 +86,7 @@ async def add_task(
         "tts_engine": tts_engine,
         "task": task_type.value if hasattr(task_type, 'value') else str(task_type),
         "status": TaskStatus.PENDING.value,  # Use enum value
+        "progress": 0,  # Progress percentage (0-100)
         "timestamp": datetime.now().isoformat()
     }
     
@@ -121,6 +122,22 @@ async def update_task_status(task_id: str, status: TaskStatus) -> None:
             task["status"] = status.value  # Use enum value
     await save_tasks(tasks)
     logging.info(f"Updated task {task_id} to status: {status}")
+
+
+async def update_task_progress(task_id: str, progress: int) -> None:
+    """
+    Updates the progress of a task.
+
+    Args:
+        task_id (str): The ID of the task to update.
+        progress (int): The progress percentage (0-100).
+    """
+    tasks = await load_tasks()
+    for task in tasks:
+        if task["id"] == task_id:
+            task["progress"] = max(0, min(100, progress))  # Clamp between 0-100
+    await save_tasks(tasks)
+    logging.debug(f"Updated task {task_id} progress to {progress}%")
 
 
 async def clear_tasks() -> None:

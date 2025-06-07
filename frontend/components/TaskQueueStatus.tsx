@@ -12,6 +12,7 @@ import {
 import { ListTodo, AlertCircle, Clock, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSettings } from '@/lib/settings';
+import { Progress } from './ui/progress';
 
 interface StatusState {
   queue: {
@@ -20,6 +21,13 @@ interface StatusState {
     completed: number;
     failed: number;
   };
+  tasks: Array<{
+    id: string;
+    status: string;
+    progress: number;
+    tts_engine: string;
+    task: string;
+  }>;
   errors: Array<{
     timestamp: string;
     message: string;
@@ -48,6 +56,7 @@ function StatusContent({ status, loading, onRefresh }: {
 
   // Add safety check for status and queue
   const queue = status?.queue ?? { pending: 0, processing: 0, completed: 0, failed: 0 };
+  const tasks = status?.tasks ?? [];
   const errors = status?.errors ?? [];
   const lastUpdate = status?.lastUpdate ?? new Date().toISOString();
 
@@ -92,6 +101,28 @@ function StatusContent({ status, loading, onRefresh }: {
         </div>
       </div>
 
+      {tasks.length > 0 && (
+        <div className="rounded-lg border p-3 space-y-3">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
+            Active Tasks
+          </h3>
+          <div className="space-y-3">
+            {tasks.map((task) => (
+              <div key={task.id} className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium">
+                    {task.tts_engine === 'chatterbox' ? 'Chatterbox TTS' : task.tts_engine} - {task.task}
+                  </span>
+                  <span className="text-gray-500">{task.progress}%</span>
+                </div>
+                <Progress value={task.progress} className="h-2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {errors.length > 0 && (
         <div className="rounded-lg border p-3 space-y-2">
           <h3 className="text-sm font-medium flex items-center gap-2">
@@ -120,6 +151,7 @@ function StatusContent({ status, loading, onRefresh }: {
 export default function TaskQueueStatus({ refreshArticles }: TaskQueueStatusProps) {
   const [status, setStatus] = useState<StatusState>({
     queue: { pending: 0, processing: 0, completed: 0, failed: 0 },
+    tasks: [],
     errors: [],
     lastUpdate: '',
   });

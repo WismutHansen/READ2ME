@@ -22,7 +22,10 @@ from requests.adapters import HTTPAdapter, Retry
 from database.crud import ArticleData, update_article
 from llm.LLM_calls import tldr
 from utils.paywall_detector import is_paywall_or_robot_text
-from utils.website_scraper import get_html
+from utils.html_fetcher import fetch_html
+
+
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------------------------------- #
 # Utility helpers
@@ -74,13 +77,13 @@ def get_session() -> cloudscraper.CloudScraper:
 
 def fetch_via_trafilatura(url: str) -> Optional[str]:
     """Raw HTML via trafilatura (fast)."""
-    logging.debug("Trying trafilatura…")
+    logger.debug("Trying trafilatura…")
     return trafilatura.fetch_url(url)
 
 
 async def fetch_via_playwright(url: str) -> Optional[str]:
     """Raw HTML via headless Playwright (best for JS-heavy sites)."""
-    logging.debug("Trying Playwright…")
+    logger.debug("Trying Playwright…")
     async with async_playwright() as p:
         browser = await p.firefox.launch(headless=True)  # firefox avoids some blocks
         page = await browser.new_page()
@@ -95,19 +98,20 @@ async def fetch_via_playwright(url: str) -> Optional[str]:
 
 def fetch_via_jina(url: str) -> Optional[str]:
     """Raw HTML via jina.ai extractor service (last resort)."""
-    logging.debug("Trying Jina AI service…")
+    logger.debug("Trying Jina AI service…")
     r = get_session().get(
         f"https://r.jina.ai/http://{url}", headers={"X-Return-Format": "html"}
     )
     if r.ok:
         return r.text
-    logging.error("Jina request failed: %s", r.status_code)
+    logger.error("Jina request failed: %s", r.status_code)
     return None
 
 
 FETCH_STRATEGIES: List[Callable[[str], "asyncio.Future[str]"]] = [
     fetch_via_trafilatura,
     fetch_via_playwright,
+    fetch_html,
     fetch_via_jina,
 ]
 
@@ -175,17 +179,17 @@ async def extract_text(
     """
     resolved = get_session().head(url, allow_redirects=True, timeout=15).url
     ctype = get_session().head(resolved, timeout=15).headers.get("Content-Type", "")
-    logging.info("Resolved %s", resolved)
+    logger.info("Resolved %s", resolved)
 
     # --- Shortcut: PDFs ---------------------------------------------------- #
     if resolved.lower().endswith(".pdf") or ctype.startswith("application/pdf"):
-        logging.info("Treating as PDF")
+        logger.info("Treating as PDF")
         body, title = extract_from_pdf(resolved)
         return body, title, tldr(body)
 
     # --- Shortcut: Wikipedia ---------------------------------------------- #
     if "wikipedia.org/wiki/" in resolved:
-        logging.info("Treating as Wikipedia")
+        logger.info("Treating as Wikipedia")
         body, summary = extract_from_wikipedia(resolved)
         return body, summary, summary
 
@@ -198,30 +202,30 @@ async def extract_text(
             else:
                 html = strategy(resolved)
             # Validation
-            if not html or check_word_count(html) or is_paywall_or_robot_text(html):
-                logging.warning(
+            if not html:
+                logger.warning(
                     "Strategy %s produced unusable output", strategy.__name__
                 )
                 html = None
                 continue
             break  # success!
         except Exception as exc:
-            logging.error("Strategy %s failed: %s", strategy.__name__, exc)
+            logger.error("Strategy %s failed: %s", strategy.__name__, exc)
     if html is None:
-        logging.error("All fetch strategies failed.")
+        logger.error("All fetch strategies failed.")
         return None, None, None
 
     # --- Extract article text --------------------------------------------- #
     extracted = trafilatura.extract(html, include_comments=False)
     if not extracted:
-        logging.error("Trafilatura extraction failed.")
+        logger.error("Trafilatura extraction failed.")
         return None, None, None
     cleaned = clean_text(extracted)
     if check_word_count(cleaned):
-        logging.error("Cleaned article still too short.")
+        logger.error("Cleaned article still too short.")
         return None, None, None
     if is_paywall_or_robot_text(cleaned):
-        logging.error("Still looks like paywall text.")
+        logger.error("Still looks like paywall text.")
         return None, None, None
 
     # --- Meta information -------------------------------------------------- #

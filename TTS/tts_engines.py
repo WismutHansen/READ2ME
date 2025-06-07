@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from edge_tts import Communicate, SubMaker, VoicesManager
 from pydub import AudioSegment
 from pydub.effects import speedup
+from tqdm import tqdm
 
 from database.crud import (
     ArticleData,
@@ -588,33 +589,60 @@ class ChatterboxEngine(TTSEngine):
         return available_voices
 
     async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.0
+        self, text: str, voice_id: str, speed: Optional[float] = 1.0, progress_callback: Optional[callable] = None
     ) -> Tuple[AudioSegment, None]:
         """
         Generate TTS in ≥20-character chunks using AdvancedTextPreprocessor,
         then concatenate the resulting AudioSegments.
         """
         self.load_model() # Ensure model is loaded
+        
+        # Temporarily increase logging level to suppress verbose output
+        original_log_level = logging.getLogger().level
+        logging.getLogger().setLevel(logging.ERROR)
+        
         try:
             # 1. chunk input text with your pre-processor
             chunks: List[str] = _TEXT_PREPROCESSOR.preprocess_text(text)
 
             segments: List[AudioSegment] = []
 
-            # 2. TTS call per chunk
-            for idx, chunk in enumerate(chunks, 1):
-                # Suppress deprecation warnings during inference
+            # 2. TTS call per chunk with progress bar
+            progress_bar = tqdm(chunks, desc="Generating TTS", unit="chunk")
+            for idx, chunk in enumerate(progress_bar, 1):
+                # Report progress if callback is provided
+                if progress_callback:
+                    progress = int((idx - 1) / len(chunks) * 100)
+                    await progress_callback(progress)
+                
+                # Suppress warnings and disable internal progress bars during inference
                 import warnings
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", message=".*torch.backends.cuda.sdp_kernel.*", category=FutureWarning)
-                    warnings.filterwarnings("ignore", message=".*past_key_values.*", category=FutureWarning)
-                    warnings.filterwarnings("ignore", message=".*scaled_dot_product_attention.*", category=FutureWarning)
+                import sys
+                import io
+                from contextlib import redirect_stderr, redirect_stdout
+                
+                with warnings.catch_warnings(), \
+                     redirect_stderr(io.StringIO()), \
+                     redirect_stdout(io.StringIO()):
+                    warnings.filterwarnings("ignore")
                     
-                    if voice_id:
-                        prompt_path = await self.get_voice_file(voice_id)
-                        wav = self.model.generate(text=chunk, audio_prompt_path=prompt_path)
-                    else:
-                        wav = self.model.generate(chunk)
+                    # Temporarily disable tqdm for internal model operations
+                    original_tqdm = None
+                    try:
+                        import tqdm as tqdm_module
+                        original_tqdm = tqdm_module.tqdm
+                        # Replace tqdm with a no-op version
+                        tqdm_module.tqdm = lambda *args, **kwargs: iter(args[0]) if args else iter([])
+                        
+                        if voice_id:
+                            prompt_path = await self.get_voice_file(voice_id)
+                            wav = self.model.generate(text=chunk, audio_prompt_path=prompt_path)
+                        else:
+                            wav = self.model.generate(chunk)
+                    finally:
+                        # Restore original tqdm
+                        if original_tqdm:
+                            tqdm_module.tqdm = original_tqdm
 
                 # 3. temp-file hop self.model → pydub
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
@@ -628,16 +656,25 @@ class ChatterboxEngine(TTSEngine):
                 os.unlink(tmp_path)
 
                 segments.append(seg)
-                self.logger.debug(
-                    f"Chunk {idx}/{len(chunks)}: {len(chunk)} chars → {len(seg)} ms"
-                )
+                
+                # Update progress bar description with current chunk info
+                progress_bar.set_postfix({
+                    'chars': len(chunk),
+                    'duration': f"{len(seg)}ms"
+                })
 
+            progress_bar.close()
+            
             # 4. concatenate all segments
             audio_segment: AudioSegment = sum(segments[1:], segments[0])
 
             # 5. optional speed adjustment
             if speed and abs(speed - 1.0) > 1e-3:
                 audio_segment = speedup(audio_segment, playback_speed=speed)
+
+            # Report completion
+            if progress_callback:
+                await progress_callback(100)
 
             self.logger.info(f"TTS composite duration: {len(audio_segment)} ms")
             return audio_segment, None
@@ -646,6 +683,8 @@ class ChatterboxEngine(TTSEngine):
             self.logger.error(f"TTS generation error: {e}")
             raise
         finally:
+            # Restore original logging level
+            logging.getLogger().setLevel(original_log_level)
             self.unload_model() # Ensure model is unloaded
 
     async def get_voice_file(self, voice_id: str) -> str:

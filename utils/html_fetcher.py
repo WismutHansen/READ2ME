@@ -19,7 +19,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 import trafilatura
-from paywall_detector import is_paywall_or_robot_text
+from utils.paywall_detector import is_paywall_or_robot_text
 from playwright.async_api import async_playwright
 
 LAUNCH_ARGS = [

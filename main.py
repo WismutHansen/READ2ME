@@ -1049,6 +1049,17 @@ async def get_status() -> Dict[str, Any]:
                     if isinstance(t, dict) and t.get("status") == "failed"
                 ),
             },
+            "tasks": [
+                {
+                    "id": t.get("id"),
+                    "status": t.get("status"),
+                    "progress": t.get("progress", 0),
+                    "tts_engine": t.get("tts_engine"),
+                    "task": t.get("task"),
+                }
+                for t in tasks
+                if isinstance(t, dict) and t.get("status") == "processing"
+            ],
             "errors": errors[-10:],  # Return only the last 10 errors
             "lastUpdate": datetime.now().isoformat(),
         }

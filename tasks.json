@@ -88,5 +88,85 @@
     "task": "full",
     "status": "processing",
     "timestamp": "2025-06-07T23:25:55.945909"
+  },
+  {
+    "id": "1749332105-u3SMe2",
+    "type": "url",
+    "content": "https://techcrunch.com/2025/06/07/superblocks-ceo-how-to-find-a-unicorn-idea-by-studying-ai-system-prompts/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "processing",
+    "progress": 16,
+    "timestamp": "2025-06-07T23:35:05.538388"
+  },
+  {
+    "id": "1749332390-HLtCD6",
+    "type": "url",
+    "content": "https://variety.com/2025/shopping/news/how-to-watch-keyshawn-davis-vs-edwin-de-los-santos-online-livestream-1236421208/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "failed",
+    "progress": 0,
+    "timestamp": "2025-06-07T23:39:50.198359"
+  },
+  {
+    "id": "1749332438-pDosck",
+    "type": "url",
+    "content": "https://www.hollywoodreporter.com/tv/tv-features/paradise-boss-dissects-pilot-scene-1236257883/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "failed",
+    "progress": 0,
+    "timestamp": "2025-06-07T23:40:38.670205"
+  },
+  {
+    "id": "1749332461-7J4hg4",
+    "type": "url",
+    "content": "https://variety.com/2025/film/columns/john-wick-no-one-in-the-movies-stays-dead-anymore-1236422087/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "failed",
+    "progress": 0,
+    "timestamp": "2025-06-07T23:41:01.136182"
+  },
+  {
+    "id": "1749332507-p4LUPR",
+    "type": "url",
+    "content": "https://techcrunch.com/2025/06/07/trump-administration-takes-aim-at-biden-and-obama-cybersecurity-rules/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "processing",
+    "progress": 0,
+    "timestamp": "2025-06-07T23:41:47.286231"
+  },
+  {
+    "id": "1749332514-e5lS0P",
+    "type": "url",
+    "content": "https://techcrunch.com/2025/06/06/meet-the-finalists-vivatechs-5-most-visionary-startups-of-2025/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "processing",
+    "progress": 9,
+    "timestamp": "2025-06-07T23:41:54.883388"
+  },
+  {
+    "id": "1749333272-BRcsYO",
+    "type": "url",
+    "content": "https://variety.com/2025/film/global/10-annecy-short-films-not-to-miss-1236422186/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "failed",
+    "progress": 0,
+    "timestamp": "2025-06-07T23:54:32.267968"
+  },
+  {
+    "id": "1749333402-2BjCbW",
+    "type": "url",
+    "content": "https://www.hollywoodreporter.com/tv/tv-features/look-back-vcr-impact-hollywood-home-video-1236239309/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "processing",
+    "progress": 28,
+    "timestamp": "2025-06-07T23:56:42.211552"
   }
 ]
