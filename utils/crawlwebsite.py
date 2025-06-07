@@ -5,7 +5,8 @@ from .text_extraction import extract_text
 import logging
 import asyncio
 
-logging.basicConfig(level=logging.INFO)
+# Get logger - don't configure here to avoid overriding main config
+logger = logging.getLogger(__name__)
 
 
 async def fetch(session, url):

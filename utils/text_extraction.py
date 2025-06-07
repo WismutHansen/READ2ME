@@ -251,6 +251,7 @@ async def extract_text(
 # --------------------------------------------------------------------------- #
 
 if __name__ == "__main__":  # pragma: no cover
+    # Only configure logging when run as main script
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     target = input("Enter URL to extract text from: ").strip()
     start = time.time()

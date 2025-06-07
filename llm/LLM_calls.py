@@ -12,17 +12,15 @@ from .Local_Ollama import ask_Ollama
 from .Local_OpenAI import ask_LLM
 from .Prompts import pod, title_prompt, story_mode, markdown
 
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# Get logger - don't configure here to avoid overriding main config
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
 
 def llm_call(prompt: str) -> str:
     llm_engine = os.getenv("LLM_ENGINE")
-    logging.debug(f"LLM_ENGINE: {llm_engine}")
+    logger.debug(f"LLM_ENGINE: {llm_engine}")
 
     if llm_engine == "Ollama":
         response = ask_Ollama(prompt)

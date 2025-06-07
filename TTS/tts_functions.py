@@ -46,7 +46,6 @@ class PodcastGenerator:
     def __init__(self, tts_engine: TTSEngine):
         self.tts_engine = tts_engine
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
-        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
     def parse_transcript(self, transcript: str) -> List[Tuple[str, str]]:

@@ -173,5 +173,6 @@ async def process_article_with_timeout(
 
 
 if __name__ == "__main__":
+    # Only configure logging when run as main script
     logging.basicConfig(level=logging.INFO)
     asyncio.run(fetch_articles())

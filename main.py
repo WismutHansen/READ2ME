@@ -72,7 +72,8 @@ def check_output_dir():
 
     # Check if the output folder exists
     if not os.path.exists(output_folder):
-        print(f"Output folder '{output_folder}' does not exist. Creating it...")
+        logger = logging.getLogger()
+        logger.info(f"Output folder '{output_folder}' does not exist. Creating it...")
         try:
             os.makedirs(output_folder, exist_ok=True)
         except OSError as e:
@@ -83,38 +84,55 @@ def check_output_dir():
 
 def setup_logging(log_file_path):
     logger = logging.getLogger()
+
+    # Prevent duplicate handlers if setup_logging is called multiple times
+    if logger.handlers:
+        return logger
+
     logger.setLevel(logging.INFO)
 
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
+
+    # File handler
     file_handler = TimedRotatingFileHandler(
         log_file_path, when="midnight", interval=1, backupCount=14
     )
     file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    )
-
+    file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
+    return logger
 
-# Set up logging
-try:
-    log_file_path = os.path.abspath("process_log.txt")
-    setup_logging(log_file_path)
-    logging.info("""
-      
-      ██████╗ ███████╗ █████╗ ██████╗ ██████╗ ███╗   ███╗███████╗
-      ██╔══██╗██╔════╝██╔══██╗██╔══██╗╚════██╗████╗ ████║██╔════╝
-      ██████╔╝█████╗  ███████║██║  ██║ █████╔╝██╔████╔██║█████╗  
-      ██╔══██╗██╔══╝  ██╔══██║██║  ██║██╔═══╝ ██║╚██╔╝██║██╔══╝  
-      ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
-      ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
-    
-      READ2ME Version 0.1.4 - You can't always read what you want...
 
-    """)
-    logging.info(f"Logging setup completed. Log file path: {log_file_path}")
-except Exception as e:
-    print(f"Error setting up logging: {e}")
+# Set up logging - only once per process
+log_file_path = os.path.abspath("process_log.txt")
+logger = None
+_logging_initialized = False
+
+
+def initialize_logging():
+    global logger, _logging_initialized
+    if not _logging_initialized:
+        try:
+            logger = setup_logging(log_file_path)
+            # Only show banner in main server process (not reload worker)
+            if os.getenv("RUN_MAIN") != "true":
+                logger.info(f"Logging setup completed. Log file path: {log_file_path}")
+                _logging_initialized = True
+        except Exception as e:
+            # Fallback to print if logging setup fails
+            print(f"Error setting up logging: {e}")
+    return logger
+
+
+# Initialize logging
+initialize_logging()
 
 
 class URLRequest(BaseModel):
@@ -1087,11 +1105,25 @@ async def update_voices(engine_name: str, voices: List[VoiceSettingUpdate]) -> d
 
 
 if __name__ == "__main__":
+    print("""
+
+        ██████╗ ███████╗ █████╗ ██████╗ ██████╗ ███╗   ███╗███████╗
+        ██╔══██╗██╔════╝██╔══██╗██╔══██╗╚════██╗████╗ ████║██╔════╝
+        ██████╔╝█████╗  ███████║██║  ██║ █████╔╝██╔████╔██║█████╗  
+        ██╔══██╗██╔══╝  ██╔══██║██║  ██║██╔═══╝ ██║╚██╔╝██║██╔══╝  
+        ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
+        ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
+
+        READ2ME Version 0.1.4 - You can't always read what you want...
+
+    """)
     import uvicorn
 
     create_or_update_tables()
     try:
-        uvicorn.run("main:app", host="0.0.0.0", port=7788, log_config=None, reload=True)
+        uvicorn.run(
+            "main:app", host="0.0.0.0", port=7788, log_config=None, reload=False
+        )
     except Exception as e:
         logging.error(f"Unhandled exception: {e}", exc_info=True)
         raise

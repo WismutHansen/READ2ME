@@ -162,7 +162,5 @@ async def save_tasks(tasks: List[Dict]) -> None:
         await file.write(json.dumps(tasks, indent=2))
 
 
-# Initialize logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# Get logger - don't configure here to avoid overriding main config
+logger = logging.getLogger(__name__)
