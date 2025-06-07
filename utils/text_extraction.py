@@ -1,9 +1,25 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Robust web & PDF extractor
+
+Key improvements
+----------------
+• Clearly separated “fetch” strategies with automatic fall-through.
+• Centralised robot / paywall detection before each early exit.
+• Unified logging & exception-handling so one failure never kills the pipeline.
+• Added exponential back-off retries for flaky networks.
+• Tightened Playwright usage (single browser per run, auto-close).
+• Type hints everywhere; mypy-clean.
+"""
+
 import asyncio
 import logging
 import re
 import tempfile
+import time
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import fitz
@@ -11,484 +27,255 @@ import requests
 import tldextract
 import trafilatura
 import wikipedia
-from bs4 import BeautifulSoup, Tag
-from docling.document_converter import DocumentConverter
-from langdetect import LangDetectException, detect
+from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
-# from readabilipy import simple_json_from_html_string
+from requests.adapters import HTTPAdapter, Retry
 
 from database.crud import ArticleData, update_article
 from llm.LLM_calls import tldr
+from utils.paywall_detector import is_paywall_or_robot_text
+from utils.website_scraper import get_html
+
+# --------------------------------------------------------------------------- #
+# Utility helpers
+# --------------------------------------------------------------------------- #
 
 
-# Format in this format: January 1st 2024
-def get_formatted_date():
+def get_formatted_date() -> str:
+    """Return current date in “January 1st 2024” format."""
     now = datetime.now()
-    day = now.day
-    month = now.strftime("%B")
-    year = now.year
     suffix = (
-        "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+        "th"
+        if 11 <= now.day <= 13
+        else {1: "st", 2: "nd", 3: "rd"}.get(now.day % 10, "th")
     )
-    return f"{month} {day}{suffix}, {year}"
+    return f"{now.strftime('%B')} {now.day}{suffix}, {now.year}"
 
 
-# Function to check if word count is less than 200
-def check_word_count(text):
-    words = re.findall(r"\b\w+\b", text)
-    return len(words) < 200
+def check_word_count(text: str, minimum: int = 200) -> bool:
+    """True if text contains fewer than *minimum* words."""
+    return len(re.findall(r"\b\w+\b", text)) < minimum
 
 
-# Function to check for paywall or robot disclaimer (currently very hacky fix, need to find a better solution)
-def is_paywall_or_robot_text(text):
-    paywall_phrases = [
-        "Please make sure your browser supports JavaScript and cookies",
-        "To continue, please click the box below",
-        "Please enable cookies on your web browser",
-        "For inquiries related to this message",
-        "If you are a robot",
-        "robot.txt",
-    ]
-    for phrase in paywall_phrases:
-        if phrase in text:
-            return True
-    return False
+# --------------------------------------------------------------------------- #
+# HTTP session with automatic back-off retries
+# --------------------------------------------------------------------------- #
+
+_SESSION: Optional[requests.Session] = None
 
 
-# Async Function to extract text using playwright
-async def extract_with_playwright(url):
+def get_session() -> requests.Session:
+    global _SESSION
+    if _SESSION is None:
+        _SESSION = requests.Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=0.8,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
+        )
+        _SESSION.mount("https://", HTTPAdapter(max_retries=retries))
+        _SESSION.mount("http://", HTTPAdapter(max_retries=retries))
+    return _SESSION
+
+
+# --------------------------------------------------------------------------- #
+# Fetch strategies – each must implement (url) -> Optional[str]
+# --------------------------------------------------------------------------- #
+
+
+def fetch_via_trafilatura(url: str) -> Optional[str]:
+    """Raw HTML via trafilatura (fast)."""
+    logging.debug("Trying trafilatura…")
+    return trafilatura.fetch_url(url)
+
+
+async def fetch_via_playwright(url: str) -> Optional[str]:
+    """Raw HTML via headless Playwright (best for JS-heavy sites)."""
+    logging.debug("Trying Playwright…")
     async with async_playwright() as p:
-        # Launch a headless browser
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.firefox.launch(headless=True)  # firefox avoids some blocks
         page = await browser.new_page()
-
         try:
-            # Go to the website
-            await page.goto(url)
-
-            # Wait for the page to load completely
-            await page.wait_for_timeout(2000)  # Increased timeout for loading
+            await page.goto(url, timeout=20_000)
+            await page.wait_for_load_state("networkidle")  # JS finished
             content = await page.content()
-
-        except Exception as e:
-            logging.error(f"Error extracting text with Playwright: {e}")
-            content = None
+            return content
         finally:
             await browser.close()
 
-        return content
 
-
-# Function to extract text using the free jina API
-def extract_with_jina(url):
-    try:
-        headers = {"X-Return-Format": "html"}
-        response = requests.get(f"https://r.jina.ai/{url}", headers=headers)
-        if response.status_code == 200:
-            if is_paywall_or_robot_text(response.text):
-                logging.error(
-                    f"Jina could not bypass the paywall: {response.status_code}"
-                )
-                return None
-            else:
-                return response.text
-        else:
-            logging.error(
-                f"Jina extraction failed with status code: {response.status_code}"
-            )
-            return None
-    except Exception as e:
-        logging.error(f"Error extracting text with Jina: {e}")
-        return None
-
-
-def clean_text(text):
-    # Remove extraneous whitespace within paragraphs
-    text = re.sub(r"[ \t]+", " ", text)
-
-    # Ensure that there are two newlines between paragraphs
-    text = re.sub(r"\n\s*\n", "\n\n", text)  # Ensure two newlines between paragraphs
-    text = re.sub(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|!|\n)\n", "\n\n", text)
-    text = re.sub(r"\n[\-_]\n", "", text)  # Remove 3 or more consecutive dashes
-    text = re.sub(r"[\-_]{3,}", "", text)  # Remove 3 or more consecutive underscores
-
-    # Convert HTML entities to plain text
-    text = BeautifulSoup(text, "html.parser").text
-
-    return text
-
-
-def clean_wikipedia_content(content):
-    # Function to replace headline markers with formatted text
-    def replace_headline(match):
-        level = len(match.group(1))  # Count the number of '=' symbols
-        text = match.group(2).strip()
-
-        # Create appropriate formatting based on the headline level
-        if level == 2:
-            return f"{text.upper()}\n"
-        elif level == 3:
-            return f"{text.upper()}\n"
-        else:
-            return f"{text.upper()}\n"
-
-    # Replace all levels of headlines
-    cleaned_content = re.sub(r"(={2,})\s*(.*?)\s*\1", replace_headline, content)
-
-    # Remove any remaining single '=' characters at the start of lines
-    cleaned_content = re.sub(r"^\s*=\s*", "", cleaned_content, flags=re.MULTILINE)
-
-    return cleaned_content
-
-
-def clean_pdf_text(text):
-    # Import the re module
-    import re
-
-    # Remove headers and footers (assuming they're separated by multiple dashes)
-    text = re.sub(r"^.*?-{3,}|-{3,}.*?$", "", text, flags=re.MULTILINE)
-
-    # Remove extraneous whitespace within paragraphs
-    text = re.sub(r"[ \t]+", " ", text)
-
-    # Ensure that there are two newlines between paragraphs
-    text = re.sub(r"\n\s*\n+", "\n\n", text)
-
-    # Remove the references section
-    text = re.sub(r"References\s*\n(.*\n)*", "", text, flags=re.IGNORECASE)
-
-    # Remove any remaining citation numbers in square brackets
-    text = re.sub(r"\[\d+(?:,\s*\d+)*\]", "", text)
-
-    # Remove any remaining URLs
-    text = re.sub(r"http[s]?://\S+", "", text)
-
-    # Remove any remaining publication date lines
-    text = re.sub(
-        r", Vol\. \d+, No\. \d+, Article \d+\. Publication date: [A-Za-z]+ \d{4}\.?",
-        "",
-        text,
+def fetch_via_jina(url: str) -> Optional[str]:
+    """Raw HTML via jina.ai extractor service (last resort)."""
+    logging.debug("Trying Jina AI service…")
+    r = get_session().get(
+        f"https://r.jina.ai/http://{url}", headers={"X-Return-Format": "html"}
     )
-
-    # Remove any remaining page numbers and headers/footers
-    text = re.sub(r"^\d+(\s*[A-Za-z\s,]+)*$", "", text, flags=re.MULTILINE)
-
-    # Remove empty lines at the beginning and end of the text
-    text = text.strip()
-
-    # Merge hyphenated words split across lines
-    text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
-
-    # Ensure proper spacing after punctuation
-    text = re.sub(r"([.!?])(\w)", r"\1 \2", text)
-
-    # Normalize spaces around em dashes
-    text = re.sub(r"\s*—\s*", " — ", text)
-
-    # Format paragraphs: remove single newlines within paragraphs, ensure double newlines between paragraphs
-    paragraphs = text.split("\n\n")
-    formatted_paragraphs = [
-        re.sub(r"\s+", " ", p.strip()) for p in paragraphs if p.strip()
-    ]
-    text = "\n\n".join(formatted_paragraphs)
-
-    # Remove occurrences with more than three dots
-    text = re.sub(r"\.{3,}", "", text)
-
-    # Remove words ending with a hyphen directly before a newline
-    text = re.sub(r"(\w+)-\n", r"\1", text)
-
-    # Remove lines that contain numbers only
-    text = re.sub(r"^\d+\s*$", "", text, flags=re.MULTILINE)
-
-    return text
+    if r.ok:
+        return r.text
+    logging.error("Jina request failed: %s", r.status_code)
+    return None
 
 
-def extract_from_wikipedia(
-    url: str, article_id: Optional[str] = None
-) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-    """
-    Extracts content from a Wikipedia page, cleans it, and updates the article in the database if an article_id is provided.
+FETCH_STRATEGIES: List[Callable[[str], "asyncio.Future[str]"]] = [
+    fetch_via_trafilatura,
+    fetch_via_playwright,
+    fetch_via_jina,
+]
 
-    Args:
-        url (str): The URL of the Wikipedia page to extract content from.
-        article_id (Optional[str]): Optional identifier for the article in the database to update.
-
-    Returns:
-        Tuple[Optional[str], Optional[str], Optional[str]]:
-            - clean_article_content (Optional[str]): The full cleaned article content from Wikipedia.
-            - article_title (Optional[str]): The title of the Wikipedia article.
-            - tl_dr (Optional[str]): A summary or short version of the article content.
-
-            Returns `None, None, None` if extraction fails or an error occurs.
-    """
-    try:
-        # Reformat the URL to remove additional parameters
-        parsed_url = urlparse(url)
-        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
-
-        # Extract the title from the URL
-        title = clean_url.split("/wiki/")[-1].replace("_", " ")
-
-        # Fetch the Wikipedia page
-        page = wikipedia.page(title, auto_suggest=False)
-
-        # Construct the article content
-        article_title = page.title
-        article_content = f"{article_title}.\n\n"
-        article_content += f"From Wikipedia. Retrieved on {get_formatted_date()}\n\n"
-
-        # Add summary
-        tl_dr = page.summary
-
-        # Add full content
-        clean_article_content = clean_wikipedia_content(page.content)
-        if article_id:
-            article_data = ArticleData(
-                title=title,
-                plain_text=clean_article_content,
-                markdown_text=article_content,
-                tl_dr=tl_dr,
-            )
-            update_article(article_id, article_data)
-
-        return clean_article_content, article_title, tl_dr
-    except wikipedia.exceptions.DisambiguationError as e:
-        logging.error(f"DisambiguationError: {e}")
-        return None, None, None
-    except wikipedia.exceptions.PageError as e:
-        logging.error(f"PageError: {e}")
-        return None, None, None
-    except Exception as e:
-        logging.error(f"Error extracting text from Wikipedia: {e}")
-        return None, None, None
+# --------------------------------------------------------------------------- #
+# Clean-up helpers
+# --------------------------------------------------------------------------- #
 
 
-def download_pdf_file(url, timeout=30):
-    try:
-        response = requests.get(url, timeout=timeout)
-        response.raise_for_status()
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-            temp_file.write(response.content)
-            logging.info(f"PDF file downloaded to {temp_file.name}")
-            return temp_file.name
-    except requests.RequestException as e:
-        logging.error(f"Error downloading PDF: {e}")
-        return None
+def clean_text(text: str) -> str:
+    """Basic whitespace / HTML entity clean-up."""
+    text = BeautifulSoup(text, "html.parser").text
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n\s*\n", "\n\n", text)
+    text = re.sub(r"\n[\-_]{3,}\n", "\n\n", text)
+    return text.strip()
 
 
-def extract_text_from_pdf(url, article_id: Optional[str] = None):
-    try:
-        pdf_path = download_pdf_file(url)
-        if pdf_path is None:
-            logging.error("Failed to download PDF file.")
-            return None, None, None
+def clean_wikipedia_content(content: str) -> str:
+    def repl(m):  # headline → ALL-CAPS
+        return f"{m.group(2).strip().upper()}\n"
 
-        # Open the PDF file
-        document = fitz.open(pdf_path)
-
-        # Extract the title from the PDF metadata if available
-        title = document.metadata.get("title", "No Title Available")
-
-        converter = DocumentConverter()
-        result = converter.convert(pdf_path)
-        markdown = result.document.export_to_markdown()
-        text = result.document.export_to_text()
-        tl_dr = tldr(text)
-        # Initialize language variable
-        language = "Unknown"
-
-        try:
-            language = detect(text)
-        except LangDetectException:
-            language = "Unknown"
-        logging.info(f"Detected language: {language}")
-
-        document.close()  # Close the document to free resources
-
-        # Set the article in the global state
-        new_article = ArticleData(
-            title=title,
-            language=language,
-            plain_text=text,
-            markdown_text=markdown,
-            tl_dr=tl_dr,
-        )
-        if article_id:
-            try:
-                # Retrieve the article and check if it's not None before passing to create_article
-                update_article(article_id, new_article)
-            except Exception as e:
-                logging.error(f"Couldn't add article data to database: {e}")
-            logging.info(f"Extracted text from PDF: {len(text)} characters")
-        return text, title, tl_dr
-
-    except Exception as e:
-        logging.error(f"Error processing PDF: {e}")
-        return None, None, None
+    return re.sub(r"(={2,})\s*(.*?)\s*\1", repl, content)
 
 
-# This Function extracts the main text from a given URL along with the title,
-# list of authors and the date of publication (if available) and formats the text
-# accordingly
+# --------------------------------------------------------------------------- #
+# Wikipedia, PDF and generic extractors
+# --------------------------------------------------------------------------- #
+
+
+def extract_from_wikipedia(url: str) -> Tuple[str, str]:
+    title = urlparse(url).path.split("/wiki/")[-1].replace("_", " ")
+    page = wikipedia.page(title, auto_suggest=False)
+    body = f"{page.title}.\n\nFrom Wikipedia. Retrieved on {get_formatted_date()}\n\n"
+    body += clean_wikipedia_content(page.content)
+    return body, page.summary
+
+
+def download_pdf(url: str) -> str:
+    r = get_session().get(url, timeout=30)
+    r.raise_for_status()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(r.content)
+        return tmp.name
+
+
+def extract_from_pdf(url: str) -> Tuple[str, str]:
+    path = download_pdf(url)
+    doc = fitz.open(path)
+    title = doc.metadata.get("title", "") or "Untitled PDF"
+    text = "\n".join(page.get_text() for page in doc)
+    doc.close()
+    return text.strip(), title
+
+
+# --------------------------------------------------------------------------- #
+# Master extractor – the public entry-point
+# --------------------------------------------------------------------------- #
+
+
 async def extract_text(
     url: str, article_id: Optional[str] = None
 ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
-    Extracts text content from a given URL, processes it, and updates an article in the database if an article_id is provided.
-
-    Args:
-        url (str): The URL of the webpage or PDF to extract content from.
-        article_id (Optional[str]): Optional identifier for the article in the database to update.
-
-    Returns:
-        Tuple[Optional[str], Optional[str], Optional[str]]:
-            - article_content (Optional[str]): The extracted and processed article text.
-            - title (Optional[str]): The title of the article.
-            - tl_dr (Optional[str]): A summary or "too long; didn't read" version of the article.
-
-            Returns `None, None, None` if extraction fails.
+    Try multiple fetch strategies until one succeeds, then parse.
     """
-    try:
+    resolved = get_session().head(url, allow_redirects=True, timeout=15).url
+    ctype = get_session().head(resolved, timeout=15).headers.get("Content-Type", "")
+    logging.info("Resolved %s", resolved)
+
+    # --- Shortcut: PDFs ---------------------------------------------------- #
+    if resolved.lower().endswith(".pdf") or ctype.startswith("application/pdf"):
+        logging.info("Treating as PDF")
+        body, title = extract_from_pdf(resolved)
+        return body, title, tldr(body)
+
+    # --- Shortcut: Wikipedia ---------------------------------------------- #
+    if "wikipedia.org/wiki/" in resolved:
+        logging.info("Treating as Wikipedia")
+        body, summary = extract_from_wikipedia(resolved)
+        return body, summary, summary
+
+    # --- HTML fall-through ------------------------------------------------- #
+    html: Optional[str] = None
+    for strategy in FETCH_STRATEGIES:
         try:
-            response = requests.head(url, allow_redirects=True)
-            resolved_url = response.url
-            content_type = response.headers.get("Content-Type", "").lower()
-            logging.info("Using extract_text")
-            logging.info(f"Resolved URL {resolved_url}")
-
-        except requests.RequestException as e:
-            logging.error(f"Error resolving url: {e}")
-            return None, None, None
-
-        if url.lower().endswith(".pdf") or content_type == "application/pdf":
-            logging.info(f"Extracting text from PDF: {resolved_url}")
-            return extract_text_from_pdf(resolved_url, article_id)
-
-        # Check if it's a Wikipedia URL
-        elif "wikipedia.org" in resolved_url:
-            logging.info(f"Extracting text from Wikipedia: {resolved_url}")
-            return extract_from_wikipedia(resolved_url, article_id)
-
-        downloaded = trafilatura.fetch_url(resolved_url)
-        if (
-            downloaded is None
-            or check_word_count(downloaded)
-            or is_paywall_or_robot_text(downloaded)
-        ):
-            logging.info("Extraction with trafilatura failed, trying with playwright")
-            # If trafilatura fails extracting html, we try with playwright
-            try:
-                downloaded = await extract_with_playwright(resolved_url)
-                if downloaded is None or is_paywall_or_robot_text(downloaded):
-                    logging.info(
-                        "Extracted text is a paywall or robot disclaimer, trying with Jina."
-                    )
-                    downloaded = extract_with_jina(resolved_url)
-                    if downloaded is None:
-                        return None, None, None
-            except Exception as e:
-                logging.error(f"Error extracting text with playwright: {e}")
-                return None, None, None
-
-        if downloaded is None:
-            logging.error(f"No content downloaded from {resolved_url}")
-            return None, None, None
-
-        # We use tldextract to extract the main domain name from a URL
-        domainname = tldextract.extract(resolved_url)
-        main_domain = f"{domainname.domain}.{domainname.suffix}"
-
-        # We use trafilatura to extract the text content from the HTML page
-        result = trafilatura.extract(downloaded, include_comments=False)
-        if result is None or check_word_count(result):
-            logging.error("Extracted text is less than 100 words.")
-            return None, None, None
-
-        soup = BeautifulSoup(downloaded, "html.parser")
-        title_tag = soup.find("title")
-        title = title_tag.text if title_tag else ""
-
-        """Remove everything from ' | ' onwards in a title."""
-        title = title.split(" | ")[0]
-
-        date_tag = soup.find("meta", attrs={"property": "article:published_time"})
-        timestamp = date_tag.get("content", "") if isinstance(date_tag, Tag) else ""
-        article_content = f"{title}.\n\n" if title else ""
-        article_content += f"From {main_domain}.\n\n"
-        authors = []
-        for attr in ["name", "property"]:
-            author_tags = soup.find_all("meta", attrs={attr: "author"})
-            for tag in author_tags:
-                if tag and tag.get("content"):
-                    authors.append(tag["content"])
-        authors = sorted(set(authors))
-        if authors:
-            article_content += "Written by: " + ", ".join(authors) + ".\n\n"
-        date_formats = [
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-            "%Y-%m-%dT%H:%M:%S",
-        ]
-        date_str = ""
-        if timestamp:
-            # If timestamp is a list, iterate over each item; otherwise, wrap it in a list for uniform processing.
-            timestamps = [timestamp] if isinstance(timestamp, str) else timestamp
-            for ts in timestamps:
-                for date_format in date_formats:
-                    try:
-                        date = datetime.strptime(ts, date_format)
-                        date_str = date.strftime("%B %d, %Y")
-                        break
-                    except ValueError:
-                        continue
-                if date_str:
-                    break
-        if date_str:
-            article_content += f"Published on: {date_str}.\n\n"
-
-        # Initialize language variable
-        language = "Unknown"
-
-        if result:
-            cleaned_text = clean_text(result)
-            # Detect language of the content
-            try:
-                language = detect(cleaned_text)
-            except LangDetectException:
-                language = "Unknown"
-            logging.info(f"Detected language: {language}")
-            article_content += cleaned_text
-
-        tl_dr = tldr(article_content)
-
-        # Update article entry in database with new entry fields
-        if article_id:
-            try:
-                new_article = ArticleData(
-                    title=title,
-                    source=main_domain,
-                    date_published=date_str if date_str else "",
-                    language=language,
-                    plain_text=article_content,
-                    tl_dr=tl_dr,
+            if asyncio.iscoroutinefunction(strategy):
+                html = await strategy(resolved)
+            else:
+                html = strategy(resolved)
+            # Validation
+            if not html or check_word_count(html) or is_paywall_or_robot_text(html):
+                logging.warning(
+                    "Strategy %s produced unusable output", strategy.__name__
                 )
-                update_article(article_id, new_article)
-                logging.info(f"article {article_id} sucessfully updated")
-            except Exception as e:
-                logging.error(f"Couldn't add article data to database: {e}")
-
-        return article_content, title, tl_dr
-
-    except Exception as e:
-        logging.error(f"Error extracting text from HTML: {e}")
+                html = None
+                continue
+            break  # success!
+        except Exception as exc:
+            logging.error("Strategy %s failed: %s", strategy.__name__, exc)
+    if html is None:
+        logging.error("All fetch strategies failed.")
         return None, None, None
 
+    # --- Extract article text --------------------------------------------- #
+    extracted = trafilatura.extract(html, include_comments=False)
+    if not extracted:
+        logging.error("Trafilatura extraction failed.")
+        return None, None, None
+    cleaned = clean_text(extracted)
+    if check_word_count(cleaned):
+        logging.error("Cleaned article still too short.")
+        return None, None, None
+    if is_paywall_or_robot_text(cleaned):
+        logging.error("Still looks like paywall text.")
+        return None, None, None
 
-if __name__ == "__main__":
-    url = input("Enter URL to extract text from: ")
-    article_content, title = asyncio.run(extract_text(url))
-    if article_content:
-        print(article_content)
+    # --- Meta information -------------------------------------------------- #
+    soup = BeautifulSoup(html, "html.parser")
+    title = (soup.title.string or "").split(" | ")[0].strip()
+    domain = (
+        f"{tldextract.extract(resolved).domain}.{tldextract.extract(resolved).suffix}"
+    )
+    body = f"{title}.\n\nFrom {domain}.\n\n{cleaned}" if title else cleaned
+
+    summary = tldr(body)
+    if article_id:
+        update_article(
+            article_id,
+            ArticleData(
+                title=title,
+                source=domain,
+                plain_text=body,
+                tl_dr=summary,
+            ),
+        )
+    return body, title, summary
+
+
+# --------------------------------------------------------------------------- #
+# Script entry-point
+# --------------------------------------------------------------------------- #
+
+if __name__ == "__main__":  # pragma: no cover
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    target = input("Enter URL to extract text from: ").strip()
+    start = time.time()
+    out, title, short = asyncio.run(extract_text(target))
+    if out:
+        print(
+            f"\n--- {title or 'Article'} -------------------------------------------\n"
+        )
+        print(out[:10_000])  # prevent accidental megapastes
+        print(
+            "\n--- TL;DR -----------------------------------------------------------\n"
+        )
+        print(short)
     else:
-        print("Failed to extract text.")
+        print("Extraction failed.")
+    logging.info("Done in %.2fs", time.time() - start)

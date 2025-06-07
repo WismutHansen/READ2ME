@@ -118,7 +118,7 @@ def process_tasks(stop_event: Event) -> None:
                         text, title, tl_dr = await extract_text(content, article_id)
                         if not text or len(text.strip()) == 0:
                             logging.error(f"Text extraction failed for URL: {content}")
-                            await update_task_status(task_id, "failed")
+                            await update_task_status(task_id, TaskStatus.FAILED)
                             continue
                         try:
                             voices = await tts_engine.get_available_voices()

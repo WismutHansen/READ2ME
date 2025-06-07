@@ -61,5 +61,14 @@
     "task": "full",
     "status": "processing",
     "timestamp": "2025-06-01T00:20:17.942478"
+  },
+  {
+    "id": "1749300856-O6cKqr",
+    "type": "url",
+    "content": "https://www.wired.com/story/uber-just-reinvented-the-bus-again/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "failed",
+    "timestamp": "2025-06-07T14:54:16.651450"
   }
 ]
