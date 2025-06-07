@@ -1,4 +1,5 @@
 import torch
+import warnings
 from transformers import pipeline
 
 MODEL_NAME = "ylacombe/whisper-large-v3-turbo"
@@ -6,12 +7,15 @@ BATCH_SIZE = 8
 
 device = 0 if torch.cuda.is_available() else "cpu"
 
-pipe = pipeline(
-    task="automatic-speech-recognition",
-    model=MODEL_NAME,
-    chunk_length_s=30,
-    device=device,
-)
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=".*past_key_values.*", category=FutureWarning)
+    warnings.filterwarnings("ignore", message=".*scaled_dot_product_attention.*", category=FutureWarning)
+    pipe = pipeline(
+        task="automatic-speech-recognition",
+        model=MODEL_NAME,
+        chunk_length_s=30,
+        device=device,
+    )
 
 
 def transcribe(inputs):

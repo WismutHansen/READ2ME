@@ -40,7 +40,7 @@ def get_formatted_date() -> str:
     return f"{now.strftime('%B')} {now.day}{suffix}, {now.year}"
 
 
-def check_word_count(text: str, minimum: int = 200) -> bool:
+def check_word_count(text: str, minimum: int = 100) -> bool:
     """True if text contains fewer than *minimum* words."""
     return len(re.findall(r"\b\w+\b", text)) < minimum
 

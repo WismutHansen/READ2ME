@@ -96,12 +96,16 @@ asr_pipe = None
 
 def initialize_asr_pipeline(device=device):
     global asr_pipe
-    asr_pipe = pipeline(
-        "automatic-speech-recognition",
-        model="openai/whisper-large-v3-turbo",
-        torch_dtype=torch.float16,
-        device=device,
-    )
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*past_key_values.*", category=FutureWarning)
+        warnings.filterwarnings("ignore", message=".*scaled_dot_product_attention.*", category=FutureWarning)
+        asr_pipe = pipeline(
+            "automatic-speech-recognition",
+            model="openai/whisper-large-v3-turbo",
+            torch_dtype=torch.float16,
+            device=device,
+        )
 
 
 # load model for inference

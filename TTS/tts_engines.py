@@ -520,7 +520,16 @@ class ChatterboxEngine(TTSEngine):
                 torch.load = patched_torch_load
 
             self.logger.info(f"Loading ChatterboxTTS model on {self.device}...")
-            self.model = ChatterboxTTS.from_pretrained(device=self.device)
+            
+            # Suppress specific deprecation warnings during model loading
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=FutureWarning, module="diffusers")
+                warnings.filterwarnings("ignore", message=".*LoRACompatibleLinear.*", category=FutureWarning)
+                warnings.filterwarnings("ignore", message=".*torch.backends.cuda.sdp_kernel.*", category=FutureWarning)
+                warnings.filterwarnings("ignore", message=".*past_key_values.*", category=FutureWarning)
+                self.model = ChatterboxTTS.from_pretrained(device=self.device)
+            
             self.sample_rate = self.model.sr # Set sample_rate after model is loaded
             self.logger.info("ChatterboxTTS model loaded successfully.")
             print("Chatterbox model loaded", file=sys.stderr)
@@ -594,11 +603,18 @@ class ChatterboxEngine(TTSEngine):
 
             # 2. TTS call per chunk
             for idx, chunk in enumerate(chunks, 1):
-                if voice_id:
-                    prompt_path = await self.get_voice_file(voice_id)
-                    wav = self.model.generate(text=chunk, audio_prompt_path=prompt_path)
-                else:
-                    wav = self.model.generate(chunk)
+                # Suppress deprecation warnings during inference
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*torch.backends.cuda.sdp_kernel.*", category=FutureWarning)
+                    warnings.filterwarnings("ignore", message=".*past_key_values.*", category=FutureWarning)
+                    warnings.filterwarnings("ignore", message=".*scaled_dot_product_attention.*", category=FutureWarning)
+                    
+                    if voice_id:
+                        prompt_path = await self.get_voice_file(voice_id)
+                        wav = self.model.generate(text=chunk, audio_prompt_path=prompt_path)
+                    else:
+                        wav = self.model.generate(chunk)
 
                 # 3. temp-file hop self.model → pydub
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:

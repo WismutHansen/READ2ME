@@ -70,5 +70,14 @@
     "task": "full",
     "status": "failed",
     "timestamp": "2025-06-07T14:54:16.651450"
+  },
+  {
+    "id": "1749329726-21qM46",
+    "type": "url",
+    "content": "https://techcrunch.com/2025/06/07/will-musk-vs-trump-affect-xais-5-billion-debt-deal/",
+    "tts_engine": "chatterbox",
+    "task": "tldr",
+    "status": "processing",
+    "timestamp": "2025-06-07T22:55:26.713141"
   }
 ]
