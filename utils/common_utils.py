@@ -13,12 +13,13 @@ from typing import Optional
 
 
 def download_file(url, save_path):
-    # Install requests library within the virtual environment
-    subprocess.run([sys.executable, "-m", "pip", "install", "requests"], check=True)
-    import requests
+    # Install cloudscraper library within the virtual environment
+    subprocess.run([sys.executable, "-m", "pip", "install", "cloudscraper"], check=True)
+    import cloudscraper
 
     print(f"Downloading from {url}")
-    with requests.get(url, stream=True) as r:
+    scraper = cloudscraper.create_scraper()
+    with scraper.get(url, stream=True) as r:
         r.raise_for_status()
         total_length = int(r.headers.get("content-length", 0))
         dl = 0

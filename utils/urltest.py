@@ -1,10 +1,11 @@
-import requests
+import cloudscraper
 import time
 
 
 def fetch_url(url):
     try:
-        response = requests.get(url)
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(url)
         print(f"Status Code: {response.status_code}")
 
         if response.status_code == 429:
@@ -35,7 +36,7 @@ def fetch_url(url):
 
             return response.content
 
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"Request failed: {e}")
 
 

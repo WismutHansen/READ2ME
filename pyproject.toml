@@ -10,6 +10,7 @@ dependencies = [
   "atproto>=0.0.57",
   "cached-path>=1.6.6",
   "chatterbox-tts>=0.1.1",
+  "cloudscraper>=1.2.71",
   "docling",
   "edge-tts>=7.0.0",
   "einops-exts>=0.0.4",

@@ -148,7 +148,7 @@ if __name__ == "__main__":
     import argparse
     from pathlib import Path
 
-    import requests  # lightweight, only needed for CLI mode
+    import cloudscraper  # lightweight, only needed for CLI mode
 
     parser = argparse.ArgumentParser(description="Detect paywall/robot pages")
     parser.add_argument("target", help="file path or URL to test")
@@ -159,5 +159,6 @@ if __name__ == "__main__":
         sample = Path(target).read_text(encoding="utf-8", errors="ignore")
         print(is_paywall_or_robot_text(sample))
     else:
-        resp = requests.get(target, timeout=15)
+        scraper = cloudscraper.create_scraper()
+        resp = scraper.get(target, timeout=15)
         print(is_paywall_or_robot_text(resp.text, http_status=resp.status_code))

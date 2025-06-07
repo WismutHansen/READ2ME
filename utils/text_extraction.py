@@ -11,7 +11,7 @@ from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import fitz
-import requests
+import cloudscraper
 import tldextract
 import trafilatura
 import wikipedia
@@ -49,13 +49,13 @@ def check_word_count(text: str, minimum: int = 100) -> bool:
 # HTTP session with automatic back-off retries
 # --------------------------------------------------------------------------- #
 
-_SESSION: Optional[requests.Session] = None
+_SESSION: Optional[cloudscraper.CloudScraper] = None
 
 
-def get_session() -> requests.Session:
+def get_session() -> cloudscraper.CloudScraper:
     global _SESSION
     if _SESSION is None:
-        _SESSION = requests.Session()
+        _SESSION = cloudscraper.create_scraper()
         retries = Retry(
             total=3,
             backoff_factor=0.8,

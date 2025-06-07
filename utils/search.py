@@ -1,4 +1,4 @@
-import requests
+import cloudscraper
 import logging
 import json
 from urllib.parse import quote
@@ -16,7 +16,8 @@ def search_with_jina(search_term: str) -> str:
              "Accept":"application/json",
              "X-With-Links-Summary": "true"
         }
-        response = requests.get(search_url, headers=headers)
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(search_url, headers=headers)
         if response.status_code == 200:
             return response.text
         else:

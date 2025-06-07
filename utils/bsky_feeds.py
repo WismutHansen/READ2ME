@@ -2,7 +2,7 @@ import re
 import os
 from atproto import Client
 from dotenv import load_dotenv
-import requests
+import cloudscraper
 
 load_dotenv()
 USERNAME = os.environ["BLUESKY_USERNAME"]
@@ -20,7 +20,8 @@ def resolve_handle_to_did(handle: str) -> str:
         str: The corresponding DID (Decentralized Identifier).
     """
     url = f"https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle={handle}"
-    response = requests.get(url)
+    scraper = cloudscraper.create_scraper()
+    response = scraper.get(url)
 
     if response.status_code == 200:
         return response.json().get("did", "")

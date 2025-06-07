@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 
 import datetime
 import logging
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 import trafilatura
 import tldextract
