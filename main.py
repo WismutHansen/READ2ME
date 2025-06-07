@@ -15,7 +15,9 @@ from urllib.parse import urlparse
 import json
 
 # Suppress pkg_resources deprecation warning from perth library
-warnings.filterwarnings("ignore", message="pkg_resources is deprecated", category=UserWarning)
+warnings.filterwarnings(
+    "ignore", message="pkg_resources is deprecated", category=UserWarning
+)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -1129,7 +1131,7 @@ if __name__ == "__main__":
         ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
         ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
 
-        READ2ME Version 0.1.4 - You can't always read what you want...
+        READ2ME Version 0.1.5 - You can't always read what you want...
 
     """)
     import uvicorn
