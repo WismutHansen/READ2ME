@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import re
+import warnings
 from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 from logging.handlers import TimedRotatingFileHandler
@@ -12,6 +13,9 @@ from threading import Event
 from typing import List, Optional, Union, Literal, Dict, Any
 from urllib.parse import urlparse
 import json
+
+# Suppress pkg_resources deprecation warning from perth library
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated", category=UserWarning)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
