@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Robust web & PDF extractor
-
-Key improvements
-----------------
-• Clearly separated “fetch” strategies with automatic fall-through.
-• Centralised robot / paywall detection before each early exit.
-• Unified logging & exception-handling so one failure never kills the pipeline.
-• Added exponential back-off retries for flaky networks.
-• Tightened Playwright usage (single browser per run, auto-close).
-• Type hints everywhere; mypy-clean.
-"""
 
 import asyncio
 import logging
