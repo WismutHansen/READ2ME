@@ -30,6 +30,8 @@ from TTS.tts_engines import (
     ChatterboxEngine,
 )
 from TTS.tts_functions import PodcastGenerator
+from llm.Local_Ollama import ensure_ollama_model_unloaded, LOW_VRAM # Added
+import functools # Added
 from utils.env import setup_env
 from utils.history_handler import add_to_history, check_history
 from utils.task_file_handler import (
@@ -109,6 +111,20 @@ def process_tasks(stop_event: Event) -> None:
                     continue
 
                 try:
+                    # Unload Ollama model before TTS engine initialization if LOW_VRAM is set
+                    # This is to free up VRAM for TTS processing
+                    logging.info("Checking if Ollama model needs to be unloaded for VRAM management.")
+                    current_loop = asyncio.get_event_loop()
+                    # Using functools.partial in case ensure_ollama_model_unloaded needs arguments in the future
+                    # For no-argument functions, `await current_loop.run_in_executor(None, ensure_ollama_model_unloaded)` also works.
+                    await current_loop.run_in_executor(None, functools.partial(ensure_ollama_model_unloaded))
+                    logging.info("Ollama unload signal sent (if model was loaded).")
+
+                    if LOW_VRAM:
+                        logging.info("LOW_VRAM is True. Adding 2-second delay to allow model unload.")
+                        await asyncio.sleep(2)
+                        logging.info("Delay finished.")
+
                     # Initialize TTS engine
                     if tts_engine_name == "openai":
                         tts_engine = OpenAITTSEngine()

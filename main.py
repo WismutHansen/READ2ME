@@ -49,6 +49,7 @@ from utils.task_file_handler import (
 from utils.task_processor import start_task_processor
 from utils.rssfeed import get_articles_from_feed, load_feeds_from_json
 from utils.common_enums import InputType, TaskType
+from llm.Local_Ollama import LOW_VRAM # Added for LOW_VRAM status logging
 
 
 # Load environment variables
@@ -139,6 +140,8 @@ def initialize_logging():
 
 # Initialize logging
 initialize_logging()
+if logger: # Check if logger was successfully initialized
+    logger.info(f"Running in Low VRAM mode: {LOW_VRAM}")
 
 
 class URLRequest(BaseModel):
