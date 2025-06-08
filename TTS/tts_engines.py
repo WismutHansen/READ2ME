@@ -30,6 +30,7 @@ from database.crud import (
     update_text,
 )
 from llm.LLM_calls import generate_title
+from llm.Local_Ollama import unload_ollama_model
 from utils.common_utils import (
     add_mp3_tags,
     get_output_files,
@@ -49,6 +50,9 @@ _TEXT_PREPROCESSOR = AdvancedTextPreprocessor(
     language="english",
     keep_acronyms=True,
 )
+
+LOW_VRAM = os.environ.get("LOW_VRAM", "False")
+LLM_ENGINE = os.environ.get("LLM_ENGINE", "Ollama")
 
 
 class TTSEngine(ABC):
@@ -488,7 +492,9 @@ class ChatterboxEngine(TTSEngine):
         self.device = self._detect_device(device)
         print(f"Using {self.device} device for Chatterbox TTS.", file=sys.stderr)
         self.model = None  # Initialize model to None
-        self.sample_rate = None # Initialize sample_rate to None, will be set after model loading
+        self.sample_rate = (
+            None  # Initialize sample_rate to None, will be set after model loading
+        )
         self.logger = logging.getLogger(__name__)
         self.voice_dir = voice_dir
         # print("Chatterbox model loaded", file=sys.stderr) # Model is no longer loaded at init
@@ -521,17 +527,28 @@ class ChatterboxEngine(TTSEngine):
                 torch.load = patched_torch_load
 
             self.logger.info(f"Loading ChatterboxTTS model on {self.device}...")
-            
+
             # Suppress specific deprecation warnings during model loading
             import warnings
+
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=FutureWarning, module="diffusers")
-                warnings.filterwarnings("ignore", message=".*LoRACompatibleLinear.*", category=FutureWarning)
-                warnings.filterwarnings("ignore", message=".*torch.backends.cuda.sdp_kernel.*", category=FutureWarning)
-                warnings.filterwarnings("ignore", message=".*past_key_values.*", category=FutureWarning)
+                warnings.filterwarnings(
+                    "ignore", category=FutureWarning, module="diffusers"
+                )
+                warnings.filterwarnings(
+                    "ignore", message=".*LoRACompatibleLinear.*", category=FutureWarning
+                )
+                warnings.filterwarnings(
+                    "ignore",
+                    message=".*torch.backends.cuda.sdp_kernel.*",
+                    category=FutureWarning,
+                )
+                warnings.filterwarnings(
+                    "ignore", message=".*past_key_values.*", category=FutureWarning
+                )
                 self.model = ChatterboxTTS.from_pretrained(device=self.device)
-            
-            self.sample_rate = self.model.sr # Set sample_rate after model is loaded
+
+            self.sample_rate = self.model.sr  # Set sample_rate after model is loaded
             self.logger.info("ChatterboxTTS model loaded successfully.")
             print("Chatterbox model loaded", file=sys.stderr)
         finally:
@@ -547,7 +564,7 @@ class ChatterboxEngine(TTSEngine):
         self.logger.info("Unloading ChatterboxTTS model...")
         del self.model
         self.model = None
-        self.sample_rate = None # Reset sample_rate
+        self.sample_rate = None  # Reset sample_rate
         if self.device == "cuda":
             torch.cuda.empty_cache()
             self.logger.info("CUDA cache emptied.")
@@ -589,18 +606,25 @@ class ChatterboxEngine(TTSEngine):
         return available_voices
 
     async def generate_audio(
-        self, text: str, voice_id: str, speed: Optional[float] = 1.0, progress_callback: Optional[callable] = None
+        self,
+        text: str,
+        voice_id: str,
+        speed: Optional[float] = 1.0,
+        progress_callback: Optional[callable] = None,
     ) -> Tuple[AudioSegment, None]:
         """
         Generate TTS in ≥20-character chunks using AdvancedTextPreprocessor,
         then concatenate the resulting AudioSegments.
         """
-        self.load_model() # Ensure model is loaded
-        
+        if LOW_VRAM is True and LLM_ENGINE == "Ollama":
+            unload_ollama_model()
+
+        self.load_model()  # Ensure model is loaded
+
         # Temporarily increase logging level to suppress verbose output
         original_log_level = logging.getLogger().level
         logging.getLogger().setLevel(logging.ERROR)
-        
+
         try:
             # 1. chunk input text with your pre-processor
             chunks: List[str] = _TEXT_PREPROCESSOR.preprocess_text(text)
@@ -614,29 +638,35 @@ class ChatterboxEngine(TTSEngine):
                 if progress_callback:
                     progress = int((idx - 1) / len(chunks) * 100)
                     await progress_callback(progress)
-                
+
                 # Suppress warnings and disable internal progress bars during inference
                 import warnings
-                import sys
                 import io
                 from contextlib import redirect_stderr, redirect_stdout
-                
-                with warnings.catch_warnings(), \
-                     redirect_stderr(io.StringIO()), \
-                     redirect_stdout(io.StringIO()):
+
+                with (
+                    warnings.catch_warnings(),
+                    redirect_stderr(io.StringIO()),
+                    redirect_stdout(io.StringIO()),
+                ):
                     warnings.filterwarnings("ignore")
-                    
+
                     # Temporarily disable tqdm for internal model operations
                     original_tqdm = None
                     try:
                         import tqdm as tqdm_module
+
                         original_tqdm = tqdm_module.tqdm
                         # Replace tqdm with a no-op version
-                        tqdm_module.tqdm = lambda *args, **kwargs: iter(args[0]) if args else iter([])
-                        
+                        tqdm_module.tqdm = (
+                            lambda *args, **kwargs: iter(args[0]) if args else iter([])
+                        )
+
                         if voice_id:
                             prompt_path = await self.get_voice_file(voice_id)
-                            wav = self.model.generate(text=chunk, audio_prompt_path=prompt_path)
+                            wav = self.model.generate(
+                                text=chunk, audio_prompt_path=prompt_path
+                            )
                         else:
                             wav = self.model.generate(chunk)
                     finally:
@@ -649,22 +679,23 @@ class ChatterboxEngine(TTSEngine):
                     tmp_path = tmp.name
                     # Ensure model and sample_rate are available
                     if self.model is None or self.sample_rate is None:
-                        raise RuntimeError("Model or sample rate not initialized. Load the model first.")
+                        raise RuntimeError(
+                            "Model or sample rate not initialized. Load the model first."
+                        )
                     _ = ta.save(tmp_path, wav, self.sample_rate)
 
                 seg = AudioSegment.from_wav(tmp_path)
                 os.unlink(tmp_path)
 
                 segments.append(seg)
-                
+
                 # Update progress bar description with current chunk info
-                progress_bar.set_postfix({
-                    'chars': len(chunk),
-                    'duration': f"{len(seg)}ms"
-                })
+                progress_bar.set_postfix(
+                    {"chars": len(chunk), "duration": f"{len(seg)}ms"}
+                )
 
             progress_bar.close()
-            
+
             # 4. concatenate all segments
             audio_segment: AudioSegment = sum(segments[1:], segments[0])
 
@@ -685,7 +716,7 @@ class ChatterboxEngine(TTSEngine):
         finally:
             # Restore original logging level
             logging.getLogger().setLevel(original_log_level)
-            self.unload_model() # Ensure model is unloaded
+            self.unload_model()  # Ensure model is unloaded
 
     async def get_voice_file(self, voice_id: str) -> str:
         # Define supported audio MIME types
