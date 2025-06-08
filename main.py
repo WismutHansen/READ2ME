@@ -49,7 +49,7 @@ from utils.task_file_handler import (
 from utils.task_processor import start_task_processor
 from utils.rssfeed import get_articles_from_feed, load_feeds_from_json
 from utils.common_enums import InputType, TaskType
-from llm.Local_Ollama import LOW_VRAM # Added for LOW_VRAM status logging
+from llm.Local_Ollama import LOW_VRAM  # Added for LOW_VRAM status logging
 
 
 # Load environment variables
@@ -140,7 +140,7 @@ def initialize_logging():
 
 # Initialize logging
 initialize_logging()
-if logger: # Check if logger was successfully initialized
+if logger:  # Check if logger was successfully initialized
     logger.info(f"Running in Low VRAM mode: {LOW_VRAM}")
 
 
@@ -230,7 +230,7 @@ app = FastAPI(
     lifespan=lifespan,
     title="Read2Me API",
     description="API for text-to-speech conversion and more",
-    version="0.1.3",
+    version="0.1.6",
 )
 
 mcp = FastApiMCP(app)
@@ -1134,7 +1134,7 @@ if __name__ == "__main__":
         ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
         ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
 
-        READ2ME Version 0.1.5 - You can't always read what you want...
+        READ2ME Version 0.1.6 - You can't always read what you want...
 
     """)
     import uvicorn
