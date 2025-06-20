@@ -14,6 +14,7 @@ import {
 } from './ui/dialog';
 import { ListTodo, AlertCircle, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getSettings } from '@/lib/settings';
 
 interface StatusState {
   queue: {
@@ -106,7 +107,8 @@ export default function TaskStatusModal() {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch('http://localhost:7777/v1/status');
+      const { serverUrl, ttsEngine } = getSettings();
+      const response = await fetch(`${serverUrl}/v1/status`);
       const data = await response.json();
       setStatus(data);
       setLoading(false);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { getSettings } from '@/lib/settings';
 
 interface StatusState {
   queue: {
@@ -25,11 +26,12 @@ export default function Status() {
     lastUpdate: '',
   });
   const [loading, setLoading] = useState(true);
+  const { serverUrl, ttsEngine } = getSettings();
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const response = await fetch('http://localhost:7777/v1/status');
+        const response = await fetch(`${serverUrl}/v1/status`);
         const data = await response.json();
         setStatus(data);
         setLoading(false);

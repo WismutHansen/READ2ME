@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { getSettings } from '@/lib/settings';
 
 const DEFAULT_CATEGORIES = [
   "General",
@@ -42,6 +43,7 @@ export default function SourceManager() {
   const [urlError, setUrlError] = useState('');
   const [dialogMessage, setDialogMessage] = useState<string | null>(null);
   const [dialogType, setDialogType] = useState<'success' | 'error'>('success');
+  const { serverUrl, ttsEngine } = getSettings();
 
   const validateUrl = (url: string): boolean => {
     try {
@@ -82,7 +84,7 @@ export default function SourceManager() {
     }
 
     try {
-      const response = await fetch('http://localhost:7777/v1/sources/add', {
+      const response = await fetch(`${serverUrl}/v1/sources/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +118,7 @@ export default function SourceManager() {
 
   const handleFetchArticles = async () => {
     try {
-      const response = await fetch('http://localhost:7777/v1/sources/fetch', {
+      const response = await fetch(`${serverUrl}/v1/sources/fetch`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to fetch articles');
@@ -150,7 +152,7 @@ export default function SourceManager() {
             </Alert>
           )}
         </div>
-        
+
         <div className="space-y-2">
           <div className="opacity-75">Select a category for this source</div>
           <Select
@@ -173,7 +175,7 @@ export default function SourceManager() {
               ))}
             </SelectContent>
           </Select>
-          
+
           {category === 'Custom' && (
             <Input
               type="text"

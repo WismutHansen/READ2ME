@@ -8,7 +8,7 @@ export interface Settings {
 export const AVAILABLE_TTS_ENGINES = ['edge', 'localai', 'chatterbox'] as const;
 
 export const DEFAULT_SETTINGS: Settings = {
-  serverUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7777',
+  serverUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7788',
   ttsEngine: 'edge'
 };
 
@@ -16,7 +16,7 @@ export function getSettings(): Settings {
   if (typeof window === 'undefined') {
     return DEFAULT_SETTINGS;
   }
-  
+
   const savedSettings = localStorage.getItem('settings');
   if (savedSettings) {
     try {
@@ -36,13 +36,13 @@ export function getSettings(): Settings {
 
 export function saveSettings(settings: Partial<Settings>) {
   if (typeof window === 'undefined') return;
-  
+
   const currentSettings = getSettings();
   const newSettings = {
     ...currentSettings,
     ...settings
   };
-  
+
   localStorage.setItem('settings', JSON.stringify(newSettings));
   return newSettings;
 }
