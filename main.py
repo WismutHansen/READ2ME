@@ -55,6 +55,9 @@ from llm.Local_Ollama import LOW_VRAM  # Added for LOW_VRAM status logging
 # Load environment variables
 output_dir, task_file, img_pth, sources_file = setup_env()
 
+load_dotenv()
+FRONTEND_IP = os.environ.get("FRONTEND_IP")
+
 # Background thread stop event
 stop_event = Event()
 
@@ -70,7 +73,6 @@ def check_output_dir():
     Returns:
         str: The path to the OUTPUT_FOLDER.
     """
-    load_dotenv()
 
     output_folder = os.getenv("OUTPUT_FOLDER")
 
@@ -242,6 +244,7 @@ mcp.mount()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        str(FRONTEND_IP),
         "http://localhost:3001",
         "http://localhost:3000",
         "http://192.168.1.*",  # HTTP for all IPs in 192.168.1.x range
