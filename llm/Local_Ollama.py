@@ -23,11 +23,23 @@ def force_cuda_cleanup():
         import torch
         import gc
         if torch.cuda.is_available():
+            # Multiple rounds of aggressive cleanup
+            for i in range(5):
+                gc.collect()
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                time.sleep(0.3)
+            
+            # Reset all CUDA memory stats and allocations
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.reset_accumulated_memory_stats()
+            
+            # Force a final cleanup round
             gc.collect()
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
-            # Reset CUDA device to free any lingering allocations
-            torch.cuda.reset_peak_memory_stats()
+            time.sleep(1)
+            
             logger.info("Aggressive CUDA cleanup completed.")
     except ImportError:
         pass
@@ -100,11 +112,18 @@ def unload_ollama_model():
             import torch
             import gc
             if torch.cuda.is_available():
-                gc.collect()  # Force garbage collection first
-                torch.cuda.empty_cache()
-                torch.cuda.synchronize()  # Ensure CUDA operations complete
-                time.sleep(1)  # Brief pause to allow cleanup
-                logger.info("CUDA cache cleared and synchronized after Ollama model unload.")
+                # Multiple rounds of cleanup to ensure thorough memory release
+                for _ in range(3):
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                    time.sleep(0.5)
+                
+                # Reset memory stats to clear fragmented allocations
+                torch.cuda.reset_peak_memory_stats()
+                torch.cuda.reset_accumulated_memory_stats()
+                time.sleep(2)  # Longer pause to allow complete cleanup
+                logger.info("Aggressive CUDA cache cleared and synchronized after Ollama model unload.")
         except ImportError:
             pass  # torch not available, skip CUDA cache clearing
             

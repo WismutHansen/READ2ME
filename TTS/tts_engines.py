@@ -501,6 +501,8 @@ class ChatterboxEngine(TTSEngine):
         if self.device == "cuda":
             os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
             os.environ["TORCH_USE_CUDA_DSA"] = "1"
+            # Set memory allocation strategy to reduce fragmentation
+            os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
         # print("Chatterbox model loaded", file=sys.stderr) # Model is no longer loaded at init
 
     def _detect_device(self, device):
@@ -639,8 +641,24 @@ class ChatterboxEngine(TTSEngine):
             force_cuda_cleanup()  # Aggressive memory cleanup
             # Give Ollama time to fully unload before proceeding
             import time
-            time.sleep(3)  # Increased wait time for better cleanup
+            time.sleep(5)  # Further increased wait time for complete cleanup
 
+        # Check available CUDA memory before loading model
+        if self.device == "cuda":
+            try:
+                memory_free = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated(0)
+                memory_free_gb = memory_free / (1024**3)
+                self.logger.info(f"Available CUDA memory before loading: {memory_free_gb:.2f} GB")
+                
+                # If less than 2GB free, force additional cleanup
+                if memory_free_gb < 2.0:
+                    self.logger.warning("Low CUDA memory detected, forcing additional cleanup")
+                    from llm.Local_Ollama import force_cuda_cleanup
+                    force_cuda_cleanup()
+                    time.sleep(2)
+            except Exception as e:
+                self.logger.warning(f"Could not check CUDA memory: {e}")
+        
         self.load_model()  # Ensure model is loaded
 
         # Temporarily increase logging level to suppress verbose output
