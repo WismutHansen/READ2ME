@@ -497,6 +497,10 @@ class ChatterboxEngine(TTSEngine):
         )
         self.logger = logging.getLogger(__name__)
         self.voice_dir = voice_dir
+        # Set CUDA debugging environment variables for better error reporting
+        if self.device == "cuda":
+            os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+            os.environ["TORCH_USE_CUDA_DSA"] = "1"
         # print("Chatterbox model loaded", file=sys.stderr) # Model is no longer loaded at init
 
     def _detect_device(self, device):
@@ -517,6 +521,12 @@ class ChatterboxEngine(TTSEngine):
         # Save original torch.load and restore after model loading
         original_torch_load = torch.load
         try:
+            # Set CUDA error handling to prevent silent failures
+            if self.device == "cuda":
+                torch.backends.cudnn.enabled = True
+                torch.backends.cudnn.benchmark = False  # Disable for stability
+                torch.backends.cudnn.deterministic = True
+                
             if self.device == "mps":
                 # Apply MPS device mapping patch
                 def patched_torch_load(*args, **kwargs):
@@ -656,35 +666,76 @@ class ChatterboxEngine(TTSEngine):
                 import io
                 from contextlib import redirect_stderr, redirect_stdout
 
-                with (
-                    warnings.catch_warnings(),
-                    redirect_stderr(io.StringIO()),
-                    redirect_stdout(io.StringIO()),
-                ):
-                    warnings.filterwarnings("ignore")
+                try:
+                    with (
+                        warnings.catch_warnings(),
+                        redirect_stderr(io.StringIO()),
+                        redirect_stdout(io.StringIO()),
+                    ):
+                        warnings.filterwarnings("ignore")
 
-                    # Temporarily disable tqdm for internal model operations
-                    original_tqdm = None
-                    try:
-                        import tqdm as tqdm_module
+                        # Temporarily disable tqdm for internal model operations
+                        original_tqdm = None
+                        try:
+                            import tqdm as tqdm_module
 
-                        original_tqdm = tqdm_module.tqdm
-                        # Replace tqdm with a no-op version
-                        tqdm_module.tqdm = (
-                            lambda *args, **kwargs: iter(args[0]) if args else iter([])
-                        )
-
-                        if voice_id:
-                            prompt_path = await self.get_voice_file(voice_id)
-                            wav = self.model.generate(
-                                text=chunk, audio_prompt_path=prompt_path
+                            original_tqdm = tqdm_module.tqdm
+                            # Replace tqdm with a no-op version
+                            tqdm_module.tqdm = (
+                                lambda *args, **kwargs: iter(args[0]) if args else iter([])
                             )
+                            
+                            # Validate chunk before processing to avoid index errors  
+                            if not chunk or len(chunk.strip()) == 0:
+                                self.logger.warning(f"Skipping empty chunk {idx}")
+                                continue
+                                
+                            # Limit chunk length to prevent tensor size issues
+                            if len(chunk) > 500:  # Reasonable limit for TTS chunks
+                                chunk = chunk[:500] + "..."
+                                self.logger.warning(f"Truncated chunk {idx} to 500 characters")
+
+                            if voice_id:
+                                prompt_path = await self.get_voice_file(voice_id)
+                                wav = self.model.generate(
+                                    text=chunk, audio_prompt_path=prompt_path
+                                )
+                            else:
+                                wav = self.model.generate(chunk)
+                        finally:
+                            # Restore original tqdm
+                            if original_tqdm:
+                                tqdm_module.tqdm = original_tqdm
+                                
+                except (RuntimeError, torch.cuda.OutOfMemoryError) as e:
+                    if "device-side assert" in str(e) or "CUDA error" in str(e):
+                        self.logger.error(f"CUDA assertion error in chunk {idx}: {e}")
+                        
+                        # Try to fallback to CPU if CUDA keeps failing
+                        if self.device == "cuda":
+                            self.logger.warning("Falling back to CPU due to persistent CUDA errors")
+                            self.unload_model()
+                            self.device = "cpu"
+                            self.load_model()
+                            
+                            # Retry the chunk with CPU
+                            try:
+                                if voice_id:
+                                    prompt_path = await self.get_voice_file(voice_id)
+                                    wav = self.model.generate(
+                                        text=chunk, audio_prompt_path=prompt_path
+                                    )
+                                else:
+                                    wav = self.model.generate(chunk)
+                            except Exception as cpu_error:
+                                self.logger.error(f"CPU fallback also failed for chunk {idx}: {cpu_error}")
+                                continue  # Skip this chunk
                         else:
-                            wav = self.model.generate(chunk)
-                    finally:
-                        # Restore original tqdm
-                        if original_tqdm:
-                            tqdm_module.tqdm = original_tqdm
+                            # Already on CPU or different device, skip this chunk
+                            self.logger.error(f"Skipping chunk {idx} due to error: '{chunk[:50]}...'")
+                            continue
+                    else:
+                        raise  # Re-raise if it's a different error
 
                 # 3. temp-file hop self.model → pydub
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
