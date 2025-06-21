@@ -232,7 +232,7 @@ app = FastAPI(
     lifespan=lifespan,
     title="Read2Me API",
     description="API for text-to-speech conversion and more",
-    version="0.1.6",
+    version="0.1.7",
 )
 
 mcp = FastApiMCP(app)
@@ -1137,7 +1137,7 @@ if __name__ == "__main__":
         ██║  ██║███████╗██║  ██║██████╔╝███████╗██║ ╚═╝ ██║███████╗
         ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝     ╚═╝╚══════╝
 
-        READ2ME Version 0.1.6 - You can't always read what you want...
+        READ2ME Version 0.1.7 - read the lightning...
 
     """)
     import uvicorn

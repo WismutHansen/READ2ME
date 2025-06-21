@@ -1,0 +1,1 @@
+The success of Llama3 has been incredible, proving that open source models are rapidly catching up to closed models without compromising private ownership. Our customers have been using their own proprietary data to fine-tune small OSS models like LAMA 3 to run their tasks with greater accuracy than even the top closed source models are capable of.

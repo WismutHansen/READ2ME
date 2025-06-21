@@ -168,5 +168,15 @@
     "status": "processing",
     "progress": 28,
     "timestamp": "2025-06-07T23:56:42.211552"
+  },
+  {
+    "id": "1750541294-sRfJYb",
+    "type": "url",
+    "content": "https://techcrunch.com/2025/06/21/european-leaders-worry-theyre-too-reliant-on-u-s-tech/",
+    "tts_engine": "chatterbox",
+    "task": "full",
+    "status": "processing",
+    "progress": 50,
+    "timestamp": "2025-06-21T23:28:14.258102"
   }
 ]

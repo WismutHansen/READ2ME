@@ -51,7 +51,7 @@ _TEXT_PREPROCESSOR = AdvancedTextPreprocessor(
     keep_acronyms=True,
 )
 
-LOW_VRAM = os.environ.get("LOW_VRAM", "False")
+LOW_VRAM = os.environ.get("LOW_VRAM", "False").lower() == "true"
 LLM_ENGINE = os.environ.get("LLM_ENGINE", "Ollama")
 
 
@@ -565,9 +565,16 @@ class ChatterboxEngine(TTSEngine):
         del self.model
         self.model = None
         self.sample_rate = None  # Reset sample_rate
+        
+        # Force garbage collection to free memory
+        import gc
+        gc.collect()
+        
         if self.device == "cuda":
             torch.cuda.empty_cache()
-            self.logger.info("CUDA cache emptied.")
+            # Force synchronization to ensure CUDA operations complete
+            torch.cuda.synchronize()
+            self.logger.info("CUDA cache emptied and synchronized.")
         elif self.device == "mps":
             # For MPS, there isn't a direct equivalent to empty_cache that is as impactful
             # as for CUDA. Re-assigning to None and relying on Python's GC is the primary way.
@@ -616,8 +623,13 @@ class ChatterboxEngine(TTSEngine):
         Generate TTS in ≥20-character chunks using AdvancedTextPreprocessor,
         then concatenate the resulting AudioSegments.
         """
-        if LOW_VRAM == "True" and LLM_ENGINE == "Ollama":
+        if LOW_VRAM and LLM_ENGINE == "Ollama":
+            from llm.Local_Ollama import unload_ollama_model, force_cuda_cleanup
             unload_ollama_model()
+            force_cuda_cleanup()  # Aggressive memory cleanup
+            # Give Ollama time to fully unload before proceeding
+            import time
+            time.sleep(3)  # Increased wait time for better cleanup
 
         self.load_model()  # Ensure model is loaded
 
@@ -717,6 +729,11 @@ class ChatterboxEngine(TTSEngine):
             # Restore original logging level
             logging.getLogger().setLevel(original_log_level)
             self.unload_model()  # Ensure model is unloaded
+            
+            # Additional cleanup for LOW_VRAM systems
+            if LOW_VRAM:
+                from llm.Local_Ollama import force_cuda_cleanup
+                force_cuda_cleanup()
 
     async def get_voice_file(self, voice_id: str) -> str:
         # Define supported audio MIME types
