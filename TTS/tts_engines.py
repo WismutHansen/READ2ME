@@ -616,7 +616,7 @@ class ChatterboxEngine(TTSEngine):
         Generate TTS in ≥20-character chunks using AdvancedTextPreprocessor,
         then concatenate the resulting AudioSegments.
         """
-        if LOW_VRAM is True and LLM_ENGINE == "Ollama":
+        if LOW_VRAM == "True" and LLM_ENGINE == "Ollama":
             unload_ollama_model()
 
         self.load_model()  # Ensure model is loaded
