@@ -39,7 +39,9 @@
     "sonner": "^1.7.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "vaul": "^0.9.9"
+    "vaul": "^0.9.9",
+    "remark-gfm": "^4.0.0",
+    "rehype-raw": "^7.0.0"
   },
   "devDependencies": {
     "@onlook/nextjs": "^2.1.1",
