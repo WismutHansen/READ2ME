@@ -30,7 +30,6 @@ from database.crud import (
     update_text,
 )
 from llm.LLM_calls import generate_title
-from llm.Local_Ollama import unload_ollama_model
 from utils.common_utils import (
     add_mp3_tags,
     get_output_files,
